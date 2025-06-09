@@ -1,0 +1,148 @@
+<Window x:Class="BassesModManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Basse's Mod Manager" Height="500" Width="800"
+        WindowStartupLocation="CenterScreen"
+        Background="Black">
+    <Grid Margin="10">
+        <!-- Button style for hover effect (MÅ stå først) -->
+        <Grid.Resources>
+            <Style TargetType="Button" x:Key="PurpleButtonStyle">
+                <Setter Property="OverridesDefaultStyle" Value="True"/>
+                <Setter Property="Background" Value="#8000FF"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderBrush" Value="#8000FF"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Padding" Value="16,0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="3">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Foreground" Value="#8000FF"/>
+                        <Setter Property="BorderBrush" Value="White"/>
+                        <Setter Property="Padding" Value="16,0"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <!-- RadioButton med hvit dot -->
+            <Style TargetType="RadioButton" x:Key="WhiteDotRadioButton">
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Background" Value="Black"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <StackPanel Orientation="Horizontal">
+                                <Grid Width="18" Height="18" Margin="0,0,8,0">
+                                    <Ellipse Stroke="White" StrokeThickness="2" Fill="Black"/>
+                                    <Ellipse x:Name="Dot" Width="10" Height="10" Fill="White" Visibility="Collapsed"/>
+                                </Grid>
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <!-- Tooltip style -->
+            <Style TargetType="ToolTip">
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Background" Value="#222"/>
+            </Style>
+        </Grid.Resources>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Game Path Selection -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock Text="Select Game Path" Margin="0,0,0,5" Foreground="White" FontWeight="Bold" FontSize="13"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" CornerRadius="3" BorderBrush="White" BorderThickness="1">
+                    <TextBox x:Name="GamePathTextBox" IsReadOnly="True" Foreground="White" Background="#222" Padding="5"/>
+                </Border>
+                <Button x:Name="BrowseButton" Grid.Column="1" Content="Browse" Margin="15,0,0,0" Width="70" Padding="5,5,5,5"
+                        Style="{StaticResource PurpleButtonStyle}"
+                        ToolTip="Browse for the game executable"
+                        Click="BrowseButton_Click"/>
+            </Grid>
+        </StackPanel>
+
+        <!-- Mod Selection Title -->
+        <TextBlock Grid.Row="1" Text="Select mod" Foreground="White" FontWeight="Bold" FontSize="13" Margin="0,0,0,0"/>
+        <!-- Mod Selection List -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,5,0,0">
+            <ItemsControl x:Name="ModListControl">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <RadioButton Content="{Binding Name}"
+                                     GroupName="ModsGroup"
+                                     IsChecked="{Binding IsEnabled}"
+                                     Style="{StaticResource WhiteDotRadioButton}"
+                                     Margin="0,5"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Tutorial Title -->
+        <TextBlock Grid.Row="3" Text="How to use Basse's Mod Manager:" Foreground="White" FontWeight="Bold" FontSize="16" Margin="0,15,0,0"/>
+        <!-- Tutorial / Instructions -->
+        <StackPanel Grid.Row="4" Margin="0,5,0,10">
+            <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,0,0,0">
+                1. <Bold>Run this app as administrator</Bold>. This is required for the app to work.
+            </TextBlock>
+            <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,2,0,0">
+                2. Click <Bold>Browse</Bold> and select the <Bold>starwarsbattlefront.exe</Bold> file in your Star Wars Battlefront 2015 install folder.
+            </TextBlock>
+            <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,2,0,0">
+                3. Select which crosshair mod you want to use (only one can be active at a time).
+            </TextBlock>
+            <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,2,0,0">
+                4. Click <Bold>Launch Game</Bold> to start the game with your selected mod.
+            </TextBlock>
+            <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,8,0,0">
+                <Bold>IMPORTANT:</Bold> A small window from Frosty Toolsuite will pop up. You <Bold>must</Bold> click the blue button in the top right corner of this window to close it. The game will not launch until you do this.
+            </TextBlock>
+        </StackPanel>
+
+        <!-- Launch Button -->
+        <Button Grid.Row="5"
+                x:Name="LaunchGameButton"
+                Content="Launch Game"
+                Height="40"
+                Margin="0,10,0,0"
+                Click="LaunchGameButton_Click"
+                Style="{StaticResource PurpleButtonStyle}"
+                ToolTip="Select a mod before launching the game"/>
+
+        <!-- Version label -->
+        <TextBlock Grid.Row="6" Text="Version 1.0" Foreground="White" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+    </Grid>
+</Window> 
