@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Threading;
 using System.Security.Cryptography;
 using System.Windows.Controls;
+using System.Security.Principal;
 
 namespace BassesModManager 
 {
@@ -97,7 +98,7 @@ namespace BassesModManager
                         unauthorizedMods.Add(modFile);
                     }
                 }
-                // Prøv å slette ulovlige mods
+                // Try to delete unauthorized mods
                 List<string> failedDeletes = new List<string>();
                 foreach (var file in unauthorizedMods)
                 {
@@ -112,12 +113,12 @@ namespace BassesModManager
                 }
                 if (failedDeletes.Count > 0)
                 {
-                    MessageBox.Show($"Some unauthorized mods could not be deleted: {string.Join(", ", failedDeletes)}.\nPlease run the app as administrator.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    CustomMessageBox.Show(this, $"Some unauthorized mods could not be deleted: {string.Join(", ", failedDeletes)}.\nPlease run the app as administrator.", "Warning");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading mods: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                CustomMessageBox.Show(this, $"Error loading mods: {ex.Message}", "Error");
             }
         }
 
@@ -135,17 +136,17 @@ namespace BassesModManager
         {
             try
             {
-                // Initialiser Frosty-profilen for Battlefront 2015 med PluginManager
+                // Initialize Frosty profile for Battlefront 2015 with PluginManager
                 var logger = new SimpleLogger();
                 var pluginManager = new Frosty.Core.PluginManager(logger, Frosty.Core.PluginManagerType.ModManager);
                 Frosty.Core.App.PluginManager = pluginManager;
                 FrostySdk.ProfilesLibrary.Initialize(pluginManager.Profiles);
                 FrostySdk.ProfilesLibrary.Initialize("StarWarsBattlefront");
 
-                // Initialiser konfigurasjonssystemet
+                // Initialize config system
                 Frosty.Core.Config.Load();
 
-                // Sett opp FileSystem, ResourceManager og AssetManager slik FrostyModManager gjør det
+                // Set up FileSystem, ResourceManager and AssetManager like FrostyModManager does
                 var fs = new FrostySdk.FileSystem(gamePath + Path.DirectorySeparatorChar);
                 foreach (var source in FrostySdk.ProfilesLibrary.Sources)
                     fs.AddSource(source.Path, source.SubDirs);
@@ -159,40 +160,85 @@ namespace BassesModManager
                 am.SetLogger(logger);
                 am.Initialize(false);
 
-                // Sett opp nødvendige parametre for mod executor
+                // Set up necessary parameters for mod executor
                 var cancelToken = new System.Threading.CancellationToken();
                 string rootPath = gamePath + Path.DirectorySeparatorChar;
                 string additionalArgs = "";
 
                 Frosty.Core.App.Logger = logger;
                 
-                // Kjør FrostyModExecutor i silent mode
+                // Run FrostyModExecutor in silent mode
                 var executor = new FrostyModExecutor();
                 var modPaths = selectedMods.Where(m => m.IsEnabled)
                                            .Select(m => Path.Combine(modsDirectory, m.FileName))
                                            .ToArray();
 
-                // Kjør mod-applikasjonen i bakgrunnen
+                // Run mod application in background
                 Task.Run(() => {
                     int result = executor.Run(fs, cancelToken, logger, rootPath, modPackName, additionalArgs, modPaths);
                     
                     if (result == 0)
                     {
-                        // Start spillet automatisk i silent mode
+                        // Start game automatically in silent mode
                         string modDataPath = Path.Combine(gamePath, "ModData", modPackName);
                         FrostyModExecutor.LaunchGame(gamePath + Path.DirectorySeparatorChar, modPackName, modDataPath, additionalArgs);
                     }
                     else
                     {
                         Dispatcher.Invoke(() => {
-                            MessageBox.Show("Noe gikk galt under patching av mods.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            CustomMessageBox.Show(this, "Something went wrong while patching mods.", "Error");
                         });
                     }
                 });
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error applying mods: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                CustomMessageBox.Show(this, $"Error applying mods: {ex.Message}", "Error");
+            }
+        }
+
+        private static bool IsRunAsAdmin()
+        {
+            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+            {
+                WindowsPrincipal principal = new WindowsPrincipal(identity);
+                return principal.IsInRole(WindowsBuiltInRole.Administrator);
+            }
+        }
+
+        private string GetModPackNameForSelection(List<ModItem> selectedMods, string gamePath)
+        {
+            // Create a unique hash based on sorted file names for selected combination
+            var modNames = selectedMods.Where(m => m.IsEnabled)
+                                      .Select(m => m.FileName)
+                                      .OrderBy(n => n)
+                                      .ToArray();
+            string comboString = string.Join("|", modNames);
+            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+            {
+                var hash = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(comboString));
+                string hashString = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                string modDataPath = System.IO.Path.Combine(gamePath, "ModData");
+                // Check if mod pack folder exists
+                if (System.IO.Directory.Exists(modDataPath))
+                {
+                    var existing = System.IO.Directory.GetDirectories(modDataPath, "ModPack_*_" + hashString);
+                    if (existing.Length > 0)
+                    {
+                        // Use existing folder
+                        return System.IO.Path.GetFileName(existing[0]);
+                    }
+                }
+                                  
+                if (!IsRunAsAdmin())
+                {
+                    CustomMessageBox.Show(this, "Since this is the first time you are launching the game with this mod combination, the app requires administrator privileges. Please restart the app as administrator.", "Admin required");
+                    return null;
+                }
+                else
+                {
+                    return $"ModPack_{DateTime.Now:yyyyMMdd_HHmmss}_{hashString}";
+                }
             }
         }
 
@@ -203,26 +249,35 @@ namespace BassesModManager
                 string gamePath = Properties.Settings.Default.GamePath;
                 if (string.IsNullOrEmpty(gamePath))
                 {
-                    MessageBox.Show("Please set the game path first!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    CustomMessageBox.Show(this, "Please set the game path first!", "Error");
                     return;
                 }
-
-                // Create a unique name for this mod combination
-                string modPackName = "ModPack_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
-
-                // Get selected mods
                 var selectedMods = mods.Where(m => m.IsEnabled).ToList();
                 if (!selectedMods.Any())
                 {
-                    MessageBox.Show("You must select a mod before launching the game!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    CustomMessageBox.Show(this, "You must select a mod before launching the game!", "Error");
                     return;
                 }
-                // Bruk FrostyModExecutor til å patche og gjøre klart
+
+                // Here: check if the starwars.cache file in the Caches folder exists in the path of this application (BassesModManager where it was installed)
+                string cachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Caches", "starwars.cache");
+                if (!File.Exists(cachePath) && !IsRunAsAdmin())
+                {
+                    CustomMessageBox.Show(this, "Please run the app as administrator to let the app create a necessary cache file. (This will drastically improve the performance for later launches.)", "Admin required");
+                    return;
+                }
+
+                // Find or create the correct ModPack folder
+                string modPackName = GetModPackNameForSelection(selectedMods, gamePath);
+                if (modPackName == null)
+                {
+                    return;
+                }
                 ApplyModsAndLaunch(gamePath, selectedMods, modPackName);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                CustomMessageBox.Show(this, $"An error occurred: {ex.Message}\n (Running the app as administrator will most likely fix this. If not, please report the error to the developer.)", "Error");
             }
         }
     }

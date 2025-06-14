@@ -106,7 +106,20 @@ namespace FrostyModManager
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            if (!File.Exists($"{Frosty.Core.App.GlobalSettingsPath}/manager_config.json"))
+            string configDir = Frosty.Core.App.GlobalSettingsPath;
+            string configFile = $"{configDir}/manager_config.json";
+
+            // Opprett mappen hvis den ikke finnes
+            if (!Directory.Exists(configDir))
+                Directory.CreateDirectory(configDir);
+
+            // Opprett en tom/standard config-fil hvis den ikke finnes
+            if (!File.Exists(configFile))
+            {
+                File.WriteAllText(configFile, "{\n  \"Games\": {},\n  \"GlobalOptions\": {}\n}");
+            }
+
+            if (!File.Exists(configFile))
                 Config.UpgradeConfigs();
 
             //RefreshConfigurationList();

@@ -3,9 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Basse's Mod Manager" Height="500" Width="800"
         WindowStartupLocation="CenterScreen"
-        Background="Black">
+        Background="Black"
+        FontSize="15">
     <Grid Margin="10">
-        <!-- Button style for hover effect (MÅ stå først) -->
+        <!-- Button style for hover effect -->
         <Grid.Resources>
             <Style TargetType="Button" x:Key="PurpleButtonStyle">
                 <Setter Property="OverridesDefaultStyle" Value="True"/>
@@ -16,6 +17,7 @@
                 <Setter Property="FontWeight" Value="Bold"/>
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Padding" Value="16,0"/>
+                <Setter Property="FontSize" Value="15"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
@@ -37,10 +39,11 @@
                     </Trigger>
                 </Style.Triggers>
             </Style>
-            <!-- RadioButton med hvit dot -->
+            <!-- RadioButton with white dot -->
             <Style TargetType="RadioButton" x:Key="WhiteDotRadioButton">
                 <Setter Property="Foreground" Value="White"/>
                 <Setter Property="Background" Value="Black"/>
+                <Setter Property="FontSize" Value="15"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RadioButton">
@@ -64,6 +67,7 @@
             <Style TargetType="ToolTip">
                 <Setter Property="Foreground" Value="White"/>
                 <Setter Property="Background" Value="#222"/>
+                <Setter Property="FontSize" Value="15"/>
             </Style>
         </Grid.Resources>
         <Grid.RowDefinitions>
@@ -78,7 +82,7 @@
 
         <!-- Game Path Selection -->
         <StackPanel Grid.Row="0" Margin="0,0,0,10">
-            <TextBlock Text="Select Game Path" Margin="0,0,0,5" Foreground="White" FontWeight="Bold" FontSize="13"/>
+            <TextBlock Text="Select Game Path" Margin="0,0,0,5" Foreground="White" FontWeight="Bold" FontSize="15"/>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -95,7 +99,7 @@
         </StackPanel>
 
         <!-- Mod Selection Title -->
-        <TextBlock Grid.Row="1" Text="Select mod" Foreground="White" FontWeight="Bold" FontSize="13" Margin="0,0,0,0"/>
+        <TextBlock Grid.Row="1" Text="Select mod" Foreground="White" FontWeight="Bold" FontSize="15" Margin="0,0,0,0"/>
         <!-- Mod Selection List -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,5,0,0">
             <ItemsControl x:Name="ModListControl">
@@ -111,24 +115,13 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <!-- Tutorial Title -->
-        <TextBlock Grid.Row="3" Text="How to use Basse's Mod Manager:" Foreground="White" FontWeight="Bold" FontSize="16" Margin="0,15,0,0"/>
         <!-- Tutorial / Instructions -->
         <StackPanel Grid.Row="4" Margin="0,5,0,10">
-            <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,0,0,0">
-                1. <Bold>Run this app as administrator</Bold>. This is required for the app to work.
-            </TextBlock>
-            <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,2,0,0">
-                2. Click <Bold>Browse</Bold> and select the <Bold>starwarsbattlefront.exe</Bold> file in your Star Wars Battlefront 2015 install folder.
-            </TextBlock>
-            <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,2,0,0">
-                3. Select which crosshair mod you want to use (only one can be active at a time).
-            </TextBlock>
-            <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,2,0,0">
-                4. Click <Bold>Launch Game</Bold> to start the game with your selected mod.
+            <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,8,0,0">
+                <Bold>Note:</Bold> The very first time you launch the game using the app, it will create a cache file. <Bold>This will take time, so just wait.</Bold>
             </TextBlock>
             <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,8,0,0">
-                <Bold>IMPORTANT:</Bold> A small window from Frosty Toolsuite will pop up. You <Bold>must</Bold> click the blue button in the top right corner of this window to close it. The game will not launch until you do this.
+                <Bold>Note:</Bold> The first time you launch the game with each mod, a small window from Frosty Toolsuite will pop up. You must <Bold>click the blue button in the top right corner</Bold> of this window to close it. The game will not launch until you do this.
             </TextBlock>
         </StackPanel>
 
