@@ -1,7 +1,7 @@
 # BassesModManager
 
 A streamlined, competition-focused mod manager for **Star Wars Battlefront (2015)**.  
-Designed to make competitive play easier by allowing players to select from pre-installed, approved mods — without import/removal functionality.
+Designed to make competitive play easier by allowing players to select from pre-installed, approved mods (without import/removal functionality).
 
 ## Download
 
@@ -14,7 +14,7 @@ This repository builds upon the Frosty Toolsuite codebase.
 
 The custom competitive manager is implemented in:
 
-- `BassesModManager/` (custom module)
+- `BassesModManager/`
 
 Other directories are part of the underlying Frosty framework (tooling, SDK, plugins, etc.).
 
