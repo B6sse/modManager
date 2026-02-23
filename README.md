@@ -1,14 +1,34 @@
-# FrostyToolsuite
-The most advanced modding platform for games running on DICE's Frostbite game engine.
+# BassesModManager
 
-## Setup
+A streamlined, competition-focused mod manager for **Star Wars Battlefront (2015)**.  
+Designed to make competitive play easier by allowing players to select from pre-installed, approved mods — without import/removal functionality.
 
-1. Download Git https://git-scm.com/download/win.
-2. Create an empty folder, go inside it, right click an empty space and hit "Git Bash Here". That should open up a command prompt.
-3. Press the green "Code" button in the repository and copy the text under "HTTPS".
-4. Type out ``git clone -b 1.0.6 <HTTPS code>`` in the command prompt and hit enter. This should clone the project files into the folder.
-5. Open the solution (found under FrostyEditor) with Visual Studio 2019, and make sure the project is set to ``DeveloperDebug`` and ``x64``. Close out of retarget window if prompted.
-6. Only build the projects themselves, never the solution.
+## Download
+
+Grab the latest installer from [Releases](https://github.com/B6sse/modManager/releases)  
+- Download the newest `.exe` installer.
+
+## Project Structure
+
+This repository builds upon the Frosty Toolsuite codebase.
+
+The custom competitive manager is implemented in:
+
+- `BassesModManager/` (custom module)
+
+Other directories are part of the underlying Frosty framework (tooling, SDK, plugins, etc.).
+
+For module-specific details, see:
+- [`BassesModManager/README.md`](./BassesModManager/README.md)
 
 ## License
-The Content, Name, Code, and all assets are licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License.
+
+This project is distributed under GPL-3.0.  
+See the LICENSE file for full details.
+
+## Attribution
+
+This project is based on Frosty Toolsuite:
+
+- Original implementation: https://github.com/CadeEvs/FrostyToolsuite  
+- Ongoing rewrite project: https://github.com/FrostyToolsuite/FrostyToolsuite
