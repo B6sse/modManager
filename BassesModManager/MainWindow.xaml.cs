@@ -267,6 +267,12 @@ namespace BassesModManager
                     return;
                 }
 
+                // First-time launch: show confirmation that cache creation takes 10-20 seconds
+                if (!File.Exists(cachePath))
+                {
+                    CustomMessageBox.Show(this, "A cache file is being created. It takes about 10-20 seconds. This will drastically improve the performance for later launches. Please wait until it is complete. Click OK to continue.", "Please wait", MessageBoxButton.OK);
+                }
+
                 // Find or create the correct ModPack folder
                 string modPackName = GetModPackNameForSelection(selectedMods, gamePath);
                 if (modPackName == null)

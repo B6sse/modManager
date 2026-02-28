@@ -115,13 +115,6 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <!-- Tutorial / Instructions -->
-        <StackPanel Grid.Row="4" Margin="0,5,0,10">
-            <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,8,0,0">
-                <Bold>Note:</Bold> The very first time you launch the game using the app, it will create a cache file. <Bold>This will take time, so just wait.</Bold>
-            </TextBlock>
-        </StackPanel>
-
         <!-- Launch Button -->
         <Button Grid.Row="5"
                 x:Name="LaunchGameButton"
