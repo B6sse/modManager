@@ -10,7 +10,7 @@ namespace BassesModManager
     {
         protected override void OnStartup(StartupEventArgs e)
         {
-            string versionUrl = "https://raw.githubusercontent.com/B6sse/modManagerUpdates/main/version.txt";
+            string versionUrl = "https://raw.githubusercontent.com/B6sse/modManager/main/BassesModManager/version.txt";
             if (UpdateChecker.IsUpdateRequired(versionUrl))
             {
                 var result = CustomMessageBox.Show(null, "There is a new version of the mod manager available. You must install the latest version. Press OK to go to the download page, or cancel to close the app.", "Update required", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
@@ -20,13 +20,13 @@ namespace BassesModManager
                     {
                         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                         {
-                            FileName = "https://github.com/B6sse/modManagerUpdates/releases/latest",
+                            FileName = "https://github.com/B6sse/modManager/releases/latest",
                             UseShellExecute = true
                         });
                     }
                     catch (Exception)
                     {
-                        System.Diagnostics.Process.Start("https://github.com/B6sse/modManagerUpdates/releases/latest");
+                        System.Diagnostics.Process.Start("https://github.com/B6sse/modManager/releases/latest");
                     }
                 }
                 Shutdown();
