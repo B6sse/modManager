@@ -3,7 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        SizeToContent="WidthAndHeight"
+        SizeToContent="Height"
+        Width="400"
+        MinWidth="320"
+        MinHeight="200"
+        MaxWidth="500"
         Background="Black"
         Title="Error">
     <StackPanel Margin="24">
