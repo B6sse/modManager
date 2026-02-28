@@ -1,4 +1,4 @@
-﻿using Frosty.Controls;
+using Frosty.Controls;
 using Frosty.Core;
 using Frosty.Core.Mod;
 using Frosty.Hash;
@@ -1001,7 +1001,7 @@ namespace Frosty.ModSupport
             }
         }
 
-        public int Run(FileSystem inFs, CancellationToken cancelToken, ILogger inLogger, string rootPath, string modPackName, string additionalArgs, params string[] modPaths)
+        public int Run(FileSystem inFs, CancellationToken cancelToken, ILogger inLogger, string rootPath, string modPackName, string additionalArgs, bool silentMode = false, params string[] modPaths)
         {
             modDirName = "ModData\\" + modPackName;
             cancelToken.ThrowIfCancellationRequested();
@@ -1278,18 +1278,23 @@ namespace Frosty.ModSupport
 
                 if (cmdArgs.Count > 0)
                 {
-                    string reason = "New patch detected.";
-                    if (newInstallation)
-                        reason = "New installation detected.";
+                    if (!silentMode)
+                    {
+                        string reason = "New patch detected.";
+                        if (newInstallation)
+                            reason = "New installation detected.";
 
-                    FrostyMessageBox.Show(reason + "\r\n\r\nShortly you will be prompted for elevated privileges, this is required to create symbolic links between the original data and the new modified data. Please ensure that you accept this to avoid any issues.", "Frosty Toolsuite");
+                        FrostyMessageBox.Show(reason + "\r\n\r\nShortly you will be prompted for elevated privileges, this is required to create symbolic links between the original data and the new modified data. Please ensure that you accept this to avoid any issues.", "Frosty Toolsuite");
+                    }
                     if (!RunSymbolicLinkProcess(cmdArgs))
                     {
-                        FrostyMessageBox.Show("Frosty needs to generate symbolic links, please ensure that you accept this so you don't have to regenerate ModData.", "Frosty Editor");
+                        if (!silentMode)
+                            FrostyMessageBox.Show("Frosty needs to generate symbolic links, please ensure that you accept this so you don't have to regenerate ModData.", "Frosty Editor");
                         if (!RunSymbolicLinkProcess(cmdArgs))
                         {
                             Directory.Delete(modDataPath, true);
-                            FrostyMessageBox.Show("One ore more symbolic links could not be created, please restart tool as Administrator and ensure your storage drive is formatted to NTFS (not exFAT).", "Frosty Editor");
+                            if (!silentMode)
+                                FrostyMessageBox.Show("One ore more symbolic links could not be created, please restart tool as Administrator and ensure your storage drive is formatted to NTFS (not exFAT).", "Frosty Editor");
                             return -1;
                         }
                     }

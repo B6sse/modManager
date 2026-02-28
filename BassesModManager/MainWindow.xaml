@@ -120,9 +120,6 @@
             <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,8,0,0">
                 <Bold>Note:</Bold> The very first time you launch the game using the app, it will create a cache file. <Bold>This will take time, so just wait.</Bold>
             </TextBlock>
-            <TextBlock Foreground="White" TextWrapping="Wrap" Margin="0,8,0,0">
-                <Bold>Note:</Bold> The first time you launch the game with each mod, a small window from Frosty Toolsuite will pop up. You must <Bold>click the blue button in the top right corner</Bold> of this window to close it. The game will not launch until you do this.
-            </TextBlock>
         </StackPanel>
 
         <!-- Launch Button -->

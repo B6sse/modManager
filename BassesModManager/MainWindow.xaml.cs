@@ -175,7 +175,7 @@ namespace BassesModManager
 
                 // Run mod application in background
                 Task.Run(() => {
-                    int result = executor.Run(fs, cancelToken, logger, rootPath, modPackName, additionalArgs, modPaths);
+                    int result = executor.Run(fs, cancelToken, logger, rootPath, modPackName, additionalArgs, silentMode: true, modPaths);
                     
                     if (result == 0)
                     {
