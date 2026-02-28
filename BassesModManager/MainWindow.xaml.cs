@@ -279,6 +279,14 @@ namespace BassesModManager
                 {
                     return;
                 }
+
+                // First time with this mod combination: a permission/script window will appear
+                string modPackPath = Path.Combine(gamePath, "ModData", modPackName);
+                if (!Directory.Exists(modPackPath))
+                {
+                    CustomMessageBox.Show(this, "First time with this mod: a script window will appear on screen. This is normal and required to set up the mod. Click OK to continue.", "First-time setup", MessageBoxButton.OK);
+                }
+
                 ApplyModsAndLaunch(gamePath, selectedMods, modPackName);
             }
             catch (Exception ex)
