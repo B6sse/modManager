@@ -13,26 +13,37 @@ namespace BassesModManager
             string versionUrl = "https://raw.githubusercontent.com/B6sse/modManagerUpdates/main/version.txt";
             if (UpdateChecker.IsUpdateRequired(versionUrl))
             {
-                var result = CustomMessageBox.Show(Application.Current.MainWindow, "There is a new version of the mod manager available. You must install the latest version. Press OK to go to the download page, or cancel to close the app.", "Update required", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+                var result = CustomMessageBox.Show(null, "There is a new version of the mod manager available. You must install the latest version. Press OK to go to the download page, or cancel to close the app.", "Update required", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
                 if (result == MessageBoxResult.OK)
                 {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    try
                     {
-                        FileName = "https://github.com/B6sse/modManagerUpdates/releases/latest",
-                        UseShellExecute = true
-                    });
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "https://github.com/B6sse/modManagerUpdates/releases/latest",
+                            UseShellExecute = true
+                        });
+                    }
+                    catch (Exception)
+                    {
+                        System.Diagnostics.Process.Start("https://github.com/B6sse/modManagerUpdates/releases/latest");
+                    }
                 }
-                Current.Shutdown();
+                Shutdown();
                 return;
             }
 
             base.OnStartup(e);
-            
-            // Initialize any required services or configurations here
+
             if (!System.IO.Directory.Exists("Mods"))
             {
                 System.IO.Directory.CreateDirectory("Mods");
             }
+
+            // StartupUri is removed so we create MainWindow manually (avoids WPF creating it during update path and causing "Application shutting down" exception)
+            var mainWindow = new MainWindow();
+            MainWindow = mainWindow;
+            mainWindow.Show();
         }
     }
 

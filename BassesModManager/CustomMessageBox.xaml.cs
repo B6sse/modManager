@@ -31,8 +31,15 @@ namespace BassesModManager
     public static MessageBoxResult Show(Window owner, string message, string title = "Error", MessageBoxButton buttons = MessageBoxButton.OK, MessageBoxImage icon = MessageBoxImage.None)
     {
         var box = new CustomMessageBox(message, title, buttons, icon);
-        box.Owner = owner;
-        box.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        if (owner != null)
+        {
+            box.Owner = owner;
+            box.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        }
+        else
+        {
+            box.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        }
         box.ShowDialog();
         return box._result;
     }
