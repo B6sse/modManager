@@ -17,9 +17,6 @@
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
-# Exception: BassesModManager release notes (markdown docs), not VS build output
-!BassesModManager/Docs/Releases/
-!BassesModManager/Docs/Releases/**
 x64/
 x86/
 bld/
