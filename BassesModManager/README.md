@@ -4,8 +4,8 @@ A simplified version of Frosty Mod Manager that allows users to select from pre-
 
 ## Release notes
 
-- [Release 1 (v1.0)](Docs/Releases/Release1.md) – Initial release
-- [Release 2 (v1.1)](Docs/Releases/Release2.md) – .NET 4.8 bundled, Frosty dialogs suppressed, improved messaging and update dialog
+- [Release 1 (v1.0)](Docs/Releases/v1.0.md) – Initial release
+- [Release 2 (v1.1)](Docs/Releases/v1.1.md) – .NET 4.8 bundled, Frosty dialogs suppressed, improved messaging and update dialog
 
 ## Features
 
