@@ -38,6 +38,7 @@ jobs:
 
       - name: Update AssemblyInfo.cs and set four-part version
         run: |
+          if ([string]::IsNullOrWhiteSpace($env:VERSION)) { $env:VERSION = '1.1'; echo 'VERSION=1.1' >> $env:GITHUB_ENV }
           $parts = $env:VERSION -split '\.'
           $assemblyVersion = ($parts + ('0', '0', '0', '0'))[0..3] -join '.'
           echo "ASSEMBLY_VERSION=$assemblyVersion" >> $env:GITHUB_ENV
