@@ -2,8 +2,6 @@
 # Run manually: Actions → "Build BassesModManager installer" → Run workflow (set version).
 # The workflow updates AssemblyInfo, version.txt, and MainWindow.xaml to the given version,
 # then builds and runs Inno Setup. Installer is uploaded as artifact.
-# Optionally: push a tag like v1.2 to trigger with that version.
-
 name: Build BassesModManager installer
 
 on:
@@ -13,9 +11,6 @@ on:
         description: 'Version (e.g. 1.1)'
         required: true
         default: '1.1'
-  push:
-    tags:
-      - 'v*'
 
 jobs:
   build:
@@ -24,14 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set version from tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $env:GITHUB_ENV
-        shell: bash
-
       - name: Set version from input
-        if: github.event_name == 'workflow_dispatch'
         run: |
           echo "VERSION=${{ github.event.inputs.version }}" >> $env:GITHUB_ENV
         shell: bash
