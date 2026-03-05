@@ -36,16 +36,18 @@ jobs:
           echo "VERSION=${{ github.event.inputs.version }}" >> $env:GITHUB_ENV
         shell: bash
 
-      - name: Update AssemblyInfo.cs
+      - name: Update AssemblyInfo.cs and set four-part version
         run: |
-          $v = $env:VERSION
+          $parts = $env:VERSION -split '\.'
+          $assemblyVersion = ($parts + ('0', '0', '0', '0'))[0..3] -join '.'
+          echo "ASSEMBLY_VERSION=$assemblyVersion" >> $env:GITHUB_ENV
           $path = "BassesModManager\Properties\AssemblyInfo.cs"
-          (Get-Content $path) -replace 'AssemblyVersion\("[^"]+"\)', "AssemblyVersion(`"$v`")" -replace 'AssemblyFileVersion\("[^"]+"\)', "AssemblyFileVersion(`"$v`")" | Set-Content $path
+          (Get-Content $path) -replace 'AssemblyVersion\("[^"]+"\)', "AssemblyVersion(`"$assemblyVersion`")" -replace 'AssemblyFileVersion\("[^"]+"\)', "AssemblyFileVersion(`"$assemblyVersion`")" | Set-Content $path
         shell: pwsh
 
       - name: Update version.txt
         run: |
-          Set-Content -Path "BassesModManager\version.txt" -Value $env:VERSION -NoNewline
+          Set-Content -Path "BassesModManager\version.txt" -Value $env:ASSEMBLY_VERSION -NoNewline
         shell: pwsh
 
       - name: Update MainWindow.xaml version text
