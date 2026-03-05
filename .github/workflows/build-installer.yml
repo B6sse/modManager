@@ -54,6 +54,9 @@ jobs:
           (Get-Content $path -Raw) -replace 'Text="Version [^"]+"', "Text=`"Version $env:VERSION`"" | Set-Content $path -NoNewline
         shell: pwsh
 
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
       - name: Build solution (Release)
         run: |
           msbuild BassesModManager\BassesModManager.sln -p:Configuration=Release -p:Platform="Any CPU" -v:minimal
