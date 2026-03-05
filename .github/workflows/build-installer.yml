@@ -57,6 +57,10 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      - name: Restore NuGet packages
+        run: |
+          msbuild BassesModManager\BassesModManager.sln -t:Restore -p:Configuration=Release -p:Platform="Any CPU" -v:minimal
+
       - name: Build solution (Release)
         run: |
           msbuild BassesModManager\BassesModManager.sln -p:Configuration=Release -p:Platform="Any CPU" -v:minimal
