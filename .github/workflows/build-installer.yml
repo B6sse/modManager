@@ -1,0 +1,76 @@
+# Build BassesModManager in Release and create Inno Setup installer.
+# Run manually: Actions → "Build BassesModManager installer" → Run workflow (set version).
+# The workflow updates AssemblyInfo, version.txt, and MainWindow.xaml to the given version,
+# then builds and runs Inno Setup. Installer is uploaded as artifact.
+# Optionally: push a tag like v1.2 to trigger with that version.
+
+name: Build BassesModManager installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.1)'
+        required: true
+        default: '1.1'
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $env:GITHUB_ENV
+        shell: bash
+
+      - name: Set version from input
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "VERSION=${{ github.event.inputs.version }}" >> $env:GITHUB_ENV
+        shell: bash
+
+      - name: Update AssemblyInfo.cs
+        run: |
+          $v = $env:VERSION
+          $path = "BassesModManager\Properties\AssemblyInfo.cs"
+          (Get-Content $path) -replace 'AssemblyVersion\("[^"]+"\)', "AssemblyVersion(`"$v`")" -replace 'AssemblyFileVersion\("[^"]+"\)', "AssemblyFileVersion(`"$v`")" | Set-Content $path
+        shell: pwsh
+
+      - name: Update version.txt
+        run: |
+          Set-Content -Path "BassesModManager\version.txt" -Value $env:VERSION -NoNewline
+        shell: pwsh
+
+      - name: Update MainWindow.xaml version text
+        run: |
+          $path = "BassesModManager\MainWindow.xaml"
+          (Get-Content $path -Raw) -replace 'Text="Version [^"]+"', "Text=`"Version $env:VERSION`"" | Set-Content $path -NoNewline
+        shell: pwsh
+
+      - name: Build solution (Release)
+        run: |
+          msbuild BassesModManager\BassesModManager.sln -p:Configuration=Release -p:Platform="Any CPU" -v:minimal
+        shell: pwsh
+
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup -y
+        shell: pwsh
+
+      - name: Build installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$env:VERSION" "BassesModManager\installer.iss"
+        shell: pwsh
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BassesModManager-Setup-${{ env.VERSION }}
+          path: Output/BassesModManager_Setup_*.exe

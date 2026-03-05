@@ -295,3 +295,6 @@ __pycache__/
 *.lib
 /FrostyEditor/MigrationBackup
 /Plugins/LevelEditorOldPlugin
+
+BUILD_AND_RELEASE.md
+INSTALLER_CHECKLIST.md
