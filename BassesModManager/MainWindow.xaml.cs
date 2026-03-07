@@ -87,6 +87,7 @@ namespace BassesModManager
                         {
                             Name = Path.GetFileNameWithoutExtension(modFile),
                             FileName = Path.GetFileName(modFile),
+                            ImagePath = "Images/v1.1.png",
                             Description = "SWBF2015 Crosshair Mod",
                             Author = "Flash",
                             Version = "1.0",
@@ -300,6 +301,7 @@ namespace BassesModManager
     {
         public string Name { get; set; }
         public string FileName { get; set; }
+        public string ImagePath { get; set; }
         public bool IsEnabled { get; set; }
         public string Description { get; set; }
         public string Author { get; set; }

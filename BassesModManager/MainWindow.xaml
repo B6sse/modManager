@@ -1,13 +1,15 @@
 <Window x:Class="BassesModManager.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:BassesModManager.Converters"
         Title="Basse's Mod Manager" Height="500" Width="800"
         WindowStartupLocation="CenterScreen"
         Background="Black"
         FontSize="15">
     <Grid Margin="10">
-        <!-- Button style for hover effect -->
         <Grid.Resources>
+            <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter"/>
+            <!-- Button style for hover effect -->
             <Style TargetType="Button" x:Key="PurpleButtonStyle">
                 <Setter Property="OverridesDefaultStyle" Value="True"/>
                 <Setter Property="Background" Value="#8000FF"/>
@@ -69,6 +71,30 @@
                 <Setter Property="Background" Value="#222"/>
                 <Setter Property="FontSize" Value="15"/>
             </Style>
+            <!-- Mod card: image with hover border -->
+            <Style TargetType="RadioButton" x:Key="ModCardStyle">
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="border" CornerRadius="12" BorderThickness="4" BorderBrush="Transparent" Margin="8">
+                                <Image Source="{Binding ImagePath, Converter={StaticResource StringToImageSourceConverter}}"
+                                       Width="180" Height="110" Stretch="UniformToFill"
+                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="BorderBrush" Value="#8000FF"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="border" Property="BorderBrush" Value="#8000FF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -100,16 +126,23 @@
 
         <!-- Mod Selection Title -->
         <TextBlock Grid.Row="1" Text="Select mod" Foreground="White" FontWeight="Bold" FontSize="15" Margin="0,0,0,0"/>
-        <!-- Mod Selection List -->
+        <!-- Mod Selection: centered image cards -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,5,0,0">
-            <ItemsControl x:Name="ModListControl">
+            <ItemsControl x:Name="ModListControl" HorizontalAlignment="Center">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <RadioButton Content="{Binding Name}"
-                                     GroupName="ModsGroup"
-                                     IsChecked="{Binding IsEnabled}"
-                                     Style="{StaticResource WhiteDotRadioButton}"
-                                     Margin="0,5"/>
+                        <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                            <RadioButton GroupName="ModsGroup"
+                                         IsChecked="{Binding IsEnabled}"
+                                         Style="{StaticResource ModCardStyle}"
+                                         ToolTip="{Binding Name}"/>
+                            <TextBlock Text="{Binding Name}" Foreground="White" FontSize="13" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

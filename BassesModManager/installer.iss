@@ -49,6 +49,8 @@ Source: "{#PayloadPath}\ThirdParty\*"; DestDir: "{app}\ThirdParty"; Flags: ignor
 Source: "{#PayloadPath}\Profiles\*"; DestDir: "{app}\Profiles"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 ; Mods – the 3 approved .fbmod files from repo (required for app to have mods to choose)
 Source: "Mods\*"; DestDir: "{app}\Mods"; Flags: ignoreversion
+; Images – mod card previews (from build output)
+Source: "{#PayloadPath}\Images\*"; DestDir: "{app}\Images"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 ; Prereqs – bundled for install when missing (dontcopy = extract only when needed in [Code])
 Source: "Prereqs\.NET_Framework_4.8_setup.exe"; DestDir: "{tmp}"; Flags: dontcopy
 

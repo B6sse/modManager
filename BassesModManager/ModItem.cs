@@ -7,6 +7,7 @@ namespace BassesModManager
     {
         private string name;
         private string fileName;
+        private string imagePath;
         private string description;
         private string author;
         private string version;
@@ -28,6 +29,16 @@ namespace BassesModManager
             set
             {
                 fileName = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string ImagePath
+        {
+            get => imagePath;
+            set
+            {
+                imagePath = value;
                 OnPropertyChanged();
             }
         }
