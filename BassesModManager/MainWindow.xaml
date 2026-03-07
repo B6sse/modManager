@@ -78,10 +78,15 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RadioButton">
-                            <Border x:Name="border" CornerRadius="12" BorderThickness="4" BorderBrush="Transparent" Margin="8">
-                                <Image Source="{Binding ImagePath, Converter={StaticResource StringToImageSourceConverter}}"
-                                       Width="180" Height="110" Stretch="UniformToFill"
-                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <Border x:Name="border" CornerRadius="12" BorderThickness="4" BorderBrush="Transparent" Margin="8" Padding="0">
+                                <Grid Width="120" Height="120">
+                                    <Grid.Clip>
+                                        <RectangleGeometry RadiusX="12" RadiusY="12" Rect="0,0,120,120"/>
+                                    </Grid.Clip>
+                                    <Image Source="{Binding ImagePath, Converter={StaticResource StringToImageSourceConverter}}"
+                                           Width="120" Height="120" Stretch="Uniform"
+                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                </Grid>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
@@ -107,7 +112,7 @@
         </Grid.RowDefinitions>
 
         <!-- Game Path Selection -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
             <TextBlock Text="Select Game Path" Margin="0,0,0,5" Foreground="White" FontWeight="Bold" FontSize="15"/>
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -124,10 +129,10 @@
             </Grid>
         </StackPanel>
 
-        <!-- Mod Selection Title -->
-        <TextBlock Grid.Row="1" Text="Select mod" Foreground="White" FontWeight="Bold" FontSize="15" Margin="0,0,0,0"/>
+        <!-- Mod Selection Title (centered to align with centered image cards below) -->
+        <TextBlock Grid.Row="1" Text="Select mod" Foreground="White" FontWeight="Bold" FontSize="15" HorizontalAlignment="Center" Margin="0,0,0,0"/>
         <!-- Mod Selection: centered image cards -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,5,0,0">
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
             <ItemsControl x:Name="ModListControl" HorizontalAlignment="Center">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>

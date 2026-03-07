@@ -83,11 +83,12 @@ namespace BassesModManager
                     string fileHash = GetSHA256Hash(modFile);
                     if (approvedModHashes.Contains(fileHash))
                     {
+                        var modName = Path.GetFileNameWithoutExtension(modFile);
                         mods.Add(new ModItem
                         {
-                            Name = Path.GetFileNameWithoutExtension(modFile),
+                            Name = modName,
                             FileName = Path.GetFileName(modFile),
-                            ImagePath = "Images/v1.1.png",
+                            ImagePath = GetModImagePath(modName),
                             Description = "SWBF2015 Crosshair Mod",
                             Author = "Flash",
                             Version = "1.0",
@@ -116,11 +117,23 @@ namespace BassesModManager
                 {
                     CustomMessageBox.Show(this, $"Some unauthorized mods could not be deleted: {string.Join(", ", failedDeletes)}.\nPlease run the app as administrator.", "Warning");
                 }
+                // Order: White, Red, Green (left to right)
+                var ordered = mods.OrderBy(m => m.Name.IndexOf("White", StringComparison.OrdinalIgnoreCase) >= 0 ? 0 :
+                                                 m.Name.IndexOf("Red", StringComparison.OrdinalIgnoreCase) >= 0 ? 1 : 2).ToList();
+                mods.Clear();
+                foreach (var m in ordered) mods.Add(m);
             }
             catch (Exception ex)
             {
                 CustomMessageBox.Show(this, $"Error loading mods: {ex.Message}", "Error");
             }
+        }
+
+        private static string GetModImagePath(string modName)
+        {
+            if (modName.IndexOf("Red", StringComparison.OrdinalIgnoreCase) >= 0) return "Images/red_dot.png";
+            if (modName.IndexOf("Green", StringComparison.OrdinalIgnoreCase) >= 0) return "Images/green_dot.png";
+            else return "Images/white_dot.png";
         }
 
         private string GetSHA256Hash(string filePath)

@@ -13,10 +13,29 @@ namespace BassesModManager.Converters
             var path = value as string;
             if (string.IsNullOrEmpty(path)) return null;
 
-            var fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, path);
-            if (!File.Exists(fullPath)) return null;
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var fullPath = Path.Combine(baseDir, path.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(fullPath))
+            {
+                var fallback = Path.Combine(baseDir, "Images", "white_dot.png");
+                if (!File.Exists(fallback)) return null;
+                fullPath = fallback;
+            }
 
-            return new BitmapImage(new Uri(fullPath, UriKind.Absolute));
+            try
+            {
+                var uri = new Uri(fullPath, UriKind.Absolute);
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = uri;
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.EndInit();
+                return bitmap;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
