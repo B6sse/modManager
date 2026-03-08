@@ -73,7 +73,7 @@ namespace BassesModManager
                 if (File.Exists(clickPath))
                 {
                     _clickPlayer = new MediaPlayer();
-                    _clickPlayer.Volume = 0.1;
+                    _clickPlayer.Volume = 0.2;
                     _clickPlayer.Open(new Uri(clickPath, UriKind.Absolute));
                 }
             }
