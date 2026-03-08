@@ -2,6 +2,8 @@ using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
 using Microsoft.Win32;
 using System.Linq;
 using System.Collections.Generic;
@@ -20,6 +22,9 @@ namespace BassesModManager
         private ObservableCollection<ModItem> mods;
         private string gamePath;
         private string modsDirectory;
+
+        private MediaPlayer _hoverPlayer;
+        private MediaPlayer _clickPlayer;
 
         private readonly HashSet<string> approvedModHashes = new HashSet<string>
         {
@@ -47,10 +52,52 @@ namespace BassesModManager
             LoadMods();
 
             LaunchGameButton.ToolTip = "Select a mod before launching the game";
+
+            // Pre-load sounds for snappy playback
+            PreloadSounds();
+        }
+
+        private void PreloadSounds()
+        {
+            try
+            {
+                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                var hoverPath = Path.Combine(baseDir, "Assets", "Sounds", "hover.mp3");
+                var clickPath = Path.Combine(baseDir, "Assets", "Sounds", "click.mp3");
+                if (File.Exists(hoverPath))
+                {
+                    _hoverPlayer = new MediaPlayer();
+                    _hoverPlayer.Volume = 0.2;
+                    _hoverPlayer.Open(new Uri(hoverPath, UriKind.Absolute));
+                }
+                if (File.Exists(clickPath))
+                {
+                    _clickPlayer = new MediaPlayer();
+                    _clickPlayer.Volume = 0.1;
+                    _clickPlayer.Open(new Uri(clickPath, UriKind.Absolute));
+                }
+            }
+            catch { /* ignore preload errors */ }
+        }
+
+        private void PlayHoverSound(object sender, MouseEventArgs e) => PlayPreloaded(_hoverPlayer);
+        private void PlayClickSound(object sender, RoutedEventArgs e) => PlayPreloaded(_clickPlayer);
+        private void PlayClickSound_Mouse(object sender, MouseButtonEventArgs e) => PlayPreloaded(_clickPlayer);
+
+        private static void PlayPreloaded(MediaPlayer player)
+        {
+            if (player == null) return;
+            try
+            {
+                player.Position = TimeSpan.Zero;
+                player.Play();
+            }
+            catch { /* ignore playback errors */ }
         }
 
         private void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
+            PlayPreloaded(_clickPlayer);
             var dialog = new OpenFileDialog
             {
                 Filter = "Game Executable|*.exe",
@@ -131,9 +178,9 @@ namespace BassesModManager
 
         private static string GetModImagePath(string modName)
         {
-            if (modName.IndexOf("Red", StringComparison.OrdinalIgnoreCase) >= 0) return "Images/red_dot.png";
-            if (modName.IndexOf("Green", StringComparison.OrdinalIgnoreCase) >= 0) return "Images/green_dot.png";
-            else return "Images/white_dot.png";
+            if (modName.IndexOf("Red", StringComparison.OrdinalIgnoreCase) >= 0) return "Assets/Images/red_dot.png";
+            if (modName.IndexOf("Green", StringComparison.OrdinalIgnoreCase) >= 0) return "Assets/Images/green_dot.png";
+            else return "Assets/Images/white_dot.png";
         }
 
         private string GetSHA256Hash(string filePath)
@@ -258,6 +305,7 @@ namespace BassesModManager
 
         private void LaunchGameButton_Click(object sender, RoutedEventArgs e)
         {
+            PlayPreloaded(_clickPlayer);
             try
             {
                 string gamePath = Properties.Settings.Default.GamePath;

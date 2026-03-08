@@ -17,7 +17,7 @@ namespace BassesModManager.Converters
             var fullPath = Path.Combine(baseDir, path.Replace('/', Path.DirectorySeparatorChar));
             if (!File.Exists(fullPath))
             {
-                var fallback = Path.Combine(baseDir, "Images", "white_dot.png");
+                var fallback = Path.Combine(baseDir, "Assets", "Images", "white_dot.png");
                 if (!File.Exists(fallback)) return null;
                 fullPath = fallback;
             }

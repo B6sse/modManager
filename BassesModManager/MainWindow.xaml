@@ -6,7 +6,7 @@
         WindowStartupLocation="CenterScreen"
         Background="Black"
         FontSize="15">
-    <Grid Margin="10">
+    <Grid Margin="20">
         <Grid.Resources>
             <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter"/>
             <!-- Button style for hover effect -->
@@ -32,6 +32,7 @@
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
+                <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
                 <Style.Triggers>
                     <Trigger Property="IsMouseOver" Value="True">
                         <Setter Property="Background" Value="White"/>
@@ -41,7 +42,7 @@
                     </Trigger>
                 </Style.Triggers>
             </Style>
-            <!-- RadioButton with white dot -->
+            <!-- RadioButton -->
             <Style TargetType="RadioButton" x:Key="WhiteDotRadioButton">
                 <Setter Property="Foreground" Value="White"/>
                 <Setter Property="Background" Value="Black"/>
@@ -78,7 +79,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RadioButton">
-                            <Border x:Name="border" CornerRadius="12" BorderThickness="4" BorderBrush="Transparent" Margin="8" Padding="0">
+                            <Border x:Name="border" CornerRadius="12" BorderThickness="4" BorderBrush="Transparent" Margin="0,8,20,8" Padding="0">
                                 <Grid Width="120" Height="120">
                                     <Grid.Clip>
                                         <RectangleGeometry RadiusX="12" RadiusY="12" Rect="0,0,120,120"/>
@@ -99,6 +100,8 @@
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
+                <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
+                <EventSetter Event="PreviewMouseDown" Handler="PlayClickSound_Mouse"/>
             </Style>
         </Grid.Resources>
         <Grid.RowDefinitions>
@@ -129,14 +132,14 @@
             </Grid>
         </StackPanel>
 
-        <!-- Mod Selection Title (centered to align with centered image cards below) -->
-        <TextBlock Grid.Row="1" Text="Select mod" Foreground="White" FontWeight="Bold" FontSize="15" HorizontalAlignment="Center" Margin="0,0,0,0"/>
-        <!-- Mod Selection: centered image cards -->
+        <!-- Mod Selection Title -->
+        <TextBlock Grid.Row="1" Text="Select mod" Foreground="White" FontWeight="Bold" FontSize="15" Margin="0,8,0,0"/>
+        <!-- Mod Selection: image cards -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
-            <ItemsControl x:Name="ModListControl" HorizontalAlignment="Center">
+            <ItemsControl x:Name="ModListControl" HorizontalAlignment="Left">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
@@ -146,7 +149,9 @@
                                          IsChecked="{Binding IsEnabled}"
                                          Style="{StaticResource ModCardStyle}"
                                          ToolTip="{Binding Name}"/>
-                            <TextBlock Text="{Binding Name}" Foreground="White" FontSize="13" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                            <Grid Width="120" HorizontalAlignment="Left" Margin="0,4,0,0">
+                                <TextBlock Text="{Binding Name}" Foreground="White" FontSize="13" HorizontalAlignment="Center"/>
+                            </Grid>
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

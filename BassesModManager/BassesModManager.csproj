@@ -105,7 +105,10 @@
     <Compile Include="Converters\StringToImageSourceConverter.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Images\*.png">
+    <Content Include="Assets\Images\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Sounds\*.mp3">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
