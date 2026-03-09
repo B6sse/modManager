@@ -9,43 +9,9 @@
     <Grid Margin="20">
         <Grid.Resources>
             <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter"/>
-            <Style TargetType="Button" x:Key="PurpleButtonStyle">
-                <Setter Property="OverridesDefaultStyle" Value="True"/>
-                <Setter Property="Background" Value="#8000FF"/>
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="BorderBrush" Value="#8000FF"/>
-                <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="FontWeight" Value="Bold"/>
-                <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="Padding" Value="16,10"/>
-                <Setter Property="FontSize" Value="15"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    Padding="{TemplateBinding Padding}"
-                                    CornerRadius="3">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
+            <!-- Purple button with hover sound -->
+            <Style x:Key="PurpleButtonStyle" BasedOn="{StaticResource PurpleButtonStyleBase}" TargetType="Button">
                 <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
-                <Style.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True">
-                        <Setter Property="Background" Value="White"/>
-                        <Setter Property="Foreground" Value="#8000FF"/>
-                        <Setter Property="BorderBrush" Value="White"/>
-                    </Trigger>
-                    <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Background" Value="#333"/>
-                        <Setter Property="Foreground" Value="#666"/>
-                        <Setter Property="BorderBrush" Value="#444"/>
-                        <Setter Property="Cursor" Value="Arrow"/>
-                    </Trigger>
-                </Style.Triggers>
             </Style>
             <Style TargetType="ToolTip">
                 <Setter Property="Foreground" Value="White"/>
@@ -60,7 +26,11 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Select Game" Margin="0,0,0,15" Foreground="White" FontWeight="Bold" FontSize="18"/>
+        <TextBlock Grid.Row="0"
+                   Text="SELECT GAME"
+                   Style="{StaticResource HeadingTextStyle}"
+                   FontSize="20"
+                   Margin="0,0,0,15"/>
         
         <Border Grid.Row="1" CornerRadius="3" BorderThickness="0" Padding="0" Margin="0" Background="Transparent">
             <ListView x:Name="GameList" Foreground="White" Background="Transparent" BorderThickness="0" Padding="0"
@@ -101,7 +71,10 @@
                                 <Image Source="{Binding BannerPath, Converter={StaticResource StringToImageSourceConverter}}" 
                                        Stretch="UniformToFill" Width="48" Height="48"/>
                             </Border>
-                            <TextBlock Text="{Binding Path}" VerticalAlignment="Center" FontSize="14"/>
+                            <TextBlock Text="{Binding Path}"
+                                       Style="{StaticResource BodyTextStyle}"
+                                       FontSize="14"
+                                       VerticalAlignment="Center"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListView.ItemTemplate>
@@ -109,15 +82,15 @@
         </Border>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
-            <Button x:Name="AddButton" Content="Add Game" Width="100" Padding="10,6" Margin="0,0,10,0"
+            <Button x:Name="AddButton" Content="ADD GAME" Width="100" Padding="10,6" Margin="0,0,10,0"
                     Style="{StaticResource PurpleButtonStyle}"
                     ToolTip="Browse for Star Wars Battlefront game folder"
                     Click="AddButton_Click"/>
-            <Button x:Name="RemoveButton" Content="Remove" Width="90" Padding="10,6" Margin="0,0,10,0"
+            <Button x:Name="RemoveButton" Content="REMOVE" Width="90" Padding="10,6" Margin="0,0,10,0"
                     Style="{StaticResource PurpleButtonStyle}"
                     IsEnabled="False"
                     Click="RemoveButton_Click"/>
-            <Button x:Name="SelectButton" Content="Select" Width="100" Padding="10,6"
+            <Button x:Name="SelectButton" Content="SELECT" Width="100" Padding="10,6"
                     Style="{StaticResource PurpleButtonStyle}"
                     IsEnabled="False"
                     ToolTip="Open mod selection for selected game"
@@ -127,6 +100,7 @@
         <!-- Version label -->
         <TextBlock Grid.Row="2"
                    Text="v1.2"
+                   FontSize="14"
                    Foreground="White"
                    FontWeight="Bold"
                    VerticalAlignment="Bottom"

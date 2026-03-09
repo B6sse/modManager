@@ -19,6 +19,7 @@ namespace BassesModManager
     public partial class MainWindow : Window
     {
         private ObservableCollection<ModItem> mods;
+        private ModItem scoreboardMod;
         private string modsDirectory;
 
         private MediaPlayer _hoverPlayer;
@@ -26,9 +27,12 @@ namespace BassesModManager
 
         private readonly HashSet<string> approvedModHashes = new HashSet<string>
         {
+            // Crosshair mods
             "b0152a45d8dd1cc995fdc92d7f517ce17b08a260a9f9062ff9d6ec17902a1694",
             "c8748886884ae0f3f2a372fc130bf9bb3794dc2ca908a16ad8a6d2d01d16d719",
-            "88bc98b8604f993e058ff848ba267b1e72530a3938037f9dc4b58d6471aa337a"
+            "88bc98b8604f993e058ff848ba267b1e72530a3938037f9dc4b58d6471aa337a",
+            // Optional Improved_Scoreboard mod
+            "4507eb7297053ffb38a65228158189de3260e411e603401b0c1ecb2542b2af76"
         };
 
         public MainWindow()
@@ -105,6 +109,7 @@ namespace BassesModManager
                 }
 
                 mods.Clear();
+                scoreboardMod = null;
                 var modFiles = Directory.GetFiles(modsDirectory, "*.fbmod");
                 List<string> unauthorizedMods = new List<string>();
                 foreach (var modFile in modFiles)
@@ -113,16 +118,27 @@ namespace BassesModManager
                     if (approvedModHashes.Contains(fileHash))
                     {
                         var modName = Path.GetFileNameWithoutExtension(modFile);
-                        mods.Add(new ModItem
+                        var item = new ModItem
                         {
                             Name = modName,
                             FileName = Path.GetFileName(modFile),
                             ImagePath = GetModImagePath(modName),
-                            Description = "SWBF2015 Crosshair Mod",
+                            Description = modName.IndexOf("Improved_Scoreboard", StringComparison.OrdinalIgnoreCase) >= 0
+                                ? "Improved scoreboard visuals"
+                                : "SWBF2015 Crosshair Mod",
                             Author = "Flash",
                             Version = "1.0",
                             IsEnabled = false
-                        });
+                        };
+
+                        if (modName.IndexOf("Improved_Scoreboard", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            scoreboardMod = item;
+                        }
+                        else
+                        {
+                            mods.Add(item);
+                        }
                     }
                     else
                     {
@@ -146,7 +162,7 @@ namespace BassesModManager
                 {
                     CustomMessageBox.Show(this, $"Some unauthorized mods could not be deleted: {string.Join(", ", failedDeletes)}.\nPlease run the app as administrator.", "Warning");
                 }
-                // Order: White, Red, Green (left to right)
+                // Order crosshair mods: White, Red, Green (left to right)
                 var ordered = mods.OrderBy(m => m.Name.IndexOf("White", StringComparison.OrdinalIgnoreCase) >= 0 ? 0 :
                                                  m.Name.IndexOf("Red", StringComparison.OrdinalIgnoreCase) >= 0 ? 1 : 2).ToList();
                 mods.Clear();
@@ -214,9 +230,9 @@ namespace BassesModManager
                 
                 // Run FrostyModExecutor in silent mode
                 var executor = new FrostyModExecutor();
-                var modPaths = selectedMods.Where(m => m.IsEnabled)
-                                           .Select(m => Path.Combine(modsDirectory, m.FileName))
-                                           .ToArray();
+                var modPaths = selectedMods
+                    .Select(m => Path.Combine(modsDirectory, m.FileName))
+                    .ToArray();
 
                 // Run mod application in background
                 Task.Run(() => {
@@ -254,8 +270,7 @@ namespace BassesModManager
         private string GetModPackNameForSelection(List<ModItem> selectedMods, string gamePath)
         {
             // Create a unique hash based on sorted file names for selected combination
-            var modNames = selectedMods.Where(m => m.IsEnabled)
-                                      .Select(m => m.FileName)
+            var modNames = selectedMods.Select(m => m.FileName)
                                       .OrderBy(n => n)
                                       .ToArray();
             string comboString = string.Join("|", modNames);
@@ -298,7 +313,15 @@ namespace BassesModManager
                     CustomMessageBox.Show(this, "Please set the game path first!", "Error");
                     return;
                 }
+
+                // Collect selected crosshair + optional scoreboard mod
                 var selectedMods = mods.Where(m => m.IsEnabled).ToList();
+                if (scoreboardMod != null)
+                {
+                    scoreboardMod.IsEnabled = ScoreboardCheckBox.IsChecked == true;
+                    if (scoreboardMod.IsEnabled)
+                        selectedMods.Add(scoreboardMod);
+                }
                 if (!selectedMods.Any())
                 {
                     CustomMessageBox.Show(this, "You must select a mod before launching the game!", "Error");
