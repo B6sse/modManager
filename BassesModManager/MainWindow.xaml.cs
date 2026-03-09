@@ -195,6 +195,9 @@ namespace BassesModManager
         {
             try
             {
+                // Frosty SDK uses relative "Caches/..." paths; they resolve via CurrentDirectory
+                Environment.CurrentDirectory = CachePathHelper.GetCacheBasePath();
+
                 // Initialize Frosty profile for Battlefront 2015 with PluginManager
                 var logger = new SimpleLogger();
                 var pluginManager = new Frosty.Core.PluginManager(logger, Frosty.Core.PluginManagerType.ModManager);

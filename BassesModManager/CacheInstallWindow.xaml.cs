@@ -70,6 +70,8 @@ namespace BassesModManager
                 Frosty.Core.Config.AddGame("StarWarsBattlefront", _gamePath);
 
             CachePathHelper.EnsureCachesDirectory();
+            // Frosty SDK uses relative "Caches/..." paths; they resolve via CurrentDirectory
+            Environment.CurrentDirectory = CachePathHelper.GetCacheBasePath();
 
             var fs = new FrostySdk.FileSystem(_gamePath + Path.DirectorySeparatorChar);
             foreach (var source in FrostySdk.ProfilesLibrary.Sources)
