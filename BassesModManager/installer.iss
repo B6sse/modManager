@@ -5,9 +5,9 @@
 
 #define MyAppName "Basse's Mod Manager"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.1"
+  #define MyAppVersion "1.2"
 #endif
-#define MyAppPublisher "B6sse"
+#define MyAppPublisher "Basse"
 #define MyAppExeName "BassesModManager.exe"
 
 ; PayloadPath: folder that contains exe, dlls, .config, ThirdParty, Profiles (from build).
@@ -53,6 +53,8 @@ Source: "Mods\*"; DestDir: "{app}\Mods"; Flags: ignoreversion
 Source: "{#PayloadPath}\Assets\Images\*"; DestDir: "{app}\Assets\Images"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 ; Sounds – hover/click sound effects
 Source: "{#PayloadPath}\Assets\Sounds\*"; DestDir: "{app}\Assets\Sounds"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
+; Banners – game banners for cache install window
+Source: "{#PayloadPath}\Assets\Banners\*"; DestDir: "{app}\Assets\Banners"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 ; Prereqs – bundled for install when missing (dontcopy = extract only when needed in [Code])
 Source: "Prereqs\.NET_Framework_4.8_setup.exe"; DestDir: "{tmp}"; Flags: dontcopy
 

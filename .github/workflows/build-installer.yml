@@ -1,6 +1,6 @@
 # Build BassesModManager in Release and create Inno Setup installer.
 # Run manually: Actions → "Build BassesModManager installer" → Run workflow (set version).
-# The workflow updates AssemblyInfo, version.txt, and MainWindow.xaml to the given version,
+# The workflow updates AssemblyInfo and version labels in MainWindow.xaml + GameSelectionWindow.xaml to the given version 
 # then builds and runs Inno Setup. Installer is uploaded as artifact.
 name: Build BassesModManager installer
 
@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version (e.g. 1.1)'
+        description: 'Version (e.g. 1.2)'
         required: true
-        default: '1.1'
+        default: '1.2'
 
 jobs:
   build:
@@ -34,15 +34,12 @@ jobs:
           (Get-Content $path) -replace 'AssemblyVersion\("[^"]+"\)', "AssemblyVersion(`"$assemblyVersion`")" -replace 'AssemblyFileVersion\("[^"]+"\)', "AssemblyFileVersion(`"$assemblyVersion`")" | Set-Content $path
         shell: pwsh
 
-      - name: Update version.txt
+      - name: Update version text in MainWindow.xaml and GameSelectionWindow.xaml
         run: |
-          Set-Content -Path "BassesModManager\version.txt" -Value $env:ASSEMBLY_VERSION -NoNewline
-        shell: pwsh
-
-      - name: Update MainWindow.xaml version text
-        run: |
-          $path = "BassesModManager\MainWindow.xaml"
-          (Get-Content $path -Raw) -replace 'Text="Version [^"]+"', "Text=`"Version $env:VERSION`"" | Set-Content $path -NoNewline
+          $versionText = "v$env:VERSION"
+          foreach ($path in @("BassesModManager\MainWindow.xaml", "BassesModManager\GameSelectionWindow.xaml")) {
+            (Get-Content $path -Raw) -replace 'Text="v[^"]*"', "Text=`"$versionText`"" | Set-Content $path -NoNewline
+          }
         shell: pwsh
 
       - name: Setup MSBuild
