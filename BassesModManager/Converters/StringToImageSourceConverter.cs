@@ -14,13 +14,8 @@ namespace BassesModManager.Converters
             if (string.IsNullOrEmpty(path)) return null;
 
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var fullPath = Path.Combine(baseDir, path.Replace('/', Path.DirectorySeparatorChar));
-            if (!File.Exists(fullPath))
-            {
-                var fallback = Path.Combine(baseDir, "Assets", "Images", "white_dot.png");
-                if (!File.Exists(fallback)) return null;
-                fullPath = fallback;
-            }
+            var fullPath = Path.IsPathRooted(path) ? path : Path.Combine(baseDir, path.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(fullPath)) return null;
 
             try
             {

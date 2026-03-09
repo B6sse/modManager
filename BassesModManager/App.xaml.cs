@@ -40,10 +40,10 @@ namespace BassesModManager
                 System.IO.Directory.CreateDirectory("Mods");
             }
 
-            // StartupUri is removed so we create MainWindow manually (avoids WPF creating it during update path and causing "Application shutting down" exception)
-            var mainWindow = new MainWindow();
-            MainWindow = mainWindow;
-            mainWindow.Show();
+            // StartupUri is removed so we create GameSelectionWindow first (Frosty-style flow: game selection -> cache install if needed -> mod selection)
+            var gameSelectionWindow = new GameSelectionWindow();
+            MainWindow = gameSelectionWindow;
+            gameSelectionWindow.Show();
         }
     }
 

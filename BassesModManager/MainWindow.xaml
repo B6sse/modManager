@@ -26,6 +26,7 @@
                             <Border Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
+                                    Padding="{TemplateBinding Padding}"
                                     CornerRadius="3">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
@@ -110,32 +111,22 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Game Path Selection -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="Select Game Path" Margin="0,0,0,5" Foreground="White" FontWeight="Bold" FontSize="15"/>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" CornerRadius="3" BorderBrush="White" BorderThickness="1">
-                    <TextBox x:Name="GamePathTextBox" IsReadOnly="True" Foreground="White" Background="#222" Padding="5"/>
-                </Border>
-                <Button x:Name="BrowseButton" Grid.Column="1" Content="Browse" Margin="15,0,0,0" Width="70" Padding="5,5,5,5"
-                        Style="{StaticResource PurpleButtonStyle}"
-                        ToolTip="Browse for the game executable"
-                        Click="BrowseButton_Click"/>
-            </Grid>
-        </StackPanel>
+        <!-- Back to game selection -->
+        <Button Grid.Row="0" x:Name="BackToGameSelectionButton"
+                Content="← Back"
+                HorizontalAlignment="Left"
+                Margin="0,0,0,14"
+                Padding="10,4"
+                Click="BackToGameSelectionButton_Click"
+                Style="{StaticResource PurpleButtonStyle}"
+                ToolTip="Return to game selection"/>
 
         <!-- Mod Selection Title -->
-        <TextBlock Grid.Row="1" Text="Select mod" Foreground="White" FontWeight="Bold" FontSize="15" Margin="0,8,0,0"/>
+        <TextBlock Grid.Row="1" Text="Select mod" Foreground="White" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
         <!-- Mod Selection: image cards -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,0,0,0">
             <ItemsControl x:Name="ModListControl" HorizontalAlignment="Left">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -159,7 +150,7 @@
         </ScrollViewer>
 
         <!-- Launch Button -->
-        <Button Grid.Row="5"
+        <Button Grid.Row="3"
                 x:Name="LaunchGameButton"
                 Content="Launch Game"
                 Height="40"
@@ -169,6 +160,6 @@
                 ToolTip="Select a mod before launching the game"/>
 
         <!-- Version label -->
-        <TextBlock Grid.Row="6" Text="Version 1.1" Foreground="White" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+        <TextBlock Grid.Row="4" Text="v1.2" Foreground="White" FontWeight="Bold" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,10,0,0"/>
     </Grid>
 </Window> 

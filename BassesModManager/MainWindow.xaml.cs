@@ -4,7 +4,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using Microsoft.Win32;
 using System.Linq;
 using System.Collections.Generic;
 using Frosty.ModSupport;
@@ -20,7 +19,6 @@ namespace BassesModManager
     public partial class MainWindow : Window
     {
         private ObservableCollection<ModItem> mods;
-        private string gamePath;
         private string modsDirectory;
 
         private MediaPlayer _hoverPlayer;
@@ -38,13 +36,6 @@ namespace BassesModManager
             InitializeComponent();
             mods = new ObservableCollection<ModItem>();
             ModListControl.ItemsSource = mods;
-
-            // Load saved game path if it exists
-            gamePath = Properties.Settings.Default.GamePath;
-            if (!string.IsNullOrEmpty(gamePath))
-            {
-                GamePathTextBox.Text = gamePath;
-            }
 
             modsDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Mods");
             
@@ -95,22 +86,13 @@ namespace BassesModManager
             catch { /* ignore playback errors */ }
         }
 
-        private void BrowseButton_Click(object sender, RoutedEventArgs e)
+        private void BackToGameSelectionButton_Click(object sender, RoutedEventArgs e)
         {
-            PlayPreloaded(_clickPlayer);
-            var dialog = new OpenFileDialog
-            {
-                Filter = "Game Executable|*.exe",
-                Title = "Select Game Executable"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                gamePath = Path.GetDirectoryName(dialog.FileName);
-                GamePathTextBox.Text = gamePath;
-                Properties.Settings.Default.GamePath = gamePath;
-                Properties.Settings.Default.Save();
-            }
+            PlayClickSound(sender, e);
+            var gameSelectionWindow = new GameSelectionWindow();
+            Application.Current.MainWindow = gameSelectionWindow;
+            gameSelectionWindow.Show();
+            Close();
         }
 
         private void LoadMods()
@@ -206,6 +188,8 @@ namespace BassesModManager
 
                 // Initialize config system
                 Frosty.Core.Config.Load();
+
+                CachePathHelper.EnsureCachesDirectory();
 
                 // Set up FileSystem, ResourceManager and AssetManager like FrostyModManager does
                 var fs = new FrostySdk.FileSystem(gamePath + Path.DirectorySeparatorChar);
@@ -321,20 +305,7 @@ namespace BassesModManager
                     return;
                 }
 
-                // Here: check if the starwars.cache file in the Caches folder exists in the path of this application (BassesModManager where it was installed)
-                string cachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Caches", "starwars.cache");
-                if (!File.Exists(cachePath) && !IsRunAsAdmin())
-                {
-                    CustomMessageBox.Show(this, "Please run the app as administrator to let the app create a necessary cache file. (This will drastically improve the performance for later launches.)", "Admin required");
-                    return;
-                }
-
-                // First-time launch: show confirmation that cache creation takes 10-20 seconds
-                if (!File.Exists(cachePath))
-                {
-                    CustomMessageBox.Show(this, "A cache file is being created. It takes about 10-20 seconds. This will drastically improve the performance for later launches. Please wait until it is complete. Click OK to continue.", "Please wait", MessageBoxButton.OK);
-                }
-
+                // Cache is created in CacheInstallWindow before MainWindow is shown
                 // Find or create the correct ModPack folder
                 string modPackName = GetModPackNameForSelection(selectedMods, gamePath);
                 if (modPackName == null)

@@ -1,0 +1,136 @@
+<Window x:Class="BassesModManager.GameSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:BassesModManager.Converters"
+        Title="Basse's Mod Manager" Height="450" Width="700"
+        WindowStartupLocation="CenterScreen"
+        Background="Black"
+        FontSize="15">
+    <Grid Margin="20">
+        <Grid.Resources>
+            <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter"/>
+            <Style TargetType="Button" x:Key="PurpleButtonStyle">
+                <Setter Property="OverridesDefaultStyle" Value="True"/>
+                <Setter Property="Background" Value="#8000FF"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderBrush" Value="#8000FF"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Padding" Value="16,10"/>
+                <Setter Property="FontSize" Value="15"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    Padding="{TemplateBinding Padding}"
+                                    CornerRadius="3">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Foreground" Value="#8000FF"/>
+                        <Setter Property="BorderBrush" Value="White"/>
+                    </Trigger>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Background" Value="#333"/>
+                        <Setter Property="Foreground" Value="#666"/>
+                        <Setter Property="BorderBrush" Value="#444"/>
+                        <Setter Property="Cursor" Value="Arrow"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style TargetType="ToolTip">
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Background" Value="#222"/>
+                <Setter Property="FontSize" Value="15"/>
+            </Style>
+        </Grid.Resources>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Select Game" Margin="0,0,0,15" Foreground="White" FontWeight="Bold" FontSize="18"/>
+        
+        <Border Grid.Row="1" CornerRadius="3" BorderThickness="0" Padding="0" Margin="0" Background="Transparent">
+            <ListView x:Name="GameList" Foreground="White" Background="Transparent" BorderThickness="0" Padding="0"
+                      SelectionChanged="GameList_SelectionChanged" MouseDoubleClick="GameList_MouseDoubleClick">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListViewItem">
+                                    <Border x:Name="itemBorder" BorderBrush="Transparent" BorderThickness="2" CornerRadius="4" Padding="8,6" Margin="0"
+                                            HorizontalAlignment="Stretch" Background="Transparent">
+                                        <ContentPresenter HorizontalAlignment="Left"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="itemBorder" Property="BorderBrush" Value="#8000FF"/>
+                                            <Setter TargetName="itemBorder" Property="Background" Value="#8000FF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="itemBorder" Property="BorderBrush" Value="#8000FF"/>
+                                            <Setter TargetName="itemBorder" Property="Background" Value="#8000FF"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
+                        <EventSetter Event="PreviewMouseDown" Handler="GameList_PreviewMouseDown"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="48" Height="48" CornerRadius="4" Margin="0,0,12,0" ClipToBounds="True">
+                                <Image Source="{Binding BannerPath, Converter={StaticResource StringToImageSourceConverter}}" 
+                                       Stretch="UniformToFill" Width="48" Height="48"/>
+                            </Border>
+                            <TextBlock Text="{Binding Path}" VerticalAlignment="Center" FontSize="14"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Border>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button x:Name="AddButton" Content="Add Game" Width="100" Padding="10,6" Margin="0,0,10,0"
+                    Style="{StaticResource PurpleButtonStyle}"
+                    ToolTip="Browse for Star Wars Battlefront game folder"
+                    Click="AddButton_Click"/>
+            <Button x:Name="RemoveButton" Content="Remove" Width="90" Padding="10,6" Margin="0,0,10,0"
+                    Style="{StaticResource PurpleButtonStyle}"
+                    IsEnabled="False"
+                    Click="RemoveButton_Click"/>
+            <Button x:Name="SelectButton" Content="Select" Width="100" Padding="10,6"
+                    Style="{StaticResource PurpleButtonStyle}"
+                    IsEnabled="False"
+                    ToolTip="Open mod selection for selected game"
+                    Click="SelectButton_Click"/>
+        </StackPanel>
+
+        <!-- Version label -->
+        <TextBlock Grid.Row="2"
+                   Text="v1.2"
+                   Foreground="White"
+                   FontWeight="Bold"
+                   VerticalAlignment="Bottom"
+                   HorizontalAlignment="Left"
+                   Margin="0,10,0,0"/>
+    </Grid>
+</Window>
