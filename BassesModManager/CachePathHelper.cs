@@ -3,18 +3,17 @@ using System.IO;
 
 namespace BassesModManager
 {
-    /// <summary>
-    /// Cache path - uses BaseDirectory/Caches like Frosty Mod Manager (works without admin when app is in user-writable location).
-    /// </summary>
     public static class CachePathHelper
     {
-        public static string GetCacheBasePath() => AppDomain.CurrentDomain.BaseDirectory;
+        // Shared cache folder for all users: %ProgramData%\BassesModManager\Caches
+        public static string GetCacheBasePath()
+        {
+            string programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            return Path.Combine(programData, "BassesModManager");
+        }
 
         public static string GetCacheFilePath() => Path.Combine(GetCacheBasePath(), "Caches", "starwars.cache");
 
-        /// <summary>
-        /// Ensures Caches dir exists. Frosty SDK uses relative "Caches/..." so we rely on BaseDirectory.
-        /// </summary>
         public static void EnsureCachesDirectory()
         {
             var cachesDir = Path.Combine(GetCacheBasePath(), "Caches");
