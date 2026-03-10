@@ -4,14 +4,7 @@ A streamlined, competition-focused (Frosty) mod manager for **Star Wars Battlefr
 Designed to make competitive play more secure by allowing players to select from pre-installed, approved mods (without import functionality).
 
 ## Demo
-
-**First-time setup**: The first time a user launches the app
-
-![App with cache and script](assets/new_launch.mp4)
-
-**Quick launch**: A normal launch with some short gameplay
-
-![Quick launch and gameplay](assets/full_launch.mp4)
+![App with cache and script](assets/launch.gif)
 
 ## Download
 
