@@ -65,6 +65,14 @@ namespace BassesModManager
             FrostySdk.ProfilesLibrary.Initialize(pluginManager.Profiles);
             FrostySdk.ProfilesLibrary.Initialize("StarWarsBattlefront");
 
+            // Ensure Frosty config dir and file exist before Config.Load() (first-run fix)
+            string configDir = Frosty.Core.App.GlobalSettingsPath;
+            string configFile = Path.Combine(configDir, "manager_config.json");
+            if (!Directory.Exists(configDir))
+                Directory.CreateDirectory(configDir);
+            if (!File.Exists(configFile))
+                File.WriteAllText(configFile, "{\n  \"Games\": {},\n  \"GlobalOptions\": {}\n}");
+
             Frosty.Core.Config.Load();
             if (!Frosty.Core.Config.Current.Games.ContainsKey("StarWarsBattlefront"))
                 Frosty.Core.Config.AddGame("StarWarsBattlefront", _gamePath);
