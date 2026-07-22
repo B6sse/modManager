@@ -4,12 +4,29 @@ using System.Net;
 using System.Reflection;
 using System.Linq;
 
-namespace BassesModManager 
+namespace BassesModManager
 {
     public partial class App : Application
     {
         protected override void OnStartup(StartupEventArgs e)
         {
+            // .NET user settings (GamePath/GamePaths) are stored per assembly version.
+            // Migrate them forward once after an app upgrade so the user doesn't have to
+            // re-select the game folder every time a new version is installed.
+            if (BassesModManager.Properties.Settings.Default.UpgradeRequired)
+            {
+                try
+                {
+                    BassesModManager.Properties.Settings.Default.Upgrade();
+                }
+                catch
+                {
+                    // never block startup on settings migration
+                }
+                BassesModManager.Properties.Settings.Default.UpgradeRequired = false;
+                BassesModManager.Properties.Settings.Default.Save();
+            }
+
             string versionUrl = "https://raw.githubusercontent.com/TSL-Battlefront/modManager/main/version.txt";
             if (UpdateChecker.IsUpdateRequired(versionUrl))
             {
@@ -40,8 +57,9 @@ namespace BassesModManager
                 System.IO.Directory.CreateDirectory("Mods");
             }
 
-            // StartupUri is removed so we create GameSelectionWindow first (Frosty-style flow: game selection -> cache install if needed -> mod selection)
-            var gameSelectionWindow = new GameSelectionWindow();
+            // StartupUri is removed so we create GameSelectionWindow first (Frosty-style flow: game selection -> cache install if needed -> mod selection).
+            // With exactly one saved game the selection window skips itself automatically.
+            var gameSelectionWindow = new GameSelectionWindow(autoProceedIfSingle: true);
             MainWindow = gameSelectionWindow;
             gameSelectionWindow.Show();
         }
@@ -49,11 +67,24 @@ namespace BassesModManager
 
     public static class UpdateChecker
     {
+        // WebClient has no sensible default timeout; without a short one the app can sit
+        // on a blank screen for a long time when the network is slow or blocked.
+        private class TimeoutWebClient : WebClient
+        {
+            protected override WebRequest GetWebRequest(Uri address)
+            {
+                var request = base.GetWebRequest(address);
+                if (request != null)
+                    request.Timeout = 5000;
+                return request;
+            }
+        }
+
         public static bool IsUpdateRequired(string versionUrl)
         {
             try
             {
-                using (var client = new WebClient())
+                using (var client = new TimeoutWebClient())
                 {
                     string minRequiredVersion = client.DownloadString(versionUrl).Trim();
                     Version current = Assembly.GetExecutingAssembly().GetName().Version;
@@ -68,4 +99,4 @@ namespace BassesModManager
             }
         }
     }
-} 
+}
