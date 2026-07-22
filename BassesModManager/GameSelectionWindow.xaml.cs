@@ -17,7 +17,11 @@ namespace BassesModManager
         private MediaPlayer _hoverPlayer;
         private MediaPlayer _clickPlayer;
 
-        public GameSelectionWindow()
+        public GameSelectionWindow() : this(false)
+        {
+        }
+
+        public GameSelectionWindow(bool autoProceedIfSingle)
         {
             InitializeComponent();
             gameEntries = new ObservableCollection<GameEntry>();
@@ -25,6 +29,17 @@ namespace BassesModManager
 
             LoadGamePaths();
             PreloadSounds();
+
+            // With exactly one saved game there is nothing to choose - skip straight ahead
+            // (only on startup; the BACK button opens this window without auto-proceed)
+            if (autoProceedIfSingle && gameEntries.Count == 1)
+            {
+                Loaded += (s, e) => Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    GameList.SelectedIndex = 0;
+                    ProceedWithSelection();
+                }), System.Windows.Threading.DispatcherPriority.Background);
+            }
         }
 
         private void LoadGamePaths()

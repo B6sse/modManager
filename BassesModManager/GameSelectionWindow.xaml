@@ -106,5 +106,13 @@
                    VerticalAlignment="Bottom"
                    HorizontalAlignment="Left"
                    Margin="0,10,0,0"/>
+
+        <!-- Double-click hint -->
+        <TextBlock Grid.Row="3"
+                   Text="Tip: double-click a game to jump straight to mod selection"
+                   Foreground="#888"
+                   FontSize="12"
+                   HorizontalAlignment="Left"
+                   Margin="0,8,0,0"/>
     </Grid>
 </Window>
