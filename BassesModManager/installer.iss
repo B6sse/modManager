@@ -57,6 +57,9 @@ Source: "{#PayloadPath}\Assets\Sounds\*"; DestDir: "{app}\Assets\Sounds"; Flags:
 Source: "{#PayloadPath}\Assets\Banners\*"; DestDir: "{app}\Assets\Banners"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 ; Prereqs – bundled for install when missing (dontcopy = extract only when needed in [Code])
 Source: "Prereqs\.NET_Framework_4.8_setup.exe"; DestDir: "{tmp}"; Flags: dontcopy
+#ifexist "Prereqs\vc_redist.x64.exe"
+Source: "Prereqs\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: dontcopy
+#endif
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -67,7 +70,8 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent runascurrentuser
 
 ; Prereqs: .NET 4.8 is bundled in Prereqs\.NET_Framework_4.8_setup.exe and installed automatically if missing.
-; VC++ Redist (x64): https://aka.ms/vs/17/release/vc_redist.x64.exe – add to Prereqs\ and [Code] if needed later.
+; VC++ 2015-2022 Redist (x64) is bundled in Prereqs\vc_redist.x64.exe and installed automatically if missing
+; (required by the native Frosty DLLs: FrostyHash, zlibwapi, libzstd, CryptBase).
 [Code]
 function IsDotNet48Installed: Boolean;
 var
@@ -76,6 +80,15 @@ begin
   Result := False;
   if RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full', 'Release', Release) then
     Result := (Release >= 528040);  // 528040 = .NET 4.8
+end;
+
+function IsVCRedist64Installed: Boolean;
+var
+  Installed: Cardinal;
+begin
+  Result := False;
+  if RegQueryDWordValue(HKLM64, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64', 'Installed', Installed) then
+    Result := (Installed = 1);
 end;
 
 function InitializeSetup: Boolean;
@@ -92,4 +105,13 @@ begin
       MsgBox('.NET Framework 4.8 setup failed or was cancelled. The app may not run until .NET 4.8 is installed.', mbError, MB_OK);
     Result := True;  // allow our installer to continue either way
   end;
+#ifexist "Prereqs\vc_redist.x64.exe"
+  if not IsVCRedist64Installed then
+  begin
+    ExtractTemporaryFile('vc_redist.x64.exe');
+    if not Exec(ExpandConstant('{tmp}\vc_redist.x64.exe'), '/install /quiet /norestart', '', SW_SHOW, ewWaitUntilTerminated, ResultCode) then
+      MsgBox('Visual C++ Redistributable setup failed or was cancelled. The app may not run until it is installed.', mbError, MB_OK);
+    Result := True;  // allow our installer to continue either way
+  end;
+#endif
 end;
