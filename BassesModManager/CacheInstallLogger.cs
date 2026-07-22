@@ -2,6 +2,7 @@ using FrostySdk.Interfaces;
 using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Threading;
 
@@ -11,10 +12,14 @@ namespace BassesModManager
     /// Like Frosty: spinner during read phase (Loading Catalogs, Indexing).
     /// Progress bar only during write phase - smooth animation toward target so the bar fills gradually
     /// even when the backend completes a phase very quickly.
+    /// Shared between the cache install window and the launch progress window; with
+    /// barOnAnyProgress the bar is shown as soon as any "progress:" message arrives
+    /// (used by the launch flow, where phases are not named "Writing to cache").
     /// </summary>
-    internal class CacheInstallLogger : ILogger, INotifyPropertyChanged
+    internal class SmoothProgressLogger : ILogger, INotifyPropertyChanged
     {
-        private readonly CacheInstallWindow _window;
+        private readonly Window _window;
+        private readonly bool _barOnAnyProgress;
         private double _progress;
         private double _targetProgress;
         private string _status;
@@ -22,13 +27,10 @@ namespace BassesModManager
         private string _currentWritePhase;
         private double _lastDispatchedTarget = -1;
         private DateTime _lastTargetDispatchTime = DateTime.MinValue;
-        // Hvor mye målverdien må endre seg før vi oppdaterer (i prosentpoeng)
+        
         private const double TargetThrottlePercent = 0.1;
-        // Hvor ofte vi minst vil oppdatere målverdien (ms)
         private const int TargetThrottleMs = 15;
-        // Hvor mye selve baren flytter seg per tick (i prosentpoeng)
         private const double ProgressStepPerTick = 0.4;
-        // Hvor ofte timeren tikker (ms)
         private const int TimerIntervalMs = 12;
         private DispatcherTimer _progressTimer;
 
@@ -52,7 +54,10 @@ namespace BassesModManager
                     _window.Dispatcher.InvokeAsync(() =>
                     {
                         _targetProgress = p;
-                        if (p <= 0) _progress = 0;
+                        if (p <= 0)
+                            _progress = 0;
+                        else if (p < _progress)
+                            _progress = p; // phase restarted at a lower value - snap back
                         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Progress)));
                     }, DispatcherPriority.Background);
                 }
@@ -118,16 +123,17 @@ namespace BassesModManager
             };
         }
 
-        public CacheInstallLogger(CacheInstallWindow window)
+        public SmoothProgressLogger(Window window, ProgressBar progressBar, TextBlock statusText, UIElement spinnerPanel, bool barOnAnyProgress = false)
         {
             _window = window;
-            BindingOperations.SetBinding(_window.ProgressBar, System.Windows.Controls.Primitives.RangeBase.ValueProperty,
+            _barOnAnyProgress = barOnAnyProgress;
+            BindingOperations.SetBinding(progressBar, System.Windows.Controls.Primitives.RangeBase.ValueProperty,
                 new Binding(nameof(Progress)) { Source = this, Mode = BindingMode.OneWay });
-            BindingOperations.SetBinding(_window.StatusText, System.Windows.Controls.TextBlock.TextProperty,
+            BindingOperations.SetBinding(statusText, TextBlock.TextProperty,
                 new Binding(nameof(Status)) { Source = this, Mode = BindingMode.OneWay });
-            BindingOperations.SetBinding(_window.SpinnerPanel, System.Windows.UIElement.VisibilityProperty,
+            BindingOperations.SetBinding(spinnerPanel, UIElement.VisibilityProperty,
                 new Binding(nameof(IsWritePhase)) { Source = this, Converter = new InvertBoolToVisibilityConverter() });
-            BindingOperations.SetBinding(_window.ProgressBar, System.Windows.UIElement.VisibilityProperty,
+            BindingOperations.SetBinding(progressBar, UIElement.VisibilityProperty,
                 new Binding(nameof(IsWritePhase)) { Source = this, Converter = new BoolToVisibilityConverter() });
         }
 
@@ -139,6 +145,8 @@ namespace BassesModManager
                 fullText = fullText.Replace("progress:", "").Trim();
                 if (double.TryParse(fullText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var p))
                 {
+                    if (_barOnAnyProgress)
+                        IsWritePhase = true;
                     Progress = p;
                 }
             }
@@ -155,6 +163,12 @@ namespace BassesModManager
                         _lastDispatchedTarget = -1;
                         Progress = 0;
                     }
+                }
+                else if (_barOnAnyProgress)
+                {
+                    // new named phase in the launch flow - make sure the next progress
+                    // value is dispatched immediately instead of being throttled away
+                    _lastDispatchedTarget = -1;
                 }
             }
         }

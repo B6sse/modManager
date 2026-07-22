@@ -42,7 +42,7 @@ namespace BassesModManager
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            var logger = new CacheInstallLogger(this);
+            var logger = new SmoothProgressLogger(this, ProgressBar, StatusText, SpinnerPanel);
             logger.Status = "Initializing...";
 
             try
@@ -58,24 +58,13 @@ namespace BassesModManager
             Close();
         }
 
-        private void CreateCache(CacheInstallLogger logger)
+        private void CreateCache(SmoothProgressLogger logger)
         {
-            var pluginManager = new PluginManager(logger, PluginManagerType.ModManager);
-            Frosty.Core.App.PluginManager = pluginManager;
-            FrostySdk.ProfilesLibrary.Initialize(pluginManager.Profiles);
-            FrostySdk.ProfilesLibrary.Initialize("StarWarsBattlefront");
-
-            // Ensure Frosty config dir and file exist before Config.Load() (first-run fix)
-            string configDir = Frosty.Core.App.GlobalSettingsPath;
-            string configFile = Path.Combine(configDir, "manager_config.json");
-            if (!Directory.Exists(configDir))
-                Directory.CreateDirectory(configDir);
-            if (!File.Exists(configFile))
-                File.WriteAllText(configFile, "{\n  \"Games\": {},\n  \"GlobalOptions\": {}\n}");
-
-            Frosty.Core.Config.Load();
-            if (!Frosty.Core.Config.Current.Games.ContainsKey("StarWarsBattlefront"))
-                Frosty.Core.Config.AddGame("StarWarsBattlefront", _gamePath);
+            // Use the actual exe filename as profile/config key so the entry matches what
+            // Frosty Mod Manager itself would create (avoids duplicate game entries in FMM)
+            string profileKey = FrostyRuntime.GetProfileKey(_gamePath);
+            FrostyRuntime.EnsureInitialized(logger, profileKey);
+            FrostyRuntime.EnsureGameRegistered(profileKey, _gamePath);
 
             CachePathHelper.EnsureCachesDirectory();
             // Frosty SDK uses relative "Caches/..." paths; they resolve via CurrentDirectory

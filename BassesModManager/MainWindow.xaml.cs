@@ -1,17 +1,14 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Linq;
 using System.Collections.Generic;
-using Frosty.ModSupport;
-using FrostySdk.Interfaces;
-using System.Threading.Tasks;
 using System.Windows.Threading;
 using System.Security.Cryptography;
-using System.Windows.Controls;
 using System.Security.Principal;
 
 namespace BassesModManager 
@@ -193,79 +190,77 @@ namespace BassesModManager
 
         private void ApplyModsAndLaunch(string gamePath, List<ModItem> selectedMods, string modPackName)
         {
+            var modPaths = selectedMods
+                .Select(m => Path.Combine(modsDirectory, m.FileName))
+                .ToArray();
+
+            // Modal progress window runs the whole flow (Frosty init, mod patching, game
+            // launch) on a background thread and shows live status/progress
+            var launchWindow = new LaunchProgressWindow(gamePath, modPaths, modPackName) { Owner = this };
+            if (launchWindow.ShowDialog() == true)
+            {
+                OnGameLaunched(gamePath);
+            }
+        }
+
+        private DispatcherTimer gameWatchTimer;
+        private DateTime gameWatchStart;
+        private bool gameSeenRunning;
+        private string watchedProcessName;
+
+        // How long to wait for the game process to appear before giving up (Steam/EA app
+        // startup can take a while)
+        private static readonly TimeSpan GameStartTimeout = TimeSpan.FromMinutes(2);
+
+        private void OnGameLaunched(string gamePath)
+        {
+            // Prevent re-launch while the game is starting/running, and get out of the way
+            LaunchGameButton.IsEnabled = false;
+            LaunchGameButton.ToolTip = "The game is starting/running...";
+            WindowState = WindowState.Minimized;
+
+            watchedProcessName = FrostyRuntime.GetProfileKey(gamePath);
+            gameSeenRunning = false;
+            gameWatchStart = DateTime.UtcNow;
+
+            gameWatchTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+            gameWatchTimer.Tick += GameWatchTimer_Tick;
+            gameWatchTimer.Start();
+        }
+
+        private void GameWatchTimer_Tick(object sender, EventArgs e)
+        {
+            bool running = false;
             try
             {
-                // Frosty SDK uses relative "Caches/..." paths; they resolve via CurrentDirectory
-                Environment.CurrentDirectory = CachePathHelper.GetCacheBasePath();
-
-                // Initialize Frosty profile for Battlefront 2015 with PluginManager
-                var logger = new SimpleLogger();
-                var pluginManager = new Frosty.Core.PluginManager(logger, Frosty.Core.PluginManagerType.ModManager);
-                Frosty.Core.App.PluginManager = pluginManager;
-                FrostySdk.ProfilesLibrary.Initialize(pluginManager.Profiles);
-                FrostySdk.ProfilesLibrary.Initialize("StarWarsBattlefront");
-
-                // Ensure Frosty config dir and file exist before Config.Load() (first-run fix)
-                string configDir = Frosty.Core.App.GlobalSettingsPath;
-                string configFile = Path.Combine(configDir, "manager_config.json");
-                if (!Directory.Exists(configDir))
-                    Directory.CreateDirectory(configDir);
-                if (!File.Exists(configFile))
-                    File.WriteAllText(configFile, "{\n  \"Games\": {},\n  \"GlobalOptions\": {}\n}");
-
-                // Initialize config system
-                Frosty.Core.Config.Load();
-
-                CachePathHelper.EnsureCachesDirectory();
-
-                // Set up FileSystem, ResourceManager and AssetManager like FrostyModManager does
-                var fs = new FrostySdk.FileSystem(gamePath + Path.DirectorySeparatorChar);
-                foreach (var source in FrostySdk.ProfilesLibrary.Sources)
-                    fs.AddSource(source.Path, source.SubDirs);
-                fs.Initialize();
-
-                var rm = new FrostySdk.Managers.ResourceManager(fs);
-                rm.SetLogger(logger);
-                rm.Initialize();
-
-                var am = new FrostySdk.Managers.AssetManager(fs, rm);
-                am.SetLogger(logger);
-                am.Initialize(false);
-
-                // Set up necessary parameters for mod executor
-                var cancelToken = new System.Threading.CancellationToken();
-                string rootPath = gamePath + Path.DirectorySeparatorChar;
-                string additionalArgs = "";
-
-                Frosty.Core.App.Logger = logger;
-                
-                // Run FrostyModExecutor in silent mode
-                var executor = new FrostyModExecutor();
-                var modPaths = selectedMods
-                    .Select(m => Path.Combine(modsDirectory, m.FileName))
-                    .ToArray();
-
-                // Run mod application in background
-                Task.Run(() => {
-                    int result = executor.Run(fs, cancelToken, logger, rootPath, modPackName, additionalArgs, silentMode: true, modPaths);
-                    
-                    if (result == 0)
-                    {
-                        // Start game automatically in silent mode
-                        string modDataPath = Path.Combine(gamePath, "ModData", modPackName);
-                        FrostyModExecutor.LaunchGame(gamePath + Path.DirectorySeparatorChar, modPackName, modDataPath, additionalArgs);
-                    }
-                    else
-                    {
-                        Dispatcher.Invoke(() => {
-                            CustomMessageBox.Show(this, "Something went wrong while patching mods.", "Error");
-                        });
-                    }
-                });
+                Process[] processes = Process.GetProcessesByName(watchedProcessName);
+                running = processes.Length > 0;
+                foreach (Process p in processes)
+                    p.Dispose();
             }
-            catch (Exception ex)
+            catch { }
+
+            if (running)
             {
-                CustomMessageBox.Show(this, $"Error applying mods: {ex.Message}", "Error");
+                gameSeenRunning = true;
+                return;
+            }
+
+            // Not running: either still starting up, or it has exited
+            if (!gameSeenRunning && DateTime.UtcNow - gameWatchStart < GameStartTimeout)
+                return;
+
+            gameWatchTimer.Stop();
+            gameWatchTimer = null;
+
+            LaunchGameButton.IsEnabled = true;
+            LaunchGameButton.ToolTip = "Select a mod before launching the game";
+
+            if (gameSeenRunning)
+            {
+                // Game exited - bring the manager back
+                WindowState = WindowState.Normal;
+                Activate();
             }
         }
 
@@ -373,22 +368,4 @@ namespace BassesModManager
         public string Author { get; set; }
         public string Version { get; set; }
     }
-
-       public class SimpleLogger : ILogger
-   {
-       public void Log(string text, params object[] vars)
-       {
-           Console.WriteLine(text, vars);
-       }
-
-       public void LogWarning(string text, params object[] vars)
-       {
-           Console.WriteLine("WARNING: " + text, vars);
-       }
-
-       public void LogError(string text, params object[] vars)
-       {
-           Console.WriteLine("ERROR: " + text, vars);
-       }
-   }
-} 
+}
