@@ -64,8 +64,9 @@ namespace BassesModManager
                 else
                 {
                     CustomMessageBox.Show(this,
-                        "Something went wrong while patching mods (code " + result + ").\n" +
-                        "Running the app as administrator will most likely fix this.", "Error");
+                        "The mods could not be applied, so the game was not started.\n\n" +
+                        "Try closing the app and reopening it as administrator (right-click the icon, choose 'Run as administrator').\n\n" +
+                        "Error code: " + result, "Could not apply mods");
                     DialogResult = false;
                 }
             }
@@ -75,8 +76,10 @@ namespace BassesModManager
             }
             catch (Exception ex)
             {
-                CustomMessageBox.Show(this, $"Error applying mods: {ex.Message}\n" +
-                    "(Running the app as administrator will most likely fix this. If not, please report the error to the developer.)", "Error");
+                CustomMessageBox.Show(this,
+                    "Something went wrong while applying the mods, so the game was not started.\n\n" +
+                    "Try closing the app and reopening it as administrator (right-click the icon, choose 'Run as administrator').\n\n" +
+                    $"Technical details: {ex.Message}", "Could not apply mods");
                 DialogResult = false;
             }
             Close();

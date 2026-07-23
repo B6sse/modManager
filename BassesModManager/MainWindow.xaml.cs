@@ -157,7 +157,7 @@ namespace BassesModManager
                 }
                 if (failedDeletes.Count > 0)
                 {
-                    CustomMessageBox.Show(this, $"Some unauthorized mods could not be deleted: {string.Join(", ", failedDeletes)}.\nPlease run the app as administrator.", "Warning");
+                    CustomMessageBox.Show(this, $"Some files in the Mods folder are not approved mods and could not be removed: {string.Join(", ", failedDeletes)}.\n\nClose the app, right-click its icon and choose 'Run as administrator' to let it clean them up.", "Warning");
                 }
                 // Order crosshair mods: White, Red, Green (left to right)
                 var ordered = mods.OrderBy(m => m.Name.IndexOf("White", StringComparison.OrdinalIgnoreCase) >= 0 ? 0 :
@@ -167,7 +167,7 @@ namespace BassesModManager
             }
             catch (Exception ex)
             {
-                CustomMessageBox.Show(this, $"Error loading mods: {ex.Message}", "Error");
+                CustomMessageBox.Show(this, $"Could not read the mod files. Try reinstalling the app if this keeps happening.\n\nTechnical details: {ex.Message}", "Error");
             }
         }
 
@@ -298,7 +298,7 @@ namespace BassesModManager
                                   
                 if (!IsRunAsAdmin())
                 {
-                    CustomMessageBox.Show(this, "Since this is the first time you are launching the game with this mod combination, the app requires administrator privileges. Please restart the app as administrator.", "Admin required");
+                    CustomMessageBox.Show(this, "First time using this mod combination - the app needs administrator rights to set it up.\n\nClose the app, right-click its icon and choose 'Run as administrator', then try again. This is only needed once per mod combination.", "Administrator needed");
                     return null;
                 }
                 else
@@ -316,7 +316,7 @@ namespace BassesModManager
                 string gamePath = Properties.Settings.Default.GamePath;
                 if (string.IsNullOrEmpty(gamePath))
                 {
-                    CustomMessageBox.Show(this, "Please set the game path first!", "Error");
+                    CustomMessageBox.Show(this, "Select your game folder before launching. Press BACK and add the game first.", "Game not selected");
                     return;
                 }
 
@@ -330,7 +330,7 @@ namespace BassesModManager
                 }
                 if (!selectedMods.Any())
                 {
-                    CustomMessageBox.Show(this, "You must select a mod before launching the game!", "Error");
+                    CustomMessageBox.Show(this, "Pick a crosshair first, then press LAUNCH GAME.", "No mod selected");
                     return;
                 }
 
@@ -346,14 +346,14 @@ namespace BassesModManager
                 string modPackPath = Path.Combine(gamePath, "ModData", modPackName);
                 if (!Directory.Exists(modPackPath))
                 {
-                    CustomMessageBox.Show(this, "First time with this mod: a script window will appear on screen. This is normal and required to set up the mod. Click OK to continue.", "First-time setup", MessageBoxButton.OK);
+                    CustomMessageBox.Show(this, "First time using this mod combination: a black command window will pop up for a moment while everything is set up. This is normal - just let it finish.", "First-time setup", MessageBoxButton.OK);
                 }
 
                 ApplyModsAndLaunch(gamePath, selectedMods, modPackName);
             }
             catch (Exception ex)
             {
-                CustomMessageBox.Show(this, $"An error occurred: {ex.Message}\n (Running the app as administrator will most likely fix this. If not, please report the error to the developer.)", "Error");
+                CustomMessageBox.Show(this, $"Something went wrong before the game could start. Try closing the app and reopening it as administrator (right-click the icon, choose 'Run as administrator').\n\nTechnical details: {ex.Message}", "Error");
             }
         }
     }

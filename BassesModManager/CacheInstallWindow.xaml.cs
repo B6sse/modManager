@@ -52,7 +52,9 @@ namespace BassesModManager
             }
             catch (Exception ex)
             {
-                CustomMessageBox.Show(this, $"Cache creation failed: {ex.Message}", "Error");
+                CustomMessageBox.Show(this,
+                    "The first-time setup could not finish. Check that the folder you selected is your Star Wars Battlefront installation, then try again.\n\n" +
+                    $"Technical details: {ex.Message}", "Setup failed");
                 DialogResult = false;
             }
             Close();
