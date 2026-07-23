@@ -22,7 +22,7 @@ jobs:
       - name: Set version from input
         run: |
           echo "VERSION=${{ github.event.inputs.version }}" >> $env:GITHUB_ENV
-        shell: bash
+        shell: pwsh
 
       - name: Update AssemblyInfo.cs and set four-part version
         run: |
