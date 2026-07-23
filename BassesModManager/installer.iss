@@ -31,6 +31,12 @@ WizardStyle=modern
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 PrivilegesRequired=admin
+; Auto-update support (Plans/AUTO_UPDATE_PLAN.md, Spor A): the app holds a mutex with
+; this exact name so Setup can detect and cleanly close/replace a running instance
+; during silent updates (must match the mutex name created in App.xaml.cs)
+AppMutex=BassesModManagerAppMutex
+CloseApplications=yes
+RestartApplications=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -66,8 +72,10 @@ Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-; runascurrentuser = start app as the user who ran the installer (non-elevated), avoiding "CreateProcess failed; code 740"
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent runascurrentuser
+; runascurrentuser = start app as the user who ran the installer (non-elevated), avoiding "CreateProcess failed; code 740".
+; No skipifsilent: silent auto-updates (/VERYSILENT from UpdateService) must relaunch
+; the app afterwards so the update feels like a quick restart.
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall runascurrentuser
 
 ; Prereqs: .NET 4.8 is bundled in Prereqs\.NET_Framework_4.8_setup.exe and installed automatically if missing.
 ; VC++ 2015-2022 Redist (x64) is bundled in Prereqs\vc_redist.x64.exe and installed automatically if missing
