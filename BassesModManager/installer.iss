@@ -5,7 +5,7 @@
 
 #define MyAppName "Basse's Mod Manager"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.3"
+  #define MyAppVersion "1.5"
 #endif
 #define MyAppPublisher "Basse"
 #define MyAppExeName "BassesModManager.exe"
