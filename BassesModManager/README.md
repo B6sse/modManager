@@ -1,4 +1,4 @@
-# Basse's Mod Manager
+# Axon
 
 A simplified version of Frosty Mod Manager that allows users to select from pre-installed, legal mods for competitive play in Star Wars Battlefront 2015.
 

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:BassesModManager.Converters"
         xmlns:local="clr-namespace:BassesModManager"
-        Title="Basse's Mod Manager" Height="500" Width="800"
+        Title="Axon" Height="500" Width="800"
         WindowStartupLocation="CenterScreen"
         Background="Black"
         FontSize="15">

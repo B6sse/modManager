@@ -1,11 +1,11 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("Basse's Mod Manager")]
+[assembly: AssemblyTitle("Axon")]
 [assembly: AssemblyDescription("A simplified version of Frosty Mod Manager")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("BassesModManager ")]
+[assembly: AssemblyProduct("Axon")]
 [assembly: AssemblyCopyright("Copyright © 2024")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

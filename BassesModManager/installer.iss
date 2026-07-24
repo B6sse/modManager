@@ -3,7 +3,7 @@
 ; Or from repo root: iscc BassesModManager\installer.iss
 ; CI can pass version: iscc /DMyAppVersion=1.1 BassesModManager\installer.iss
 
-#define MyAppName "Basse's Mod Manager"
+#define MyAppName "Axon"
 #ifndef MyAppVersion
   #define MyAppVersion "1.5"
 #endif
