@@ -101,7 +101,7 @@
 
         <!-- Version label -->
         <TextBlock Grid.Row="2"
-                   Text="v1.5"
+                   Text="v1.6"
                    FontSize="14"
                    Foreground="White"
                    FontWeight="Bold"

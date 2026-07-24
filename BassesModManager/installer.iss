@@ -5,7 +5,7 @@
 
 #define MyAppName "Axon"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.5"
+  #define MyAppVersion "1.6"
 #endif
 #define MyAppPublisher "Basse"
 #define MyAppExeName "BassesModManager.exe"
