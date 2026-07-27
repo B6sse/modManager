@@ -37,18 +37,6 @@ namespace BassesModManager.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string GamePaths {
-            get {
-                return ((string)(this["GamePaths"]));
-            }
-            set {
-                this["GamePaths"] = value;
-            }
-        }
-
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool UpgradeRequired {
             get {
@@ -56,6 +44,18 @@ namespace BassesModManager.Properties {
             }
             set {
                 this["UpgradeRequired"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool SoundMuted {
+            get {
+                return ((bool)(this["SoundMuted"]));
+            }
+            set {
+                this["SoundMuted"] = value;
             }
         }
     }

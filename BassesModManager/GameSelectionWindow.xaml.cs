@@ -1,10 +1,10 @@
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace BassesModManager
@@ -12,141 +12,127 @@ namespace BassesModManager
     public partial class GameSelectionWindow : Window
     {
         private ObservableCollection<GameEntry> gameEntries;
+        private bool gameValid;
 
         public GameSelectionWindow() : this(false)
         {
         }
 
-        public GameSelectionWindow(bool autoProceedIfSingle)
+        public GameSelectionWindow(bool autoProceedIfConfigured)
         {
             InitializeComponent();
             gameEntries = new ObservableCollection<GameEntry>();
             GameList.ItemsSource = gameEntries;
 
-            LoadGamePaths();
+            LoadSavedGame();
 
-            // With exactly one saved game there is nothing to choose - skip straight ahead
-            // (only on startup; the BACK button opens this window without auto-proceed)
-            if (autoProceedIfSingle && gameEntries.Count == 1)
+            // If a valid installation is already saved, there's nothing to choose - skip
+            // straight ahead. Only on startup: the BACK arrow opens this window without
+            // auto-proceeding, so the user can actually change games from here.
+            string savedPath = Properties.Settings.Default.GamePath;
+            if (autoProceedIfConfigured && FrostyRuntime.IsValidBattlefrontInstall(savedPath))
             {
-                Loaded += (s, e) => Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    GameList.SelectedIndex = 0;
-                    ProceedWithSelection();
-                }), System.Windows.Threading.DispatcherPriority.Background);
+                Loaded += (s, e) => Dispatcher.BeginInvoke(new Action(() => ProceedWithSelection(savedPath)),
+                    DispatcherPriority.Background);
             }
         }
 
-        private void LoadGamePaths()
+        private void LoadSavedGame()
         {
-            var bannerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Images", "swbf.png");
-            var saved = Properties.Settings.Default.GamePaths ?? "";
-            var paths = saved.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var p in paths.Where(Directory.Exists))
-                gameEntries.Add(new GameEntry { Path = p, BannerPath = bannerPath });
-            if (gameEntries.Count == 0 && !string.IsNullOrEmpty(Properties.Settings.Default.GamePath) && Directory.Exists(Properties.Settings.Default.GamePath))
-                gameEntries.Add(new GameEntry { Path = Properties.Settings.Default.GamePath, BannerPath = bannerPath });
+            gameEntries.Clear();
+
+            string path = Properties.Settings.Default.GamePath;
+            gameValid = FrostyRuntime.IsValidBattlefrontInstall(path);
+            if (gameValid)
+                gameEntries.Add(new GameEntry { Path = path, BannerPath = "Assets/Images/swbf.png" });
+
+            // SELECT requires an actual click on the row first, even if a valid game is
+            // already configured - re-armed every refresh (new path located, or reopened
+            // after the saved path stopped being valid), not tied to GameList.SelectedItem
+            // (with only ever one possible entry, real list-selection state doesn't add
+            // information, and previously drove a permanent-purple-row bug).
+            SelectButton.IsEnabled = false;
+            LocateButton.Content = gameValid ? "CHANGE GAME PATH" : "LOCATE BATTLEFRONT";
+
+            EmptyStateText.Visibility = gameValid ? Visibility.Collapsed : Visibility.Visible;
+            DoubleClickHintText.Visibility = gameValid ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        private void SaveGamePaths()
-        {
-            Properties.Settings.Default.GamePaths = string.Join("|", gameEntries.Select(e => e.Path));
-            Properties.Settings.Default.Save();
-        }
-
-        // Buttons get their sounds from the app-wide PurpleButtonStyle; this handler is for
-        // the game list items, which aren't buttons
         private void PlayHoverSound(object sender, MouseEventArgs e) => Sounds.PlayHover();
-
-        private void GameList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            RemoveButton.IsEnabled = SelectButton.IsEnabled = GameList.SelectedIndex >= 0;
-        }
 
         private void GameList_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             Sounds.PlayClick();
+            SelectButton.IsEnabled = gameValid;
         }
 
-        private void AddButton_Click(object sender, RoutedEventArgs e)
+        private void GameList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (gameEntries.Count > 0)
+                ProceedWithSelection(gameEntries[0].Path);
+        }
+
+        private void SelectButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (gameEntries.Count > 0)
+                ProceedWithSelection(gameEntries[0].Path);
+        }
+
+        private void LocateButton_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog
             {
                 Filter = "Game Executable|*.exe",
                 Title = "Select Star Wars Battlefront Executable"
             };
-            if (dialog.ShowDialog() == true)
+            if (dialog.ShowDialog() != true)
+                return;
+
+            string dir = Path.GetDirectoryName(dialog.FileName);
+            if (string.IsNullOrEmpty(dir) || !FrostyRuntime.IsValidBattlefrontInstall(dir))
             {
-                var dir = Path.GetDirectoryName(dialog.FileName);
-                if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir) && !gameEntries.Any(ge => ge.Path == dir))
-                {
-                    var bannerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Images", "swbf.png");
-                    gameEntries.Add(new GameEntry { Path = dir, BannerPath = bannerPath });
-                    SaveGamePaths();
-                }
+                CustomMessageBox.Show(this,
+                    "This doesn't look like a Star Wars Battlefront installation. Make sure you selected the folder containing StarWarsBattlefront.exe.",
+                    "Wrong game");
+                return;
             }
+
+            Properties.Settings.Default.GamePath = dir;
+            Properties.Settings.Default.Save();
+            LoadSavedGame();
         }
 
-        private void RemoveButton_Click(object sender, RoutedEventArgs e)
+        private void ProceedWithSelection(string path)
         {
-            if (GameList.SelectedItem is GameEntry entry)
+            var cachePath = CachePathHelper.GetCacheFilePath();
+            if (!File.Exists(cachePath))
             {
-                gameEntries.Remove(entry);
-                SaveGamePaths();
-            }
-        }
-
-        private void SelectButton_Click(object sender, RoutedEventArgs e)
-        {
-            ProceedWithSelection();
-        }
-
-        private void GameList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            Sounds.PlayClick();
-            if (GameList.SelectedItem != null)
-                ProceedWithSelection();
-        }
-
-        private void ProceedWithSelection()
-        {
-            if (GameList.SelectedItem is GameEntry entry)
-            {
-                var path = entry.Path;
-                Properties.Settings.Default.GamePath = path;
-                Properties.Settings.Default.Save();
-
-                var cachePath = CachePathHelper.GetCacheFilePath();
-                if (!File.Exists(cachePath))
+                var cacheWin = new CacheInstallWindow(path);
+                cacheWin.Owner = this;
+                cacheWin.Closed += (s, args) =>
                 {
-                    var cacheWin = new CacheInstallWindow(path);
-                    cacheWin.Owner = this;
-                    cacheWin.Closed += (s, args) =>
+                    if (cacheWin.DialogResult == true)
                     {
-                        if (cacheWin.DialogResult == true)
-                        {
-                            var main = new MainWindow();
-                            Application.Current.MainWindow = main;
-                            main.Show();
-                            Close();
-                        }
-                        else
-                        {
-                            Show();
-                        }
-                    };
-                    Hide();
-                    cacheWin.ShowDialog();
-                }
-                else
-                {
-                    var main = new MainWindow();
-                    Application.Current.MainWindow = main;
-                    main.Show();
-                    Close();
-                }
+                        var main = new MainWindow();
+                        Application.Current.MainWindow = main;
+                        main.Show();
+                        Close();
+                    }
+                    else
+                    {
+                        Show();
+                    }
+                };
+                Hide();
+                cacheWin.ShowDialog();
+            }
+            else
+            {
+                var main = new MainWindow();
+                Application.Current.MainWindow = main;
+                main.Show();
+                Close();
             }
         }
-
     }
 }

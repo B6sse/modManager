@@ -21,7 +21,7 @@ namespace BassesModManager
         {
             appMutex = new Mutex(false, "BassesModManagerAppMutex");
 
-            // .NET user settings (GamePath/GamePaths) are stored per assembly version.
+            // .NET user settings (GamePath) are stored per assembly version.
             // Migrate them forward once after an app upgrade so the user doesn't have to
             // re-select the game folder every time a new version is installed.
             if (BassesModManager.Properties.Settings.Default.UpgradeRequired)
@@ -54,8 +54,8 @@ namespace BassesModManager
             _ = UpdateService.CheckAndPrepareAsync();
 
             // StartupUri is removed so we create GameSelectionWindow first (Frosty-style flow: game selection -> cache install if needed -> mod selection).
-            // With exactly one saved game the selection window skips itself automatically.
-            var gameSelectionWindow = new GameSelectionWindow(autoProceedIfSingle: true);
+            // With a valid game already saved, the selection window skips itself automatically.
+            var gameSelectionWindow = new GameSelectionWindow(autoProceedIfConfigured: true);
             MainWindow = gameSelectionWindow;
             gameSelectionWindow.Show();
         }

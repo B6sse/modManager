@@ -37,6 +37,23 @@ namespace BassesModManager
             return DefaultProfileKey;
         }
 
+        // Used to validate a folder before accepting it as the game install (both when the
+        // user picks one and when re-checking a saved path) - the app only ever supports
+        // this one game, so anything else should be rejected rather than silently accepted.
+        public static bool IsValidBattlefrontInstall(string gamePath)
+        {
+            try
+            {
+                return !string.IsNullOrEmpty(gamePath) && Directory.Exists(gamePath) &&
+                       Directory.EnumerateFiles(gamePath, "*.exe")
+                           .Any(f => string.Equals(Path.GetFileNameWithoutExtension(f), DefaultProfileKey, StringComparison.OrdinalIgnoreCase));
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public static void EnsureInitialized(ILogger logger, string profileKey)
         {
             lock (initLock)

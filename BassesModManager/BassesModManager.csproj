@@ -107,6 +107,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="MuteToggleButton.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -129,6 +133,9 @@
     </Compile>
     <Compile Include="UpdateNotificationBar.xaml.cs">
       <DependentUpon>UpdateNotificationBar.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="MuteToggleButton.xaml.cs">
+      <DependentUpon>MuteToggleButton.xaml</DependentUpon>
     </Compile>
     <Compile Include="UpdateService.cs" />
     <Compile Include="MainWindow.xaml.cs">

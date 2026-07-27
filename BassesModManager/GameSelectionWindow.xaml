@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:BassesModManager.Converters"
         xmlns:local="clr-namespace:BassesModManager"
-        Title="Axon" Height="470" Width="730" MinHeight="430" MinWidth="620"
+        Title="Axon" Height="420" Width="690" MinHeight="350" MinWidth="690"
         WindowStartupLocation="CenterScreen"
         Background="Black"
         FontSize="15">
@@ -17,22 +17,29 @@
             </Style>
         </Grid.Resources>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>  <!-- 0: title + mute -->
+            <RowDefinition Height="*"/>     <!-- 2: game list (0 or 1 entries) -->
+            <RowDefinition Height="Auto"/>  <!-- 3: buttons + version label -->
+            <RowDefinition Height="Auto"/>  <!-- 4: double-click hint -->
+            <RowDefinition Height="Auto"/>  <!-- 5: update notification bar -->
         </Grid.RowDefinitions>
 
+        <!-- Mute toggle -->
+        <local:MuteToggleButton Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+
         <TextBlock Grid.Row="0"
-                   Text="SELECT GAME"
+                   Text="STAR WARS BATTLEFRONT GAME PATH"
                    Style="{StaticResource HeadingTextStyle}"
-                   FontSize="20"
-                   Margin="0,0,0,15"/>
-        
-        <Border Grid.Row="1" CornerRadius="3" BorderThickness="0" Padding="0" Margin="0" Background="Transparent">
+                   FontSize="22"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Center"/>
+
+        <!-- Only ever 0 or 1 entries (this app supports one game), but kept as the same
+             list-row look/feel Frosty users already know - hover highlight, click to
+             select, double-click to continue. -->
+        <Border Grid.Row="1" CornerRadius="3" BorderThickness="0" Padding="0" Margin="0,15,0,0" Background="Transparent">
             <ListView x:Name="GameList" Foreground="White" Background="Transparent" BorderThickness="0" Padding="0"
-                      SelectionChanged="GameList_SelectionChanged" MouseDoubleClick="GameList_MouseDoubleClick">
+                      MouseDoubleClick="GameList_MouseDoubleClick">
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem">
                         <Setter Property="Cursor" Value="Hand"/>
@@ -41,7 +48,7 @@
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="ListViewItem">
-                                    <Border x:Name="itemBorder" BorderBrush="Transparent" BorderThickness="2" CornerRadius="4" Padding="8,6" Margin="0"
+                                    <Border x:Name="itemBorder" BorderBrush="Transparent" BorderThickness="2" CornerRadius="6" Padding="14,12" Margin="0"
                                             HorizontalAlignment="Stretch" Background="Transparent">
                                         <ContentPresenter HorizontalAlignment="Left"/>
                                     </Border>
@@ -65,13 +72,13 @@
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <Border Width="48" Height="48" CornerRadius="4" Margin="0,0,12,0" ClipToBounds="True">
-                                <Image Source="{Binding BannerPath, Converter={StaticResource StringToImageSourceConverter}}" 
-                                       Stretch="UniformToFill" Width="48" Height="48"/>
+                            <Border Width="60" Height="60" CornerRadius="5" Margin="0,0,16,0" ClipToBounds="True">
+                                <Image Source="{Binding BannerPath, Converter={StaticResource StringToImageSourceConverter}}"
+                                       Stretch="UniformToFill" Width="60" Height="60"/>
                             </Border>
                             <TextBlock Text="{Binding Path}"
                                        Style="{StaticResource BodyTextStyle}"
-                                       FontSize="14"
+                                       FontSize="16"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                     </DataTemplate>
@@ -79,19 +86,26 @@
             </ListView>
         </Border>
 
+        <!-- Empty state: shown instead of the list whenever no valid Battlefront
+             install is configured - re-evaluated every LoadSavedGame() call, so it
+             comes back if the saved path stops being valid (e.g. settings cleared). -->
+        <TextBlock x:Name="EmptyStateText" Grid.Row="1"
+                   Text="Click LOCATE BATTLEFRONT below and select your Star Wars Battlefront game executable to get started."
+                   Foreground="#888" FontSize="15" TextWrapping="Wrap"
+                   HorizontalAlignment="Left" VerticalAlignment="Top"
+                   Margin="0,15,0,0"
+                   Visibility="Collapsed"/>
+
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
-            <Button x:Name="AddButton" Content="ADD GAME" Width="100" Padding="10,6" Margin="0,0,10,0"
+            <Button x:Name="LocateButton" Content="LOCATE BATTLEFRONT" Margin="0,0,12,0"
                     Style="{StaticResource PurpleButtonStyle}"
-                    ToolTip="Browse for Star Wars Battlefront game folder"
-                    Click="AddButton_Click"/>
-            <Button x:Name="RemoveButton" Content="REMOVE" Width="90" Padding="10,6" Margin="0,0,10,0"
-                    Style="{StaticResource PurpleButtonStyle}"
-                    IsEnabled="False"
-                    Click="RemoveButton_Click"/>
-            <Button x:Name="SelectButton" Content="SELECT" Width="100" Padding="10,6"
+                    ToolTip="Browse for your Star Wars Battlefront game folder"
+                    Click="LocateButton_Click"/>
+            <Button x:Name="SelectButton" Content="SELECT"
+                    MinWidth="90"
                     Style="{StaticResource PurpleButtonStyle}"
                     IsEnabled="False"
-                    ToolTip="Open mod selection for selected game"
+                    ToolTip="Open mod selection for this game"
                     Click="SelectButton_Click"/>
         </StackPanel>
 
@@ -105,13 +119,14 @@
                    HorizontalAlignment="Left"
                    Margin="0,10,0,0"/>
 
-        <!-- Double-click hint -->
-        <TextBlock Grid.Row="3"
-                   Text="Tip: double-click a game to jump straight to mod selection"
+        <!-- Double-click hint - only relevant once there's actually a row to double-click -->
+        <TextBlock x:Name="DoubleClickHintText" Grid.Row="3"
+                   Text="Tip: double-click the game to jump straight to mod selection"
                    Foreground="#888"
                    FontSize="12"
                    HorizontalAlignment="Left"
-                   Margin="0,8,0,0"/>
+                   Margin="0,8,0,0"
+                   Visibility="Collapsed"/>
 
         <!-- Update ready notification (hidden until UpdateService has a verified download) -->
         <local:UpdateNotificationBar Grid.Row="4" Margin="0,10,0,0"/>
