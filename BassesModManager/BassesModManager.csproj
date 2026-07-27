@@ -111,6 +111,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="CustomCursorOverlay.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -137,6 +141,10 @@
     <Compile Include="MuteToggleButton.xaml.cs">
       <DependentUpon>MuteToggleButton.xaml</DependentUpon>
     </Compile>
+    <Compile Include="CustomCursorOverlay.xaml.cs">
+      <DependentUpon>CustomCursorOverlay.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="CustomCursor.cs" />
     <Compile Include="UpdateService.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>

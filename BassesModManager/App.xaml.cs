@@ -43,6 +43,13 @@ namespace BassesModManager
             // Load the UI sounds once up front so the first hover isn't delayed
             Sounds.Preload();
 
+            // Custom cursor: hide the real OS cursor app-wide and let each window's
+            // CustomCursorOverlay draw Assets/Images/cursor.png in its place. Overriding
+            // here (rather than per-window) beats any per-control Cursor="Hand" setter,
+            // so the same image shows everywhere regardless of what's being hovered.
+            CustomCursor.Preload();
+            Mouse.OverrideCursor = Cursors.None;
+
             if (!System.IO.Directory.Exists("Mods"))
             {
                 System.IO.Directory.CreateDirectory("Mods");

@@ -25,7 +25,6 @@
                 <Setter Property="BorderBrush" Value="#8000FF"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="FontWeight" Value="Bold"/>
-                <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Padding" Value="16,10"/>
                 <Setter Property="FontSize" Value="14"/>
                 <Setter Property="Template">
@@ -51,7 +50,6 @@
                         <Setter Property="Background" Value="#333"/>
                         <Setter Property="Foreground" Value="#666"/>
                         <Setter Property="BorderBrush" Value="#444"/>
-                        <Setter Property="Cursor" Value="Arrow"/>
                     </Trigger>
                 </Style.Triggers>
             </Style>

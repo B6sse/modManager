@@ -2,12 +2,14 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ctrl="clr-namespace:Frosty.Controls;assembly=FrostyControls"
+        xmlns:local="clr-namespace:BassesModManager"
         Title="Installing cache..." Height="280" Width="550"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None" ResizeMode="NoResize"
         Background="Transparent" AllowsTransparency="True"
         Loaded="Window_Loaded">
     <Border Background="Black" BorderBrush="#8000FF" BorderThickness="2" CornerRadius="8">
+        <Grid>
         <Grid Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="120"/>
@@ -33,6 +35,8 @@
 
             <TextBlock Grid.Row="3" Text="This may take a few seconds. Please wait..." 
                        Foreground="#888" FontSize="12" Margin="0,10,0,0"/>
+        </Grid>
+        <local:CustomCursorOverlay/>
         </Grid>
     </Border>
 </Window>

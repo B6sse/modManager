@@ -7,6 +7,7 @@
         WindowStartupLocation="CenterScreen"
         Background="Black"
         FontSize="15">
+    <Grid>
     <Grid Margin="20">
         <Grid.Resources>
             <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter"/>
@@ -130,5 +131,7 @@
 
         <!-- Update ready notification (hidden until UpdateService has a verified download) -->
         <local:UpdateNotificationBar Grid.Row="4" Margin="0,10,0,0"/>
+    </Grid>
+    <local:CustomCursorOverlay/>
     </Grid>
 </Window>
