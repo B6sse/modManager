@@ -136,6 +136,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Converters\StringToImageSourceConverter.cs" />
+    <Compile Include="Sounds.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\Images\*.png">

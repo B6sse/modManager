@@ -3,17 +3,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:BassesModManager.Converters"
         xmlns:local="clr-namespace:BassesModManager"
-        Title="Axon" Height="500" Width="800"
+        Title="Axon" Height="520" Width="832" MinHeight="480" MinWidth="700"
         WindowStartupLocation="CenterScreen"
         Background="Black"
         FontSize="15">
     <Grid Margin="20">
         <Grid.Resources>
             <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter"/>
-            <!-- Purple button with hover sound -->
-            <Style x:Key="PurpleButtonStyle" BasedOn="{StaticResource PurpleButtonStyleBase}" TargetType="Button">
-                <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
-            </Style>
             <!-- RadioButton -->
             <Style TargetType="RadioButton" x:Key="WhiteDotRadioButton">
                 <Setter Property="Foreground" Value="White"/>

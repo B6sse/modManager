@@ -56,6 +56,13 @@
                 </Style.Triggers>
             </Style>
 
+            <!-- Purple button with hover/click sounds. Use this one for buttons; the Base
+                 style above is only for cases that need styling without the sounds. -->
+            <Style x:Key="PurpleButtonStyle" BasedOn="{StaticResource PurpleButtonStyleBase}" TargetType="Button">
+                <EventSetter Event="MouseEnter" Handler="Button_PlayHoverSound"/>
+                <EventSetter Event="Click" Handler="Button_PlayClickSound"/>
+            </Style>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

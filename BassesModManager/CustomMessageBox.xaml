@@ -13,74 +13,16 @@
     <StackPanel Margin="24">
         <TextBlock x:Name="MessageText" Foreground="White" FontSize="15" TextWrapping="Wrap" Margin="0,0,0,24"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button x:Name="OkButton" Content="OK" Width="90" Height="36" FontSize="15" FontWeight="Bold"
-                    Background="#8000FF" Foreground="White" BorderBrush="#8000FF" BorderThickness="1"
-                    Margin="0,0,12,0" Click="Ok_Click">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="#8000FF"/>
-                        <Setter Property="Foreground" Value="White"/>
-                        <Setter Property="BorderBrush" Value="#8000FF"/>
-                        <Setter Property="BorderThickness" Value="1"/>
-                        <Setter Property="FontWeight" Value="Bold"/>
-                        <Setter Property="FontSize" Value="15"/>
-                        <Setter Property="Cursor" Value="Hand"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="{TemplateBinding Background}"
-                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                            BorderThickness="{TemplateBinding BorderThickness}"
-                                            CornerRadius="3">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="White"/>
-                                <Setter Property="Foreground" Value="#8000FF"/>
-                                <Setter Property="BorderBrush" Value="White"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
-            <Button x:Name="CancelButton" Content="Cancel" Width="90" Height="36" FontSize="15" FontWeight="Bold"
-                    Background="#8000FF" Foreground="White" BorderBrush="#8000FF" BorderThickness="1"
-                    Visibility="Collapsed" Click="Cancel_Click">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="#8000FF"/>
-                        <Setter Property="Foreground" Value="White"/>
-                        <Setter Property="BorderBrush" Value="#8000FF"/>
-                        <Setter Property="BorderThickness" Value="1"/>
-                        <Setter Property="FontWeight" Value="Bold"/>
-                        <Setter Property="FontSize" Value="15"/>
-                        <Setter Property="Cursor" Value="Hand"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="{TemplateBinding Background}"
-                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                            BorderThickness="{TemplateBinding BorderThickness}"
-                                            CornerRadius="3">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="White"/>
-                                <Setter Property="Foreground" Value="#8000FF"/>
-                                <Setter Property="BorderBrush" Value="White"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
+            <!-- No local Background/Foreground here: local values outrank style triggers in
+                 WPF, which is what previously stopped the hover effect from showing.
+                 No fixed Height either - the shared style has padding, so a locked height
+                 clips the label. MinWidth keeps them evenly sized. -->
+            <Button x:Name="OkButton" Content="OK" MinWidth="90" FontSize="15"
+                    Margin="0,0,12,0" Click="Ok_Click"
+                    Style="{StaticResource PurpleButtonStyle}"/>
+            <Button x:Name="CancelButton" Content="Cancel" MinWidth="90" FontSize="15"
+                    Visibility="Collapsed" Click="Cancel_Click"
+                    Style="{StaticResource PurpleButtonStyle}"/>
         </StackPanel>
     </StackPanel>
 </Window>

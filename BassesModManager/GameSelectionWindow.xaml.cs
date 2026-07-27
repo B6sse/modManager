@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 using Microsoft.Win32;
 
 namespace BassesModManager
@@ -14,8 +12,6 @@ namespace BassesModManager
     public partial class GameSelectionWindow : Window
     {
         private ObservableCollection<GameEntry> gameEntries;
-        private MediaPlayer _hoverPlayer;
-        private MediaPlayer _clickPlayer;
 
         public GameSelectionWindow() : this(false)
         {
@@ -28,7 +24,6 @@ namespace BassesModManager
             GameList.ItemsSource = gameEntries;
 
             LoadGamePaths();
-            PreloadSounds();
 
             // With exactly one saved game there is nothing to choose - skip straight ahead
             // (only on startup; the BACK button opens this window without auto-proceed)
@@ -59,35 +54,9 @@ namespace BassesModManager
             Properties.Settings.Default.Save();
         }
 
-        private void PreloadSounds()
-        {
-            try
-            {
-                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                var hoverPath = Path.Combine(baseDir, "Assets", "Sounds", "hover.mp3");
-                var clickPath = Path.Combine(baseDir, "Assets", "Sounds", "click.mp3");
-                if (File.Exists(hoverPath))
-                {
-                    _hoverPlayer = new MediaPlayer();
-                    _hoverPlayer.Volume = 0.2;
-                    _hoverPlayer.Open(new Uri(hoverPath, UriKind.Absolute));
-                }
-                if (File.Exists(clickPath))
-                {
-                    _clickPlayer = new MediaPlayer();
-                    _clickPlayer.Volume = 0.2;
-                    _clickPlayer.Open(new Uri(clickPath, UriKind.Absolute));
-                }
-            }
-            catch { }
-        }
-
-        private void PlayHoverSound(object sender, MouseEventArgs e) => PlayPreloaded(_hoverPlayer);
-        private static void PlayPreloaded(MediaPlayer player)
-        {
-            if (player == null) return;
-            try { player.Position = TimeSpan.Zero; player.Play(); } catch { }
-        }
+        // Buttons get their sounds from the app-wide PurpleButtonStyle; this handler is for
+        // the game list items, which aren't buttons
+        private void PlayHoverSound(object sender, MouseEventArgs e) => Sounds.PlayHover();
 
         private void GameList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -96,12 +65,11 @@ namespace BassesModManager
 
         private void GameList_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            PlayPreloaded(_clickPlayer);
+            Sounds.PlayClick();
         }
 
         private void AddButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_clickPlayer != null) { _clickPlayer.Position = TimeSpan.Zero; _clickPlayer.Play(); }
             var dialog = new OpenFileDialog
             {
                 Filter = "Game Executable|*.exe",
@@ -121,7 +89,6 @@ namespace BassesModManager
 
         private void RemoveButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_clickPlayer != null) { _clickPlayer.Position = TimeSpan.Zero; _clickPlayer.Play(); }
             if (GameList.SelectedItem is GameEntry entry)
             {
                 gameEntries.Remove(entry);
@@ -131,13 +98,12 @@ namespace BassesModManager
 
         private void SelectButton_Click(object sender, RoutedEventArgs e)
         {
-            PlayPreloaded(_clickPlayer);
             ProceedWithSelection();
         }
 
         private void GameList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if (_clickPlayer != null) { _clickPlayer.Position = TimeSpan.Zero; _clickPlayer.Play(); }
+            Sounds.PlayClick();
             if (GameList.SelectedItem != null)
                 ProceedWithSelection();
         }

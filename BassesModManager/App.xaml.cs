@@ -1,10 +1,17 @@
 using System.Threading;
 using System.Windows;
+using System.Windows.Input;
 
 namespace BassesModManager
 {
     public partial class App : Application
     {
+        // Handlers for the app-wide PurpleButtonStyle in App.xaml, so every button gets
+        // the same hover/click sounds without each window wiring it up itself
+        private void Button_PlayHoverSound(object sender, MouseEventArgs e) => Sounds.PlayHover();
+
+        private void Button_PlayClickSound(object sender, RoutedEventArgs e) => Sounds.PlayClick();
+
         // Held for the app's lifetime so Inno Setup's AppMutex check can detect a
         // running instance and close/replace it cleanly during silent auto-updates.
         // The name must match AppMutex in installer.iss.
@@ -32,6 +39,9 @@ namespace BassesModManager
             }
 
             base.OnStartup(e);
+
+            // Load the UI sounds once up front so the first hover isn't delayed
+            Sounds.Preload();
 
             if (!System.IO.Directory.Exists("Mods"))
             {

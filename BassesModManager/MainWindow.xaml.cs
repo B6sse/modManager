@@ -1,15 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
 using System.Linq;
-using System.Collections.Generic;
-using System.Windows.Threading;
 using System.Security.Cryptography;
 using System.Security.Principal;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace BassesModManager 
 {
@@ -18,9 +17,6 @@ namespace BassesModManager
         private ObservableCollection<ModItem> mods;
         private ModItem scoreboardMod;
         private string modsDirectory;
-
-        private MediaPlayer _hoverPlayer;
-        private MediaPlayer _clickPlayer;
 
         private readonly HashSet<string> approvedModHashes = new HashSet<string>
         {
@@ -44,52 +40,16 @@ namespace BassesModManager
             LoadMods();
 
             LaunchGameButton.ToolTip = "Select a mod before launching the game";
-
-            // Pre-load sounds for snappy playback
-            PreloadSounds();
         }
 
-        private void PreloadSounds()
-        {
-            try
-            {
-                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                var hoverPath = Path.Combine(baseDir, "Assets", "Sounds", "hover.mp3");
-                var clickPath = Path.Combine(baseDir, "Assets", "Sounds", "click.mp3");
-                if (File.Exists(hoverPath))
-                {
-                    _hoverPlayer = new MediaPlayer();
-                    _hoverPlayer.Volume = 0.2;
-                    _hoverPlayer.Open(new Uri(hoverPath, UriKind.Absolute));
-                }
-                if (File.Exists(clickPath))
-                {
-                    _clickPlayer = new MediaPlayer();
-                    _clickPlayer.Volume = 0.2;
-                    _clickPlayer.Open(new Uri(clickPath, UriKind.Absolute));
-                }
-            }
-            catch { /* ignore preload errors */ }
-        }
-
-        private void PlayHoverSound(object sender, MouseEventArgs e) => PlayPreloaded(_hoverPlayer);
-        private void PlayClickSound(object sender, RoutedEventArgs e) => PlayPreloaded(_clickPlayer);
-        private void PlayClickSound_Mouse(object sender, MouseButtonEventArgs e) => PlayPreloaded(_clickPlayer);
-
-        private static void PlayPreloaded(MediaPlayer player)
-        {
-            if (player == null) return;
-            try
-            {
-                player.Position = TimeSpan.Zero;
-                player.Play();
-            }
-            catch { /* ignore playback errors */ }
-        }
+        // Buttons get their sounds from the app-wide PurpleButtonStyle; these handlers are
+        // for the controls that aren't buttons (mod cards, checkboxes)
+        private void PlayHoverSound(object sender, MouseEventArgs e) => Sounds.PlayHover();
+        private void PlayClickSound(object sender, RoutedEventArgs e) => Sounds.PlayClick();
+        private void PlayClickSound_Mouse(object sender, MouseButtonEventArgs e) => Sounds.PlayClick();
 
         private void BackToGameSelectionButton_Click(object sender, RoutedEventArgs e)
         {
-            PlayClickSound(sender, e);
             var gameSelectionWindow = new GameSelectionWindow();
             Application.Current.MainWindow = gameSelectionWindow;
             gameSelectionWindow.Show();
@@ -314,7 +274,6 @@ namespace BassesModManager
 
         private void LaunchGameButton_Click(object sender, RoutedEventArgs e)
         {
-            PlayPreloaded(_clickPlayer);
             try
             {
                 string gamePath = Properties.Settings.Default.GamePath;
