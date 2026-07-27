@@ -16,15 +16,17 @@ namespace BassesModManager
     public partial class LaunchProgressWindow : Window
     {
         private readonly string _gamePath;
-        private readonly string[] _modPaths;
+        private readonly string _modsDirectory;
+        private readonly string[] _modFileNames;
         private readonly string _modPackName;
         private readonly CancellationTokenSource _cancelSource = new CancellationTokenSource();
 
-        public LaunchProgressWindow(string gamePath, string[] modPaths, string modPackName)
+        public LaunchProgressWindow(string gamePath, string modsDirectory, string[] modFileNames, string modPackName)
         {
             InitializeComponent();
             _gamePath = gamePath;
-            _modPaths = modPaths;
+            _modsDirectory = modsDirectory;
+            _modFileNames = modFileNames;
             _modPackName = modPackName;
             LoadBanner();
         }
@@ -96,7 +98,9 @@ namespace BassesModManager
 
             CachePathHelper.EnsureCachesDirectory();
 
-            // Set up FileSystem, ResourceManager and AssetManager like FrostyModManager does
+            // Only the FileSystem is set up here, like FrostyModManager does. Run() builds
+            // its own ResourceManager/AssetManager, and only when the mods actually need
+            // reapplying - loading the cache here too just doubled the work every launch.
             var fs = new FrostySdk.FileSystem(_gamePath + Path.DirectorySeparatorChar);
             foreach (var source in FrostySdk.ProfilesLibrary.Sources)
                 fs.AddSource(source.Path, source.SubDirs);
@@ -104,26 +108,16 @@ namespace BassesModManager
 
             _cancelSource.Token.ThrowIfCancellationRequested();
 
-            var rm = new FrostySdk.Managers.ResourceManager(fs);
-            rm.SetLogger(logger);
-            rm.Initialize();
-
-            var am = new FrostySdk.Managers.AssetManager(fs, rm);
-            am.SetLogger(logger);
-            am.Initialize(false);
-
-            _cancelSource.Token.ThrowIfCancellationRequested();
-
             Frosty.Core.App.Logger = logger;
 
-            string rootPath = _gamePath + Path.DirectorySeparatorChar;
+            // rootPath is only used to resolve the mod filenames, so it's the mods folder
             string additionalArgs = "";
 
             // Run FrostyModExecutor in silent mode. Note: Run() launches the game itself
             // at the end (there is no separate LaunchGame call here - the old extra call
             // caused the game to be started twice).
             var executor = new FrostyModExecutor();
-            return executor.Run(fs, _cancelSource.Token, logger, rootPath, _modPackName, additionalArgs, silentMode: true, _modPaths);
+            return executor.Run(fs, _cancelSource.Token, logger, _modsDirectory, _modPackName, additionalArgs, silentMode: true, _modFileNames);
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)

@@ -190,13 +190,17 @@ namespace BassesModManager
 
         private void ApplyModsAndLaunch(string gamePath, List<ModItem> selectedMods, string modPackName)
         {
-            var modPaths = selectedMods
-                .Select(m => Path.Combine(modsDirectory, m.FileName))
+            // Pass plain filenames with the mods folder as the root, like FrostyModManager
+            // does. mods.json stores these strings verbatim and compares them to decide
+            // whether the ModData folder is still valid, so absolute paths would tie it to
+            // one install location and force a full rebuild whenever that location differs.
+            var modFileNames = selectedMods
+                .Select(m => m.FileName)
                 .ToArray();
 
             // Modal progress window runs the whole flow (Frosty init, mod patching, game
             // launch) on a background thread and shows live status/progress
-            var launchWindow = new LaunchProgressWindow(gamePath, modPaths, modPackName) { Owner = this };
+            var launchWindow = new LaunchProgressWindow(gamePath, modsDirectory, modFileNames, modPackName) { Owner = this };
             if (launchWindow.ShowDialog() == true)
             {
                 OnGameLaunched(gamePath);
