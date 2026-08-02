@@ -75,14 +75,6 @@ namespace BassesModManager
             Close();
         }
 
-        private void BackToGameSelectionButton_Click(object sender, RoutedEventArgs e)
-        {
-            var gameSelectionWindow = new GameSelectionWindow();
-            Application.Current.MainWindow = gameSelectionWindow;
-            gameSelectionWindow.Show();
-            Close();
-        }
-
         private void LoadMods()
         {
             try
@@ -313,7 +305,7 @@ namespace BassesModManager
                 string gamePath = Properties.Settings.Default.GamePath;
                 if (string.IsNullOrEmpty(gamePath))
                 {
-                    CustomMessageBox.Show(this, "Select your game folder before launching. Press BACK and add the game first.", "Game not selected");
+                    CustomMessageBox.Show(this, "Select your game folder before launching. Open Settings and set your game folder first.", "Game not selected");
                     return;
                 }
 

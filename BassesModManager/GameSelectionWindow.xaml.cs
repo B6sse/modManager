@@ -14,11 +14,7 @@ namespace BassesModManager
         private ObservableCollection<GameEntry> gameEntries;
         private bool gameValid;
 
-        public GameSelectionWindow() : this(false)
-        {
-        }
-
-        public GameSelectionWindow(bool autoProceedIfConfigured)
+        public GameSelectionWindow()
         {
             InitializeComponent();
             gameEntries = new ObservableCollection<GameEntry>();
@@ -26,11 +22,14 @@ namespace BassesModManager
 
             LoadSavedGame();
 
-            // If a valid installation is already saved, there's nothing to choose - skip
-            // straight ahead. Only on startup: the BACK arrow opens this window without
-            // auto-proceeding, so the user can actually change games from here.
+            // Start-only screen: this window is only ever constructed once, at app
+            // startup (see App.xaml.cs). If a valid installation is already saved, skip
+            // straight past it into MainWindow - the only way to actually see this UI is
+            // when there's no valid game path configured yet (first run, or the saved
+            // one stopped being valid). Changing an already-configured path now happens
+            // from Settings instead.
             string savedPath = Properties.Settings.Default.GamePath;
-            if (autoProceedIfConfigured && FrostyRuntime.IsValidBattlefrontInstall(savedPath))
+            if (FrostyRuntime.IsValidBattlefrontInstall(savedPath))
             {
                 Loaded += (s, e) => Dispatcher.BeginInvoke(new Action(() => ProceedWithSelection(savedPath)),
                     DispatcherPriority.Background);
@@ -56,16 +55,6 @@ namespace BassesModManager
 
             EmptyStateText.Visibility = gameValid ? Visibility.Collapsed : Visibility.Visible;
             DoubleClickHintText.Visibility = gameValid ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        private void SettingsButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Parameterless constructor = autoProceedIfConfigured: false, so this always
-            // lands back on the actual selection screen rather than skipping past it
-            var settings = new SettingsWindow(() => new GameSelectionWindow());
-            Application.Current.MainWindow = settings;
-            settings.Show();
-            Close();
         }
 
         private void PlayHoverSound(object sender, MouseEventArgs e) => Sounds.PlayHover();

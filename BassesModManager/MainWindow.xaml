@@ -126,7 +126,7 @@
             </Style>
         </Grid.Resources>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>  <!-- 0: Back -->
+            <RowDefinition Height="Auto"/>  <!-- 0: Settings -->
             <RowDefinition Height="Auto"/>  <!-- 1: Heading -->
             <RowDefinition Height="Auto"/>  <!-- 2: Crosshair cards -->
             <RowDefinition Height="Auto"/>  <!-- 3: Additional mods -->
@@ -135,16 +135,6 @@
             <RowDefinition Height="Auto"/>  <!-- 6: Version label -->
             <RowDefinition Height="Auto"/>  <!-- 7: Update notification bar -->
         </Grid.RowDefinitions>
-
-        <!-- Back to game selection -->
-        <Button Grid.Row="0" x:Name="BackToGameSelectionButton"
-                Padding="12,0" Height="30"
-                Content="BACK"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Center"
-                Click="BackToGameSelectionButton_Click"
-                Style="{StaticResource PurpleButtonStyle}"
-                ToolTip="Back to game selection"/>
 
         <!-- Settings -->
         <Button Grid.Row="0" x:Name="SettingsButton"

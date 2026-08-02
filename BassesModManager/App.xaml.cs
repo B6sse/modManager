@@ -62,7 +62,7 @@ namespace BassesModManager
 
             // StartupUri is removed so we create GameSelectionWindow first (Frosty-style flow: game selection -> cache install if needed -> mod selection).
             // With a valid game already saved, the selection window skips itself automatically.
-            var gameSelectionWindow = new GameSelectionWindow(autoProceedIfConfigured: true);
+            var gameSelectionWindow = new GameSelectionWindow();
             MainWindow = gameSelectionWindow;
             gameSelectionWindow.Show();
         }

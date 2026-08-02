@@ -18,28 +18,12 @@
             </Style>
         </Grid.Resources>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>  <!-- 0: title + settings -->
+            <RowDefinition Height="Auto"/>  <!-- 0: title -->
             <RowDefinition Height="*"/>     <!-- 2: game list (0 or 1 entries) -->
             <RowDefinition Height="Auto"/>  <!-- 3: buttons + version label -->
             <RowDefinition Height="Auto"/>  <!-- 4: double-click hint -->
             <RowDefinition Height="Auto"/>  <!-- 5: update notification bar -->
         </Grid.RowDefinitions>
-
-        <!-- Settings -->
-        <Button Grid.Row="0" x:Name="SettingsButton"
-                 Padding="8,0" Height="32"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Center"
-                Click="SettingsButton_Click"
-                Style="{StaticResource PurpleButtonStyle}"
-                ToolTip="Settings">
-            <Viewbox Width="21" Height="21">
-                <Canvas Width="24" Height="24">
-                    <Path Data="{StaticResource GearIcon}"
-                          Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
-                </Canvas>
-            </Viewbox>
-        </Button>
 
         <TextBlock Grid.Row="0"
                    Text="STAR WARS BATTLEFRONT GAME PATH"
