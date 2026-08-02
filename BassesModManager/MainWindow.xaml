@@ -122,6 +122,7 @@
                 </Setter>
                 <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
                 <EventSetter Event="PreviewMouseDown" Handler="PlayClickSound_Mouse"/>
+                <EventSetter Event="Checked" Handler="ModCard_Checked"/>
             </Style>
         </Grid.Resources>
         <Grid.RowDefinitions>
@@ -145,8 +146,21 @@
                 Style="{StaticResource PurpleButtonStyle}"
                 ToolTip="Back to game selection"/>
 
-        <!-- Mute toggle -->
-        <local:MuteToggleButton Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+        <!-- Settings -->
+        <Button Grid.Row="0" x:Name="SettingsButton"
+                Padding="8,0" Height="32"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Click="SettingsButton_Click"
+                Style="{StaticResource PurpleButtonStyle}"
+                ToolTip="Settings">
+            <Viewbox Width="21" Height="21">
+                <Canvas Width="24" Height="24">
+                    <Path Data="{StaticResource GearIcon}"
+                          Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
+                </Canvas>
+            </Viewbox>
+        </Button>
 
         <!-- Crosshair Selection Title -->
         <TextBlock Grid.Row="1"
@@ -188,6 +202,7 @@
                 <CheckBox x:Name="ScoreboardCheckBox"
                           VerticalAlignment="Center"
                           Style="{StaticResource PurpleCheckBoxStyle}"
+                          Click="ScoreboardCheckBox_Click"
                           ToolTip="Enable improved scoreboard with the selected crosshair">
                     <TextBlock Text="Improved Scoreboard" Style="{StaticResource BodyTextStyle}"/>
                 </CheckBox>

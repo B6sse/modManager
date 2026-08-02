@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 
@@ -48,6 +49,32 @@ namespace BassesModManager
         private void PlayClickSound(object sender, RoutedEventArgs e) => Sounds.PlayClick();
         private void PlayClickSound_Mouse(object sender, MouseButtonEventArgs e) => Sounds.PlayClick();
 
+        private void ModCard_Checked(object sender, RoutedEventArgs e)
+        {
+            if (((RadioButton)sender).DataContext is ModItem item)
+            {
+                Properties.Settings.Default.LastModFileName = item.FileName;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        private void ScoreboardCheckBox_Click(object sender, RoutedEventArgs e)
+        {
+            Properties.Settings.Default.ScoreboardEnabled = ScoreboardCheckBox.IsChecked == true;
+            Properties.Settings.Default.Save();
+        }
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Selection is persisted (LastModFileName/ScoreboardEnabled), so unlike the
+            // old hide-and-restore approach, a fresh MainWindow instance on the way back
+            // already picks the right crosshair back up on its own
+            var settings = new SettingsWindow(() => new MainWindow());
+            Application.Current.MainWindow = settings;
+            settings.Show();
+            Close();
+        }
+
         private void BackToGameSelectionButton_Click(object sender, RoutedEventArgs e)
         {
             var gameSelectionWindow = new GameSelectionWindow();
@@ -68,6 +95,7 @@ namespace BassesModManager
                 mods.Clear();
                 scoreboardMod = null;
                 var modFiles = Directory.GetFiles(modsDirectory, "*.fbmod");
+                string lastModFileName = Properties.Settings.Default.LastModFileName;
                 List<string> unauthorizedMods = new List<string>();
                 foreach (var modFile in modFiles)
                 {
@@ -75,17 +103,20 @@ namespace BassesModManager
                     if (approvedModHashes.Contains(fileHash))
                     {
                         var modName = Path.GetFileNameWithoutExtension(modFile);
+                        var fileName = Path.GetFileName(modFile);
                         var item = new ModItem
                         {
                             Name = modName,
-                            FileName = Path.GetFileName(modFile),
+                            FileName = fileName,
                             ImagePath = GetModImagePath(modName),
                             Description = modName.IndexOf("Improved_Scoreboard", StringComparison.OrdinalIgnoreCase) >= 0
                                 ? "Improved scoreboard visuals"
                                 : "SWBF2015 Crosshair Mod",
                             Author = "Flash",
                             Version = "1.0",
-                            IsEnabled = false
+                            // Restores the crosshair picked last time, same as real FMM
+                            IsEnabled = !string.IsNullOrEmpty(lastModFileName) &&
+                                        string.Equals(fileName, lastModFileName, StringComparison.OrdinalIgnoreCase)
                         };
 
                         if (modName.IndexOf("Improved_Scoreboard", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -124,6 +155,8 @@ namespace BassesModManager
                                                  m.Name.IndexOf("Red", StringComparison.OrdinalIgnoreCase) >= 0 ? 1 : 2).ToList();
                 mods.Clear();
                 foreach (var m in ordered) mods.Add(m);
+
+                ScoreboardCheckBox.IsChecked = Properties.Settings.Default.ScoreboardEnabled;
             }
             catch (Exception ex)
             {
@@ -220,9 +253,10 @@ namespace BassesModManager
             LaunchGameButton.IsEnabled = true;
             LaunchGameButton.ToolTip = "Select a mod before launching the game";
 
-            if (gameSeenRunning)
+            if (gameSeenRunning && Properties.Settings.Default.RestoreAfterGame)
             {
-                // Game exited - bring the manager back
+                // Game exited - bring the manager back (unless the user turned that off
+                // in settings and would rather have it stay out of the way)
                 WindowState = WindowState.Normal;
                 Activate();
             }

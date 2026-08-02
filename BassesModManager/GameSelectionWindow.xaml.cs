@@ -58,6 +58,16 @@ namespace BassesModManager
             DoubleClickHintText.Visibility = gameValid ? Visibility.Visible : Visibility.Collapsed;
         }
 
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Parameterless constructor = autoProceedIfConfigured: false, so this always
+            // lands back on the actual selection screen rather than skipping past it
+            var settings = new SettingsWindow(() => new GameSelectionWindow());
+            Application.Current.MainWindow = settings;
+            settings.Show();
+            Close();
+        }
+
         private void PlayHoverSound(object sender, MouseEventArgs e) => Sounds.PlayHover();
 
         private void GameList_PreviewMouseDown(object sender, MouseButtonEventArgs e)

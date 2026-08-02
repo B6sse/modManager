@@ -1,0 +1,50 @@
+<UserControl x:Class="BassesModManager.SettingToggle"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- One CheckBox, not two RadioButtons: the whole switch is a single hover/click
+         target (hovering over "ON" or "OFF" feels identical, clicking either side
+         toggles). -->
+    <CheckBox x:Name="ToggleCheckBox"
+              MouseEnter="ToggleCheckBox_MouseEnter"
+              Click="ToggleCheckBox_Click">
+        <CheckBox.Template>
+            <ControlTemplate TargetType="CheckBox">
+                <!-- "thumb" floats inside the track with a fixed margin on every side -
+                     it never touches the track's edge or the column seam, so there is no
+                     shared edge for two different CornerRadius values to disagree about
+                     and leave a gap. Hover only ever changes a flat Background color, no
+                     border geometry involved at all. -->
+                <Border x:Name="track" CornerRadius="5" Height="34" Background="#2A2A2A">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="thumb" Grid.Column="0" CornerRadius="5" Margin="3" Background="#8000FF"/>
+                        <TextBlock x:Name="onLabel" Grid.Column="0" Text="ON" Foreground="#888888" FontWeight="Bold" FontSize="13"
+                                   Padding="18,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="offLabel" Grid.Column="1" Text="OFF" Foreground="#888888" FontWeight="Bold" FontSize="13"
+                                   Padding="18,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsChecked" Value="True">
+                        <Setter TargetName="thumb" Property="Grid.Column" Value="0"/>
+                        <Setter TargetName="onLabel" Property="Foreground" Value="White"/>
+                        <Setter TargetName="offLabel" Property="Foreground" Value="#888888"/>
+                    </Trigger>
+                    <Trigger Property="IsChecked" Value="False">
+                        <Setter TargetName="thumb" Property="Grid.Column" Value="1"/>
+                        <Setter TargetName="onLabel" Property="Foreground" Value="#888888"/>
+                        <Setter TargetName="offLabel" Property="Foreground" Value="White"/>
+                    </Trigger>
+                    <!-- Whole-control hover: track background brightens slightly - no
+                         border, so nothing that can misalign -->
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="track" Property="Background" Value="#4A4A4A"/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </CheckBox.Template>
+    </CheckBox>
+</UserControl>

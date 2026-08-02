@@ -17,9 +17,6 @@ namespace BassesModManager
         private static MediaPlayer clickPlayer;
         private static bool preloaded;
 
-        /// <summary>Raised whenever IsMuted changes, so any visible mute button can update.</summary>
-        public static event EventHandler MuteChanged;
-
         /// <summary>Persisted in Properties.Settings so it survives app restarts.</summary>
         public static bool IsMuted
         {
@@ -30,11 +27,8 @@ namespace BassesModManager
                     return;
                 Properties.Settings.Default.SoundMuted = value;
                 Properties.Settings.Default.Save();
-                MuteChanged?.Invoke(null, EventArgs.Empty);
             }
         }
-
-        public static void ToggleMute() => IsMuted = !IsMuted;
 
         /// <summary>
         /// Must be called once from the UI thread at startup (MediaPlayer needs a Dispatcher).

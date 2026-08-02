@@ -58,5 +58,41 @@ namespace BassesModManager.Properties {
                 this["SoundMuted"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool RestoreAfterGame {
+            get {
+                return ((bool)(this["RestoreAfterGame"]));
+            }
+            set {
+                this["RestoreAfterGame"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastModFileName {
+            get {
+                return ((string)(this["LastModFileName"]));
+            }
+            set {
+                this["LastModFileName"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ScoreboardEnabled {
+            get {
+                return ((bool)(this["ScoreboardEnabled"]));
+            }
+            set {
+                this["ScoreboardEnabled"] = value;
+            }
+        }
     }
 }

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:BassesModManager.Converters"
         xmlns:local="clr-namespace:BassesModManager"
-        Title="Axon" Height="420" Width="690" MinHeight="350" MinWidth="690"
+        Title="Axon" Height="520" Width="832" MinHeight="480" MinWidth="700"
         WindowStartupLocation="CenterScreen"
         Background="Black"
         FontSize="15">
@@ -18,15 +18,28 @@
             </Style>
         </Grid.Resources>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>  <!-- 0: title + mute -->
+            <RowDefinition Height="Auto"/>  <!-- 0: title + settings -->
             <RowDefinition Height="*"/>     <!-- 2: game list (0 or 1 entries) -->
             <RowDefinition Height="Auto"/>  <!-- 3: buttons + version label -->
             <RowDefinition Height="Auto"/>  <!-- 4: double-click hint -->
             <RowDefinition Height="Auto"/>  <!-- 5: update notification bar -->
         </Grid.RowDefinitions>
 
-        <!-- Mute toggle -->
-        <local:MuteToggleButton Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+        <!-- Settings -->
+        <Button Grid.Row="0" x:Name="SettingsButton"
+                 Padding="8,0" Height="32"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Click="SettingsButton_Click"
+                Style="{StaticResource PurpleButtonStyle}"
+                ToolTip="Settings">
+            <Viewbox Width="21" Height="21">
+                <Canvas Width="24" Height="24">
+                    <Path Data="{StaticResource GearIcon}"
+                          Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
+                </Canvas>
+            </Viewbox>
+        </Button>
 
         <TextBlock Grid.Row="0"
                    Text="STAR WARS BATTLEFRONT GAME PATH"
@@ -100,7 +113,7 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
             <Button x:Name="LocateButton" Content="LOCATE BATTLEFRONT" Margin="0,0,12,0"
                     Style="{StaticResource PurpleButtonStyle}"
-                    ToolTip="Browse for your Star Wars Battlefront game folder"
+                    ToolTip="Browse for starwarsbattlefront.exe"
                     Click="LocateButton_Click"/>
             <Button x:Name="SelectButton" Content="SELECT"
                     MinWidth="90"
