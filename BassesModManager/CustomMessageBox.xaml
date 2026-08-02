@@ -19,10 +19,12 @@
                  WPF, which is what previously stopped the hover effect from showing.
                  No fixed Height either - the shared style has padding, so a locked height
                  clips the label. MinWidth keeps them evenly sized. -->
-            <Button x:Name="OkButton" Content="OK" MinWidth="90" FontSize="15"
+            <Button x:Name="OkButton" Content="OK" MinWidth="70" FontSize="14"
+                    Padding="10,6"
                     Margin="0,0,12,0" Click="Ok_Click"
                     Style="{StaticResource PurpleButtonStyle}"/>
-            <Button x:Name="CancelButton" Content="Cancel" MinWidth="90" FontSize="15"
+            <Button x:Name="CancelButton" Content="Cancel" MinWidth="70" FontSize="14"
+                    Padding="10,6"
                     Visibility="Collapsed" Click="Cancel_Click"
                     Style="{StaticResource PurpleButtonStyle}"/>
         </StackPanel>
