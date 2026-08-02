@@ -71,6 +71,18 @@ Source: "Prereqs\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: dontcopy
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
+[InstallDelete]
+; The MyAppName rebrand from "Basse's Mod Manager" to "Axon" made Inno Setup create a
+; new Axon.lnk shortcut instead of renaming the old one (it tracks icons by their Name:
+; string). AppId is unchanged, so this is still recognized as an update of the same
+; install: {group} keeps resolving to whatever Start Menu folder the user originally
+; picked (Inno's UsePreviousGroup, on by default) rather than the new DefaultGroupName -
+; Axon.lnk lands right next to the old shortcut in that same folder, no new folder
+; involved. So the old Start Menu shortcut is removed via {group}, not a hardcoded path.
+; The desktop shortcut has no such folder-memory concept, so that one is a literal path.
+Type: files; Name: "{autodesktop}\Basse's Mod Manager.lnk"
+Type: files; Name: "{group}\Basse's Mod Manager.lnk"
+
 [Run]
 ; runascurrentuser = start app as the user who ran the installer (non-elevated), avoiding "CreateProcess failed; code 740".
 ; No skipifsilent: silent auto-updates (/VERYSILENT from UpdateService) must relaunch
