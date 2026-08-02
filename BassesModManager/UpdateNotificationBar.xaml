@@ -1,29 +1,37 @@
 <UserControl x:Class="BassesModManager.UpdateNotificationBar"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ctrl="clr-namespace:Frosty.Controls;assembly=FrostyControls"
              Visibility="Collapsed">
     <Border Background="#151515" BorderBrush="#8000FF" BorderThickness="2" CornerRadius="6" Padding="12,8">
         <Grid>
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
+            <!-- Only visible while the update is downloading/verifying (phase 1) -->
+            <ctrl:FrostySpinner x:Name="DownloadSpinner"
+                                 Grid.Column="0" Width="18" Height="18"
+                                 VerticalAlignment="Center" Margin="0,0,10,0"/>
+
             <TextBlock x:Name="MessageText"
-                       Grid.Column="0"
+                       Grid.Column="1"
                        Text="A new update is ready."
                        Foreground="White" FontSize="13"
                        VerticalAlignment="Center" TextWrapping="Wrap"
                        Margin="0,0,12,0"/>
 
-            <Button Grid.Column="1" x:Name="UpdateNowButton" Content="UPDATE NOW"
+            <!-- Only enabled once the download is verified and ready (phase 2) -->
+            <Button Grid.Column="2" x:Name="UpdateNowButton" Content="UPDATE NOW"
                     Padding="12,5" Margin="0,0,8,0"
                     Style="{StaticResource PurpleButtonStyle}"
                     ToolTip="Installs the update and reopens the app automatically"
                     Click="UpdateNowButton_Click"/>
 
-            <Button Grid.Column="2" x:Name="LaterButton" Content="LATER"
+            <Button Grid.Column="3" x:Name="LaterButton" Content="LATER"
                     Padding="10,5"
                     Style="{StaticResource PurpleButtonStyle}"
                     ToolTip="Keep using this version for now"

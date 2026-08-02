@@ -23,9 +23,10 @@ namespace BassesModManager
         private const string ReleaseApiUrl = "https://api.github.com/repos/TSL-Battlefront/modManager/releases/latest";
         private const string SilentInstallArgs = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /FORCECLOSEAPPLICATIONS /RESTARTAPPLICATIONS";
 
+        public static bool IsDownloading { get; private set; }
         public static bool IsUpdateReady { get; private set; }
-        public static string ReadyVersionText { get; private set; }
-        public static bool IsBarVisible => IsUpdateReady && !dismissed;
+        public static string AvailableVersionText { get; private set; }
+        public static bool IsBarVisible => (IsDownloading || IsUpdateReady) && !dismissed;
 
         /// <summary>Raised on the UI thread whenever bar visibility should be re-evaluated.</summary>
         public static event EventHandler StateChanged;
@@ -35,6 +36,10 @@ namespace BassesModManager
 
         public static async Task CheckAndPrepareAsync()
         {
+            // True once phase 1 (an update was found and download started) has been
+            // announced to the UI - used in `finally` to know whether the bar needs to be
+            // told to stop showing "downloading" if we never reach the ready state.
+            bool announcedDownloading = false;
             try
             {
                 ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
@@ -71,6 +76,17 @@ namespace BassesModManager
                     if (shaAsset == null)
                         return;
 
+                    // Phase 1: a verifiable update exists - tell the UI now, before the
+                    // (possibly slow) download even starts, instead of only once it's
+                    // fully downloaded and verified.
+                    AvailableVersionText = $"v{latest.Major}.{latest.Minor}";
+                    announcedDownloading = true;
+                    Application.Current?.Dispatcher.Invoke(() =>
+                    {
+                        IsDownloading = true;
+                        StateChanged?.Invoke(null, EventArgs.Empty);
+                    });
+
                     string expectedHash = (await client.GetStringAsync((string)shaAsset["browser_download_url"]).ConfigureAwait(false))
                         .Trim()
                         .Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)[0];
@@ -93,8 +109,8 @@ namespace BassesModManager
                     installerPath = exePath;
                     Application.Current?.Dispatcher.Invoke(() =>
                     {
+                        IsDownloading = false;
                         IsUpdateReady = true;
-                        ReadyVersionText = $"v{latest.Major}.{latest.Minor}";
                         StateChanged?.Invoke(null, EventArgs.Empty);
                     });
                 }
@@ -102,6 +118,21 @@ namespace BassesModManager
             catch
             {
                 // Updates are best-effort; never disturb the user when the check fails
+            }
+            finally
+            {
+                // Reached here without ever getting to the ready state (checksum
+                // mismatch, network failure, timeout...) - if phase 1 was already
+                // announced, stop showing "downloading" instead of leaving the bar
+                // stuck mid-progress forever.
+                if (announcedDownloading && !IsUpdateReady)
+                {
+                    Application.Current?.Dispatcher.Invoke(() =>
+                    {
+                        IsDownloading = false;
+                        StateChanged?.Invoke(null, EventArgs.Empty);
+                    });
+                }
             }
         }
 

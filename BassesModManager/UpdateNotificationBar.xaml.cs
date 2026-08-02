@@ -26,8 +26,24 @@ namespace BassesModManager
         private void Refresh()
         {
             Visibility = UpdateService.IsBarVisible ? Visibility.Visible : Visibility.Collapsed;
+
             if (UpdateService.IsUpdateReady)
-                MessageText.Text = $"Update {UpdateService.ReadyVersionText} is ready - the app reopens itself after installing.";
+            {
+                DownloadSpinner.Visibility = Visibility.Collapsed;
+                UpdateNowButton.Visibility = Visibility.Visible;
+                LaterButton.Visibility = Visibility.Visible;
+                MessageText.Text = $"Update {UpdateService.AvailableVersionText} is ready - the app reopens itself after installing.";
+            }
+            else if (UpdateService.IsDownloading)
+            {
+                // Neither button does anything useful yet: there's nothing to install,
+                // and dismissing wouldn't stop the download anyway - it'd just hide the
+                // only feedback the user has that something is happening.
+                DownloadSpinner.Visibility = Visibility.Visible;
+                UpdateNowButton.Visibility = Visibility.Collapsed;
+                LaterButton.Visibility = Visibility.Collapsed;
+                MessageText.Text = $"Update {UpdateService.AvailableVersionText} found - downloading...";
+            }
         }
 
         private void UpdateNowButton_Click(object sender, RoutedEventArgs e)
