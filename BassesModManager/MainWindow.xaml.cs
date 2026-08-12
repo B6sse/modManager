@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Microsoft.Win32;
 
@@ -219,7 +220,6 @@ namespace BassesModManager
                 Modes = ModModes.Both,
                 Variants = new[]
                 {
-                    new CatalogVariant { Label = "OFF" },
                     new CatalogVariant
                     {
                         Label = "WHITE", ImagePath = "Assets/Images/white_dot.png",
@@ -234,7 +234,10 @@ namespace BassesModManager
                     {
                         Label = "GREEN", ImagePath = "Assets/Images/green_dot.png",
                         File = new CatalogFile { FileName = "Green Dot.fbmod", Sha256 = "b0152a45d8dd1cc995fdc92d7f517ce17b08a260a9f9062ff9d6ec17902a1694" }
-                    }
+                    },
+                    // Kept last so it lines up with the plain on/off switch used by every
+                    // other row, where "off" is likewise the right-hand side.
+                    new CatalogVariant { Label = "OFF" }
                 }
             },
 
@@ -376,9 +379,11 @@ namespace BassesModManager
                         IsSelected = present && string.Equals(v.Label, storedVariant, StringComparison.OrdinalIgnoreCase)
                     }).ToArray();
 
-                    // Nothing stored, or the file has gone: fall back to the off swatch
+                    // Nothing stored, or the file has gone: fall back to the off swatch,
+                    // identified by having no file rather than by position - it isn't
+                    // necessarily first in the display order.
                     if (!item.Variants.Any(v => v.IsSelected))
-                        item.Variants[0].IsSelected = true;
+                        item.Variants.First(v => v.FileName == null).IsSelected = true;
 
                     ApplyVariantSelection(item);
                 }
@@ -469,6 +474,31 @@ namespace BassesModManager
 
             Properties.Settings.Default.EnabledMods = string.Join(";", entries);
             Properties.Settings.Default.Save();
+        }
+
+        /// <summary>Offset the wheel is currently animating towards, so consecutive notches
+        /// add up instead of each one restarting from the (not-yet-reached) current offset.</summary>
+        private double modListScrollTarget = double.NaN;
+
+        /// <summary>
+        /// WPF's default per-notch scroll amount is large enough that it reads as jumping
+        /// between mods rather than scrolling past them. This scrolls a smaller distance and
+        /// animates to it, so the list glides continuously instead of stepping.
+        /// </summary>
+        private void ModListScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            e.Handled = true;
+
+            double current = double.IsNaN(modListScrollTarget) ? ModListScrollViewer.VerticalOffset : modListScrollTarget;
+            double target = Math.Max(0, Math.Min(ModListScrollViewer.ScrollableHeight, current - e.Delta / 3.0));
+            modListScrollTarget = target;
+
+            var animation = new DoubleAnimation(ModListScrollViewer.VerticalOffset, target, TimeSpan.FromMilliseconds(220))
+            {
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+            animation.Completed += (s, args) => modListScrollTarget = double.NaN;
+            ModListScrollViewer.BeginAnimation(SmoothScrollBehavior.VerticalOffsetProperty, animation);
         }
 
         private void ModeToggle_Toggled(object sender, EventArgs e)
@@ -802,7 +832,7 @@ namespace BassesModManager
             {
                 foreach (ModVariant variant in item.Variants)
                     variant.IsSelected = false;
-                item.Variants[0].IsSelected = true;
+                item.Variants.First(v => v.FileName == null).IsSelected = true;
             }
 
             ApplyVariantSelection(item);

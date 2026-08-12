@@ -156,6 +156,7 @@
     <Compile Include="Converters\StringToImageSourceConverter.cs" />
     <Compile Include="ModDownloader.cs" />
     <Compile Include="Sounds.cs" />
+    <Compile Include="SmoothScrollBehavior.cs" />
   </ItemGroup>
   <ItemGroup>
     <!-- Injected into the game from the app folder, which is where the installer puts it

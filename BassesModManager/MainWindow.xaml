@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:BassesModManager.Converters"
         xmlns:local="clr-namespace:BassesModManager"
-        Title="Axon" Height="520" Width="832" MinHeight="480" MinWidth="700"
+        Title="Axon" Height="585" Width="936" MinHeight="535" MinWidth="780"
         WindowStartupLocation="CenterScreen"
         Background="Black"
         FontSize="15">
@@ -64,6 +64,63 @@
                 <Setter Property="TextWrapping" Value="Wrap"/>
                 <Setter Property="Margin" Value="0,3,0,0"/>
             </Style>
+            <!-- Themed scrollbar for the mod list: a purple, rounded thumb instead of the
+                 default Windows chrome. RepeatButtons are given an invisible template since
+                 clicking the track above/below the thumb should still page-scroll. -->
+            <Style x:Key="ScrollBarPageButtonStyle" TargetType="RepeatButton">
+                <Setter Property="OverridesDefaultStyle" Value="True"/>
+                <Setter Property="IsTabStop" Value="False"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RepeatButton">
+                            <Rectangle Fill="Transparent"/>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="ScrollBarThumbStyle" TargetType="Thumb">
+                <Setter Property="OverridesDefaultStyle" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Thumb">
+                            <Border x:Name="thumbFill" Background="#8000FF" CornerRadius="4" Margin="4,0"/>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="thumbFill" Property="Background" Value="#9B33FF"/>
+                                </Trigger>
+                                <Trigger Property="IsDragging" Value="True">
+                                    <Setter TargetName="thumbFill" Property="Background" Value="#6600CC"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style TargetType="ScrollBar">
+                <Setter Property="Width" Value="16"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Grid>
+                                <Border Margin="4,0" CornerRadius="4" Background="#1A1A1A"/>
+                                <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Style="{StaticResource ScrollBarPageButtonStyle}" Command="ScrollBar.PageUpCommand"/>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Style="{StaticResource ScrollBarPageButtonStyle}" Command="ScrollBar.PageDownCommand"/>
+                                    </Track.IncreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Style="{StaticResource ScrollBarThumbStyle}"/>
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </Grid.Resources>
         <!-- Two views share this window: the mod list and the settings page. Swapping
              their visibility rather than opening a second window means coming back is
@@ -86,7 +143,7 @@
         <!-- Top bar. All three sit in the same cell and are placed by their alignment
              rather than by columns, so the switch stays centred on the window itself
              instead of on whatever space the heading leaves over. -->
-        <Grid Grid.Row="0" Margin="0,0,0,28">
+        <Grid Grid.Row="0">
             <TextBlock Text="SELECT MODS"
                        Style="{StaticResource HeadingTextStyle}"
                        FontSize="22"
@@ -119,11 +176,13 @@
              control. IsSharedSizeScope keeps the text column the same width down the whole
              list, so the controls line up in a column without being pushed out to the far
              edge of the window. -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Grid.IsSharedSizeScope="True">
+        <ScrollViewer x:Name="ModListScrollViewer" Grid.Row="1" Margin="0,28,0,28" VerticalScrollBarVisibility="Auto"
+                      CanContentScroll="False" PreviewMouseWheel="ModListScrollViewer_PreviewMouseWheel"
+                      Grid.IsSharedSizeScope="True">
             <ItemsControl x:Name="ModListControl" HorizontalAlignment="Left">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Grid Margin="0,0,0,10">
+                        <Grid Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto" SharedSizeGroup="ModText"/>
@@ -131,12 +190,16 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <Border Grid.Column="0" Width="35" Height="35" Margin="0,0,14,0"
+                            <!-- Sized to match the name+description stack's natural height
+                                 (13px bold + 12px line, 2px apart) rather than a round number,
+                                 so the icon's bottom lines up with the description's instead of
+                                 the text spilling past a smaller icon. -->
+                            <Border Grid.Column="0" Width="34" Height="34" Margin="0,0,14,0"
                                     CornerRadius="6" VerticalAlignment="Center">
                                 <!-- Clipped to the border's own rounding so the crosshair
                                      shots get the same soft corners as the app icon -->
                                 <Border.Clip>
-                                    <RectangleGeometry Rect="0,0,35,35" RadiusX="6" RadiusY="6"/>
+                                    <RectangleGeometry Rect="0,0,34,34" RadiusX="6" RadiusY="6"/>
                                 </Border.Clip>
                                 <Grid>
                                     <!-- Mods with no artwork of their own get the app icon.
@@ -150,31 +213,36 @@
                                          embedded resources - so it would silently find
                                          nothing and leave the icon blank. -->
                                     <Image Source="{Binding Source='Assets/Images/axon_logo.png', Converter={StaticResource StringToImageSourceConverter}}"
-                                           Width="35" Height="35"
+                                           Width="34" Height="34"
                                            RenderOptions.BitmapScalingMode="HighQuality"
                                            Visibility="{Binding HasCustomIcon, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=invert}"/>
                                     <!-- Crosshair shots are 150x150 game captures where the
                                          crosshair itself is a small thing in the middle.
-                                         Drawn at half size inside a 35px window, the visible
-                                         area is the centre 70px, which is the crosshair and
+                                         Drawn at half size inside a 34px window, the visible
+                                         area is the centre 73px, which is the crosshair and
                                          not much else. -->
                                     <Image Source="{Binding ImagePath, Converter={StaticResource StringToImageSourceConverter}}"
-                                           Width="75" Height="75"
+                                           Width="73" Height="73"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                            RenderOptions.BitmapScalingMode="HighQuality"
                                            Visibility="{Binding HasCustomIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                 </Grid>
                             </Border>
 
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,20,0" MaxWidth="330">
-                                <TextBlock Text="{Binding Name}" Foreground="White" FontSize="14" FontWeight="Bold"/>
+                            <!-- Wide enough that none of the catalog's current descriptions
+                                 wrap to a second line - the longest ("Makes the scoreboard
+                                 background black to improve readability") needs about this
+                                 much room at 12px. Widening this pushes the status text and
+                                 switch right for free, since they're Auto columns after it. -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,20,0" MaxWidth="440">
+                                <TextBlock Text="{Binding Name}" Foreground="White" FontSize="13" FontWeight="Bold"/>
                                 <TextBlock Text="{Binding Description}" Foreground="#888" FontSize="12"
                                            TextWrapping="Wrap" Margin="0,2,0,0"/>
                             </StackPanel>
 
                             <TextBlock Grid.Column="2"
                                        Text="{Binding StatusText}"
-                                       Foreground="#888" FontSize="12"
+                                       Foreground="#888" FontSize="11"
                                        VerticalAlignment="Center"
                                        Margin="0,0,10,0"/>
 
@@ -182,13 +250,15 @@
                                  offers the download instead of the control until it is here -->
                             <Button Grid.Column="3"
                                     Content="DOWNLOAD"
-                                    Height="26" Padding="12,0" FontSize="12"
+                                    Height="22" Padding="10,0" FontSize="11"
                                     VerticalAlignment="Center"
                                     Click="DownloadMod_Click"
                                     Style="{StaticResource PurpleButtonStyle}"
                                     Visibility="{Binding ShowDownloadButton, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                            <!-- Plain on/off mods get the switch... -->
+                            <!-- Plain on/off mods get the switch. SettingToggle's own template
+                                 is fixed at 34px tall, which already matches the icon - no
+                                 scaling needed here, unlike the earlier pass that shrank it. -->
                             <local:SettingToggle Grid.Column="3"
                                                  IsOn="{Binding IsEnabled}"
                                                  IsEnabled="{Binding IsAvailable}"
@@ -227,7 +297,7 @@
         <!-- Action row. In Auric mode the two buttons split the width 70/30; in EA servers
              mode the Auric button is gone and its columns collapse to zero so LAUNCH GAME
              goes back to spanning the row on its own. ApplyMode drives both. -->
-        <Grid Grid.Row="2" Margin="0,10,0,0">
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="7*"/>
                 <ColumnDefinition x:Name="ActionGapColumn" Width="0"/>
