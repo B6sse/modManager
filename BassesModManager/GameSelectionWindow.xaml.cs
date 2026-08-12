@@ -23,11 +23,11 @@ namespace BassesModManager
             LoadSavedGame();
 
             // Start-only screen: this window is only ever constructed once, at app
-            // startup (see App.xaml.cs). If a valid installation is already saved, skip
-            // straight past it into MainWindow - the only way to actually see this UI is
-            // when there's no valid game path configured yet (first run, or the saved
-            // one stopped being valid). Changing an already-configured path now happens
-            // from Settings instead.
+            // startup (see App.xaml.cs). A saved and valid installation now bypasses this
+            // window entirely unless its cache still has to be built, which is the one
+            // case this branch is left for: proceed on its own so the user lands in the
+            // cache installer rather than on a screen with nothing to decide. Changing an
+            // already-configured path happens from Settings instead.
             string savedPath = Properties.Settings.Default.GamePath;
             if (FrostyRuntime.IsValidBattlefrontInstall(savedPath))
             {

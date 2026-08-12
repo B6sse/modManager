@@ -11,22 +11,42 @@ namespace BassesModManager
     /// </summary>
     public static class Sounds
     {
-        private const double Volume = 0.2;
+        /// <summary>
+        /// What each slider step means on MediaPlayer's 0-1 scale, which is linear
+        /// amplitude. Hearing is not: spacing these evenly made the top steps almost
+        /// indistinguishable, because equal amplitude increases get smaller and smaller in
+        /// dB as the level rises.
+        /// <para>
+        /// So the steps go up by a constant <i>ratio</i> (~1.73x, about +4.8 dB each)
+        /// rather than a constant amount. Every step is then the same amount louder to the
+        /// ear. 50% is pinned to 0.2, the fixed level the app used before the slider
+        /// existed, so an untouched install sounds exactly as it always did.
+        /// </para>
+        /// One entry per slider position - the slider snaps to 25% steps, so changing the
+        /// number of entries means changing TickFrequency in PurpleSliderStyle to match.
+        /// </summary>
+        private static readonly double[] VolumeSteps = { 0.0, 0.115, 0.2, 0.345, 0.6 };
 
         private static MediaPlayer hoverPlayer;
         private static MediaPlayer clickPlayer;
         private static bool preloaded;
 
-        /// <summary>Persisted in Properties.Settings so it survives app restarts.</summary>
-        public static bool IsMuted
+        /// <summary>
+        /// 0-100, where 0 is silent. Persisted in Properties.Settings so it survives app
+        /// restarts, and applied to the live players immediately rather than only at load.
+        /// </summary>
+        public static int VolumePercent
         {
-            get => Properties.Settings.Default.SoundMuted;
+            get => Clamp(Properties.Settings.Default.SoundVolumePercent);
             set
             {
-                if (Properties.Settings.Default.SoundMuted == value)
+                int clamped = Clamp(value);
+                if (Properties.Settings.Default.SoundVolumePercent == clamped)
                     return;
-                Properties.Settings.Default.SoundMuted = value;
+
+                Properties.Settings.Default.SoundVolumePercent = clamped;
                 Properties.Settings.Default.Save();
+                ApplyVolume();
             }
         }
 
@@ -41,11 +61,25 @@ namespace BassesModManager
 
             hoverPlayer = Load("hover.mp3");
             clickPlayer = Load("click.mp3");
+            ApplyVolume();
         }
 
         public static void PlayHover() => Play(hoverPlayer);
 
         public static void PlayClick() => Play(clickPlayer);
+
+        private static int Clamp(int percent) => Math.Min(100, Math.Max(0, percent));
+
+        private static void ApplyVolume()
+        {
+            int step = Math.Min(VolumeSteps.Length - 1, VolumePercent * (VolumeSteps.Length - 1) / 100);
+            double volume = VolumeSteps[step];
+
+            if (hoverPlayer != null)
+                hoverPlayer.Volume = volume;
+            if (clickPlayer != null)
+                clickPlayer.Volume = volume;
+        }
 
         private static MediaPlayer Load(string fileName)
         {
@@ -55,7 +89,7 @@ namespace BassesModManager
                 if (!File.Exists(path))
                     return null;
 
-                var player = new MediaPlayer { Volume = Volume };
+                var player = new MediaPlayer();
                 player.Open(new Uri(path, UriKind.Absolute));
                 return player;
             }
@@ -67,7 +101,7 @@ namespace BassesModManager
 
         private static void Play(MediaPlayer player)
         {
-            if (player == null || IsMuted)
+            if (player == null || VolumePercent == 0)
                 return;
 
             try

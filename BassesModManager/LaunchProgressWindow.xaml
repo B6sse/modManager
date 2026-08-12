@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ctrl="clr-namespace:Frosty.Controls;assembly=FrostyControls"
         xmlns:local="clr-namespace:BassesModManager"
-        Title="Launching..." Height="360" Width="550"
+        Title="Launching..." Width="550"
+        SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None" ResizeMode="NoResize"
         Background="Transparent" AllowsTransparency="True"
@@ -29,8 +30,8 @@
                     <ctrl:FrostySpinner Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock Text="Loading data..." Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
                 </StackPanel>
-                <ProgressBar x:Name="ProgressBar" Minimum="0" Maximum="100" Value="0" Height="20"
-                             Foreground="#8000FF" Background="#333" Visibility="Collapsed"/>
+                <ProgressBar x:Name="ProgressBar" Minimum="0" Maximum="100" Value="0"
+                             Style="{StaticResource PurpleProgressBarStyle}" Visibility="Collapsed"/>
             </Grid>
 
             <TextBlock Grid.Row="3" Text="Applying mods and starting the game. The first launch with a new mod combination takes longer."

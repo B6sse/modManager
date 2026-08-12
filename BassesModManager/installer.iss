@@ -51,10 +51,27 @@ Source: "{#PayloadPath}\BassesModManager.exe.config"; DestDir: "{app}"; Flags: i
 Source: "{#PayloadPath}\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; ThirdParty (from build; required by FrostyModExecutor)
 Source: "{#PayloadPath}\ThirdParty\*"; DestDir: "{app}\ThirdParty"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
-; Profiles (from build; SDK DLL for the game)
-Source: "{#PayloadPath}\Profiles\*"; DestDir: "{app}\Profiles"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
-; Mods – the 3 approved .fbmod files from repo (required for app to have mods to choose)
-Source: "Mods\*"; DestDir: "{app}\Mods"; Flags: ignoreversion
+; Profiles – only the SDK for the one game this app supports. The full Frosty set is
+; ~150 MB of SDKs for Anthem, FIFA, Madden and the rest, none of which can ever be loaded
+; here: the app hardcodes one profile and looks the SDK up by name.
+Source: "{#PayloadPath}\Profiles\StarWarsSDK.dll"; DestDir: "{app}\Profiles"; Flags: ignoreversion
+; Plugins (from build; required to apply mods whose data is in a plugin's own format)
+Source: "{#PayloadPath}\Plugins\*"; DestDir: "{app}\Plugins"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
+; Mods – only the small approved ones. The Auric set is several hundred MB and is NOT
+; bundled: it would be re-downloaded by every auto-update even for a code-only change, so
+; the app fetches it on demand instead. Mods live under ProgramData rather than {app} so
+; the app can add and remove them without needing administrator rights.
+Source: "Mods\White Dot.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
+Source: "Mods\Red Dot.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
+Source: "Mods\Green Dot.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
+Source: "Mods\Improved_Scoreboard.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
+Source: "Mods\Improved-Game-Startup.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
+Source: "Mods\Improved-Low-Health-Visibility.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
+Source: "Mods\Improved-Pause-Screen-Effects.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
+; Kyber gets injected into the game, so it stays in the admin-only program folder rather
+; than the user-writable mods folder. Kept out of Mods\ in the repo too - that folder is
+; now exactly "the mods that ship", and this is not a mod.
+Source: "Kyber.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; Images – mod card previews (from build output)
 Source: "{#PayloadPath}\Assets\Images\*"; DestDir: "{app}\Assets\Images"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 ; Sounds – hover/click sound effects
@@ -66,6 +83,13 @@ Source: "Prereqs\.NET_Framework_4.8_setup.exe"; DestDir: "{tmp}"; Flags: dontcop
 #ifexist "Prereqs\vc_redist.x64.exe"
 Source: "Prereqs\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: dontcopy
 #endif
+
+[Dirs]
+; The app manages mods here at runtime - verifying, deleting rejected files and
+; downloading the Auric set - and it runs non-elevated, so Users need write access.
+; Without this the folder inherits ProgramData's default read-only-for-Users ACL.
+Name: "{commonappdata}\BassesModManager"; Permissions: users-modify
+Name: "{commonappdata}\BassesModManager\Mods"; Permissions: users-modify
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -82,6 +106,12 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 ; The desktop shortcut has no such folder-memory concept, so that one is a literal path.
 Type: files; Name: "{autodesktop}\Basse's Mod Manager.lnk"
 Type: files; Name: "{group}\Basse's Mod Manager.lnk"
+; Mods moved out of the program folder to ProgramData, where the app can manage them
+; without elevation. Removing the old folder also clears out the crosshair files that
+; older releases installed under different names: the app rejects those now (name and
+; hash must both match) and, running non-elevated, could not delete them itself - which
+; would otherwise mean a "could not remove" warning on every single start.
+Type: filesandordirs; Name: "{app}\Mods"
 
 [Run]
 ; runascurrentuser = start app as the user who ran the installer (non-elevated), avoiding "CreateProcess failed; code 740".

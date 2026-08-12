@@ -31,6 +31,7 @@ namespace BassesModManager
             LoadBanner();
         }
 
+
         private void LoadBanner()
         {
             try

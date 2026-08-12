@@ -12,6 +12,10 @@ namespace BassesModManager
 
         private void Button_PlayClickSound(object sender, RoutedEventArgs e) => Sounds.PlayClick();
 
+        // The slider's knob is the part you actually grab, so the hover sound belongs to it
+        // rather than to the whole control
+        private void SliderThumb_PlayHoverSound(object sender, MouseEventArgs e) => Sounds.PlayHover();
+
         // Held for the app's lifetime so Inno Setup's AppMutex check can detect a
         // running instance and close/replace it cleanly during silent auto-updates.
         // The name must match AppMutex in installer.iss.
@@ -34,6 +38,28 @@ namespace BassesModManager
                 {
                     // never block startup on settings migration
                 }
+                // Sound used to be a plain on/off flag and is now a volume level. Carry the
+                // old choice across, or someone who had deliberately silenced the app would
+                // get sound back after updating. Clearing the old flag keeps this from
+                // firing again on the next upgrade.
+                if (BassesModManager.Properties.Settings.Default.SoundMuted)
+                {
+                    BassesModManager.Properties.Settings.Default.SoundVolumePercent = 0;
+                    BassesModManager.Properties.Settings.Default.SoundMuted = false;
+                }
+
+                // The crosshair choice and the scoreboard flag used to be separate settings
+                // and are now one list of switched-on mods. Carry them across so nobody
+                // finds their selection wiped after an update.
+                if (string.IsNullOrEmpty(BassesModManager.Properties.Settings.Default.EnabledMods))
+                {
+                    // Fully qualified: inside App, a bare "MainWindow" is the inherited
+                    // Application.MainWindow property rather than the window type
+                    BassesModManager.Properties.Settings.Default.EnabledMods = BassesModManager.MainWindow.MigrateLegacySelection(
+                        BassesModManager.Properties.Settings.Default.LastModFileName,
+                        BassesModManager.Properties.Settings.Default.ScoreboardEnabled);
+                }
+
                 BassesModManager.Properties.Settings.Default.UpgradeRequired = false;
                 BassesModManager.Properties.Settings.Default.Save();
             }
@@ -50,21 +76,37 @@ namespace BassesModManager
             CustomCursor.Preload();
             Mouse.OverrideCursor = Cursors.None;
 
-            if (!System.IO.Directory.Exists("Mods"))
-            {
-                System.IO.Directory.CreateDirectory("Mods");
-            }
+            // Mods live under ProgramData, not next to the exe: the app runs non-elevated
+            // and has to be able to delete rejected files and download the Auric set
+            CachePathHelper.EnsureModsDirectory();
 
             // Discord-style update flow (Plans/AUTO_UPDATE_PLAN.md, Spor A): check and
             // download quietly in the background; UpdateNotificationBar offers the
             // one-click install once a verified download is ready. Never blocks startup.
             _ = UpdateService.CheckAndPrepareAsync();
 
-            // StartupUri is removed so we create GameSelectionWindow first (Frosty-style flow: game selection -> cache install if needed -> mod selection).
-            // With a valid game already saved, the selection window skips itself automatically.
-            var gameSelectionWindow = new GameSelectionWindow();
-            MainWindow = gameSelectionWindow;
-            gameSelectionWindow.Show();
+            // StartupUri is removed so we pick the first window ourselves (Frosty-style
+            // flow: game selection -> cache install if needed -> mod selection).
+            //
+            // Once a game is configured and its cache is built, the selection screen has
+            // nothing left to ask, so go straight to the mod list. It used to be shown
+            // regardless and hand over a moment later, which reads as a flash of the wrong
+            // screen. Anything still unresolved - no game picked yet, or no cache built -
+            // goes through GameSelectionWindow, which knows how to handle both.
+            string savedGamePath = BassesModManager.Properties.Settings.Default.GamePath;
+            if (FrostyRuntime.IsValidBattlefrontInstall(savedGamePath) &&
+                System.IO.File.Exists(CachePathHelper.GetCacheFilePath()))
+            {
+                var main = new MainWindow();
+                Application.Current.MainWindow = main;
+                main.Show();
+            }
+            else
+            {
+                var gameSelectionWindow = new GameSelectionWindow();
+                Application.Current.MainWindow = gameSelectionWindow;
+                gameSelectionWindow.Show();
+            }
         }
     }
 }

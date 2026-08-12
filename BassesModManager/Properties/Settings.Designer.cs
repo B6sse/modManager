@@ -47,6 +47,10 @@ namespace BassesModManager.Properties {
             }
         }
 
+        /// <summary>
+        /// Superseded by <see cref="SoundVolumePercent"/>. Kept only so the one-time
+        /// migration in App.OnStartup can still read what an older version stored.
+        /// </summary>
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
@@ -56,6 +60,18 @@ namespace BassesModManager.Properties {
             }
             set {
                 this["SoundMuted"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("50")]
+        public int SoundVolumePercent {
+            get {
+                return ((int)(this["SoundVolumePercent"]));
+            }
+            set {
+                this["SoundVolumePercent"] = value;
             }
         }
 
@@ -92,6 +108,35 @@ namespace BassesModManager.Properties {
             }
             set {
                 this["ScoreboardEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AuricMode {
+            get {
+                return ((bool)(this["AuricMode"]));
+            }
+            set {
+                this["AuricMode"] = value;
+            }
+        }
+
+        /// <summary>
+        /// Keys of the mods that are switched on, semicolon separated. One list for the
+        /// whole app: a mod's on/off state is its own, and the mode only decides which
+        /// mods are on offer.
+        /// </summary>
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string EnabledMods {
+            get {
+                return ((string)(this["EnabledMods"]));
+            }
+            set {
+                this["EnabledMods"] = value;
             }
         }
     }

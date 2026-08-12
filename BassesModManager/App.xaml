@@ -30,6 +30,108 @@
                                    c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z
                                    M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
 
+            <!-- Progress bar for the cache install and launch windows. Lives here rather
+                 than in either window so the two cannot drift apart.
+                 The default WPF template has no way to round its corners, hence the
+                 replacement: an outer Border for the track and PART_Indicator for the
+                 fill, which the ProgressBar itself sizes. Keep CornerRadius at half the
+                 Height for fully rounded ends. -->
+            <Style x:Key="PurpleProgressBarStyle" TargetType="ProgressBar">
+                <Setter Property="Height" Value="10"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Foreground" Value="#8000FF"/>
+                <Setter Property="Background" Value="#333"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ProgressBar">
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="5"
+                                    ClipToBounds="True">
+                                <Grid>
+                                    <!-- PART_Track spans the full width and is what the
+                                         indicator's width is measured against -->
+                                    <Rectangle x:Name="PART_Track"/>
+                                    <Border x:Name="PART_Indicator"
+                                            HorizontalAlignment="Left"
+                                            Background="{TemplateBinding Foreground}"
+                                            CornerRadius="5"/>
+                                </Grid>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Volume slider. Same shapes and colours as the progress bar: a dark rounded
+                 track with a purple filled portion, plus a round purple knob.
+                 Snapped to 25% steps rather than continuous - the whole range is only
+                 0 to 0.4 on MediaPlayer's scale, so finer resolution would be resolution
+                 nobody can hear, and snapping makes silence an exact, easily hit position
+                 instead of something you have to nudge onto. -->
+            <Style x:Key="PurpleSliderStyle" TargetType="Slider">
+                <Setter Property="Minimum" Value="0"/>
+                <Setter Property="Maximum" Value="100"/>
+                <Setter Property="TickFrequency" Value="25"/>
+                <Setter Property="IsSnapToTickEnabled" Value="True"/>
+                <Setter Property="IsMoveToPointEnabled" Value="True"/>
+                <Setter Property="SmallChange" Value="25"/>
+                <Setter Property="LargeChange" Value="25"/>
+                <Setter Property="Height" Value="20"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Slider">
+                            <Grid VerticalAlignment="Center">
+                                <Border Height="6" CornerRadius="3" Background="#333" VerticalAlignment="Center"/>
+                                <Track x:Name="PART_Track">
+                                    <!-- The filled part to the left of the knob -->
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="Slider.DecreaseLarge"
+                                                      Focusable="False" IsTabStop="False" OverridesDefaultStyle="True">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate TargetType="RepeatButton">
+                                                    <Border Height="6" CornerRadius="3" Background="#8000FF" VerticalAlignment="Center"/>
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.DecreaseRepeatButton>
+                                    <!-- Transparent so the dark track behind shows through -->
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="Slider.IncreaseLarge"
+                                                      Focusable="False" IsTabStop="False" OverridesDefaultStyle="True">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate TargetType="RepeatButton">
+                                                    <Border Background="Transparent"/>
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.IncreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Width="16" Height="16" Focusable="False" OverridesDefaultStyle="True"
+                                               MouseEnter="SliderThumb_PlayHoverSound">
+                                            <Thumb.Template>
+                                                <ControlTemplate TargetType="Thumb">
+                                                    <Ellipse x:Name="knob" Fill="#8000FF"/>
+                                                    <ControlTemplate.Triggers>
+                                                        <!-- Same inversion the buttons use on hover -->
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="knob" Property="Fill" Value="White"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsDragging" Value="True">
+                                                            <Setter TargetName="knob" Property="Fill" Value="White"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- Button style (base; windows add EventSetter for hover sound) -->
             <Style x:Key="PurpleButtonStyleBase" TargetType="Button">
                 <Setter Property="OverridesDefaultStyle" Value="True"/>

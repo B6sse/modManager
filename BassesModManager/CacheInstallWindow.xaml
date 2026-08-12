@@ -29,8 +29,8 @@
                     <ctrl:FrostySpinner Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock Text="Loading data..." Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
                 </StackPanel>
-                <ProgressBar x:Name="ProgressBar" Minimum="0" Maximum="100" Value="0" Height="20"
-                             Foreground="#8000FF" Background="#333" Visibility="Collapsed"/>
+                <ProgressBar x:Name="ProgressBar" Minimum="0" Maximum="100" Value="0"
+                             Style="{StaticResource PurpleProgressBarStyle}" Visibility="Collapsed"/>
             </Grid>
 
             <TextBlock Grid.Row="3" Text="This may take a few seconds. Please wait..." 

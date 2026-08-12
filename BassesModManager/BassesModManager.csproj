@@ -107,10 +107,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="SettingsWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
     <Page Include="SettingToggle.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -134,6 +130,8 @@
     </Compile>
     <Compile Include="CacheInstallLogger.cs" />
     <Compile Include="CachePathHelper.cs" />
+    <Compile Include="DllInjector.cs" />
+    <Compile Include="FileHash.cs" />
     <Compile Include="FrostyRuntime.cs" />
     <Compile Include="GameEntry.cs" />
     <Compile Include="LaunchProgressWindow.xaml.cs">
@@ -141,9 +139,6 @@
     </Compile>
     <Compile Include="UpdateNotificationBar.xaml.cs">
       <DependentUpon>UpdateNotificationBar.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="SettingsWindow.xaml.cs">
-      <DependentUpon>SettingsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="SettingToggle.xaml.cs">
       <DependentUpon>SettingToggle.xaml</DependentUpon>
@@ -157,10 +152,18 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Converters\BooleanToVisibilityConverter.cs" />
     <Compile Include="Converters\StringToImageSourceConverter.cs" />
+    <Compile Include="ModDownloader.cs" />
     <Compile Include="Sounds.cs" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Injected into the game from the app folder, which is where the installer puts it
+         too. Copied to the output so running from Visual Studio behaves like an install
+         rather than reporting Kyber as missing. -->
+    <Content Include="Kyber.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Assets\Images\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -231,5 +234,52 @@
       <Name>FrostySdk</Name>
     </ProjectReference>
   </ItemGroup>
+  <!-- Frosty plugins. A .fbmod can store part of its data in a plugin-specific format,
+       and only that plugin knows how to apply it - without it those assets are dropped
+       on launch. The plugins are separate projects that are deliberately not referenced:
+       PluginManager discovers the DLLs at runtime from the Plugins folder next to the
+       exe, so all this needs to do is build them and drop the output there.
+       These configurations are the ones BassesModManager.sln already maps the shared
+       Frosty libraries to, so the plugins link against the very same FrostySdk /
+       FrostyCore builds the app ships.
+       Only plugins that register a custom handler change anything for a mod manager
+       (the rest of a plugin's extension points are editor-only), so this list is the
+       handler-registering ones that apply to Star Wars Battlefront. Add a line to
+       support a mod built with another plugin. -->
+  <PropertyGroup>
+    <FrostyPluginConfiguration Condition=" '$(Configuration)' == 'Debug' ">Developer - Debug</FrostyPluginConfiguration>
+    <FrostyPluginConfiguration Condition=" '$(FrostyPluginConfiguration)' == '' ">Release - Final</FrostyPluginConfiguration>
+    <FrostyPluginOutputPath Condition=" '$(FrostyPluginConfiguration)' == 'Developer - Debug' ">bin\Developer\Debug\</FrostyPluginOutputPath>
+    <FrostyPluginOutputPath Condition=" '$(FrostyPluginOutputPath)' == '' ">bin\Release\Final\</FrostyPluginOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrostyPluginProject Include="..\Plugins\FsLocalizationPlugin\FsLocalizationPlugin.csproj" />
+    <FrostyPluginProject Include="..\Plugins\DifficultyWeaponTableDataPlugin\DifficultyWeaponTableDataPlugin.csproj" />
+  </ItemGroup>
+  <!-- Hooked into the build proper rather than AfterTargets="Build": IncrementalClean
+       records @(FileWrites) partway through CoreBuild, so a copy made after the whole
+       build has finished is invisible to Clean and its files linger forever. -->
+  <Target Name="BuildFrostyPlugins" AfterTargets="CopyFilesToOutputDirectory">
+    <!-- Restore in its own pass: the plugins are SDK-style projects, and NuGet refuses to
+         restore and build a project within a single MSBuild invocation. -->
+    <MSBuild Projects="@(FrostyPluginProject)" Targets="Restore"
+             Properties="Configuration=$(FrostyPluginConfiguration);Platform=x64" />
+    <MSBuild Projects="@(FrostyPluginProject)" Targets="Build"
+             Properties="Configuration=$(FrostyPluginConfiguration);Platform=x64" />
+    <!-- Named explicitly rather than taken from the MSBuild task's TargetOutputs, which
+         comes back empty for these multi-targeting projects. Copying only the plugin
+         assembly is deliberate: a plugin's output folder also holds copies of
+         FrostySdk/FrostyCore/etc., and a second copy of those under Plugins would load as
+         separate assemblies whose types don't match the ones already in use. -->
+    <ItemGroup>
+      <FrostyPluginAssembly Include="@(FrostyPluginProject->'%(RootDir)%(Directory)$(FrostyPluginOutputPath)%(Filename).dll')" />
+    </ItemGroup>
+    <!-- Registering the copies as FileWrites is what lets Clean remove them again. Without
+         it the Plugins folder is invisible to Clean and a stale plugin DLL would survive a
+         rebuild. -->
+    <Copy SourceFiles="@(FrostyPluginAssembly)" DestinationFolder="$(OutDir)Plugins" SkipUnchangedFiles="true">
+      <Output TaskParameter="DestinationFiles" ItemName="FileWrites"/>
+    </Copy>
+  </Target>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
