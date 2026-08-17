@@ -87,10 +87,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="GameSelectionWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
     <Page Include="CacheInstallWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -100,6 +96,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="LaunchProgressWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="ProgressPanel.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -122,9 +122,6 @@
     <Compile Include="CustomMessageBox.xaml.cs">
       <DependentUpon>CustomMessageBox.xaml</DependentUpon>
     </Compile>
-    <Compile Include="GameSelectionWindow.xaml.cs">
-      <DependentUpon>GameSelectionWindow.xaml</DependentUpon>
-    </Compile>
     <Compile Include="CacheInstallWindow.xaml.cs">
       <DependentUpon>CacheInstallWindow.xaml</DependentUpon>
     </Compile>
@@ -136,6 +133,9 @@
     <Compile Include="GameEntry.cs" />
     <Compile Include="LaunchProgressWindow.xaml.cs">
       <DependentUpon>LaunchProgressWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="ProgressPanel.xaml.cs">
+      <DependentUpon>ProgressPanel.xaml</DependentUpon>
     </Compile>
     <Compile Include="UpdateNotificationBar.xaml.cs">
       <DependentUpon>UpdateNotificationBar.xaml</DependentUpon>

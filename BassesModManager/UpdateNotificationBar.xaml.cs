@@ -6,7 +6,8 @@ namespace BassesModManager
 {
     /// <summary>
     /// Small non-blocking bar shown at the bottom of a window when UpdateService has a
-    /// verified update downloaded and ready. Shared by MainWindow and GameSelectionWindow.
+    /// verified update downloaded and ready. Sits outside MainWindow's pages, so it stays
+    /// put whichever of them is showing.
     /// </summary>
     public partial class UpdateNotificationBar : UserControl
     {

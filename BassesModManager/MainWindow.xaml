@@ -122,11 +122,11 @@
                 </Setter>
             </Style>
         </Grid.Resources>
-        <!-- Two views share this window: the mod list and the settings page. Swapping
-             their visibility rather than opening a second window means coming back is
-             instant - the old separate window rebuilt MainWindow from scratch, which
-             re-ran the whole mod verification every time. The version label and the
-             update bar sit outside both, so they never move. -->
+        <!-- Three views share this window: the mod list, the settings page and the game
+             folder screen. Swapping their visibility rather than opening a second window
+             means coming back is instant - the old separate windows rebuilt MainWindow
+             from scratch, which re-ran the whole mod verification every time. The version
+             label and the update bar sit outside all three, so they never move. -->
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>     <!-- 0: Active view -->
             <RowDefinition Height="Auto"/>  <!-- 1: Version label -->
@@ -176,7 +176,7 @@
              control. IsSharedSizeScope keeps the text column the same width down the whole
              list, so the controls line up in a column without being pushed out to the far
              edge of the window. -->
-        <ScrollViewer x:Name="ModListScrollViewer" Grid.Row="1" Margin="0,28,0,28" VerticalScrollBarVisibility="Auto"
+        <ScrollViewer x:Name="ModListScrollViewer" Grid.Row="1" Margin="0,38,0,28" VerticalScrollBarVisibility="Auto"
                       CanContentScroll="False" PreviewMouseWheel="ModListScrollViewer_PreviewMouseWheel"
                       Grid.IsSharedSizeScope="True">
             <ItemsControl x:Name="ModListControl" HorizontalAlignment="Left">
@@ -256,10 +256,13 @@
                                     Style="{StaticResource PurpleButtonStyle}"
                                     Visibility="{Binding ShowDownloadButton, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                            <!-- Plain on/off mods get the switch. SettingToggle's own template
-                                 is fixed at 34px tall, which already matches the icon - no
-                                 scaling needed here, unlike the earlier pass that shrank it. -->
+                            <!-- Plain on/off mods get the wordless switch: shorter than the
+                                 row and centred in it, with the same corners as everything
+                                 else. Compact rather than the labelled shape because a
+                                 column of ON/OFF pairs down the list was mostly width spent
+                                 repeating what the knob position already says. -->
                             <local:SettingToggle Grid.Column="3"
+                                                 Compact="True"
                                                  IsOn="{Binding IsEnabled}"
                                                  IsEnabled="{Binding IsAvailable}"
                                                  VerticalAlignment="Center"
@@ -267,7 +270,14 @@
                                                  Visibility="{Binding ShowSwitch, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                             <!-- ...and mods that come in versions get the same switch with
-                                 one segment per version instead of two -->
+                                 one segment per version instead of two.
+                                 34 rather than the switch's 28, because what has to match is
+                                 the purple: the segment fill is inset by 3 on each side, so
+                                 a 34 container puts it at exactly the 28 of the switch's
+                                 purple track. That leaves 3px of grey standing proud on
+                                 either side, which against a black window is next to
+                                 invisible - and the alternative was two purples of visibly
+                                 different height in the same column. -->
                             <Border Grid.Column="3"
                                     CornerRadius="5" Height="34" Background="#2A2A2A"
                                     VerticalAlignment="Center"
@@ -304,12 +314,15 @@
                 <ColumnDefinition x:Name="InjectKyberColumn" Width="0"/>
             </Grid.ColumnDefinitions>
 
+            <!-- The only tooltip it ever has says why it is out of action, and RefreshLaunchButton
+                 clears it again once it isn't. WPF suppresses tooltips on disabled controls
+                 unless told otherwise, which is exactly backwards for this one. -->
             <Button Grid.Column="0"
                     x:Name="LaunchGameButton"
                     Content="LAUNCH GAME"
                     Click="LaunchGameButton_Click"
                     Style="{StaticResource PurpleButtonStyle}"
-                    ToolTip="Select a mod before launching the game"/>
+                    ToolTipService.ShowOnDisabled="True"/>
 
             <!-- Auric's runtime side is a DLL rather than game data, so it cannot ride
                  along with the mods on launch - it goes in once the game is already up. -->
@@ -319,7 +332,7 @@
                     Visibility="Collapsed"
                     Click="InjectKyberButton_Click"
                     Style="{StaticResource PurpleButtonStyle}"
-                    ToolTip="Load Auric into the running game - start the game first"/>
+                    ToolTip="Load Auric into the game once it has started"/>
         </Grid>
         </Grid>
 
@@ -355,7 +368,9 @@
                  lining up in a column. -->
             <StackPanel Grid.Row="2" MaxWidth="620" HorizontalAlignment="Left" Margin="0,22,0,0"
                         Grid.IsSharedSizeScope="True">
-                <Grid Margin="0,0,0,22">
+                <!-- Every row below this one carries the 22px gap as a top margin, so the
+                     spacing does not change hands when the rows are reordered -->
+                <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto" SharedSizeGroup="SettingControl"/>
@@ -369,8 +384,7 @@
                                 Width="150"
                                 VerticalAlignment="Center"
                                 Style="{StaticResource PurpleSliderStyle}"
-                                ValueChanged="SoundSlider_ValueChanged"
-                                ToolTip="Volume of the app's hover and click sounds"/>
+                                ValueChanged="SoundSlider_ValueChanged"/>
                         <!-- Fixed width so the track doesn't shift as the number changes -->
                         <TextBlock Width="42" Margin="10,0,0,0"
                                    VerticalAlignment="Center"
@@ -378,19 +392,6 @@
                                    TextAlignment="Right"
                                    Text="{Binding Value, ElementName=SoundSlider, StringFormat={}{0:0}%}"/>
                     </StackPanel>
-                </Grid>
-
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="SettingControl"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
-                        <TextBlock Text="Show app after the game closes" Style="{StaticResource SettingNameStyle}"/>
-                        <TextBlock Text="Off keeps the app minimized when you quit the game" Style="{StaticResource SettingHintStyle}"/>
-                    </StackPanel>
-                    <local:SettingToggle x:Name="RestoreToggle" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                         Toggled="RestoreToggle_Toggled"/>
                 </Grid>
 
                 <Grid Margin="0,22,0,0">
@@ -406,8 +407,24 @@
                             HorizontalAlignment="Left"
                             Height="34" Padding="16,0"
                             Style="{StaticResource PurpleButtonStyle}"
-                            Click="ChangeGameButton_Click"
-                            ToolTip="Browse for your Star Wars Battlefront game folder"/>
+                            Click="ChangeGameButton_Click"/>
+                </Grid>
+
+                <Grid Margin="0,22,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="SettingControl"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
+                        <TextBlock Text="Show app after the game closes" Style="{StaticResource SettingNameStyle}"/>
+                        <TextBlock Text="Off keeps the app minimized when you quit the game" Style="{StaticResource SettingHintStyle}"/>
+                    </StackPanel>
+                    <!-- Same wordless switch as the mod list, but at 34 so it stands the
+                         same height as the CHANGE and OPEN buttons in this column -->
+                    <local:SettingToggle x:Name="RestoreToggle" Grid.Column="1"
+                                         Compact="True" CompactHeight="34"
+                                         HorizontalAlignment="Left" VerticalAlignment="Center"
+                                         Toggled="RestoreToggle_Toggled"/>
                 </Grid>
 
                 <Grid Margin="0,22,0,0">
@@ -423,14 +440,114 @@
                             HorizontalAlignment="Left"
                             Height="34" Padding="16,0"
                             Style="{StaticResource PurpleButtonStyle}"
-                            Click="OpenModDataButton_Click"
-                            ToolTip="Open the ModData folder in File Explorer"/>
+                            Click="OpenModDataButton_Click"/>
                 </Grid>
             </StackPanel>
         </Grid>
 
+        <!-- Game folder view. Shown at startup only, and only while something is still
+             unsettled: no game picked yet, or its cache not built. Once past it there is
+             nothing left to ask, so there is no way back into it - changing an
+             already-working path happens on the settings page instead. -->
+        <Grid Grid.Row="0" x:Name="GameSelectView" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>  <!-- 0: heading -->
+                <RowDefinition Height="*"/>     <!-- 1: the game, or the empty state -->
+                <RowDefinition Height="Auto"/>  <!-- 2: buttons -->
+                <RowDefinition Height="Auto"/>  <!-- 3: double-click hint -->
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="STAR WARS BATTLEFRONT GAME PATH"
+                       Style="{StaticResource HeadingTextStyle}"
+                       FontSize="22"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Center"/>
+
+            <!-- Only ever 0 or 1 entries (this app supports one game), but kept as the same
+                 list-row look/feel Frosty users already know - hover highlight, click to
+                 select, double-click to continue. -->
+            <ListView Grid.Row="1" x:Name="GameList" Foreground="White" Background="Transparent"
+                      BorderThickness="0" Padding="0" Margin="0,15,0,0"
+                      MouseDoubleClick="GameList_MouseDoubleClick">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListViewItem">
+                                    <Border x:Name="itemBorder" BorderBrush="Transparent" BorderThickness="2" CornerRadius="6" Padding="14,12" Margin="0"
+                                            HorizontalAlignment="Stretch" Background="Transparent">
+                                        <ContentPresenter HorizontalAlignment="Left"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="itemBorder" Property="BorderBrush" Value="#8000FF"/>
+                                            <Setter TargetName="itemBorder" Property="Background" Value="#8000FF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="itemBorder" Property="BorderBrush" Value="#8000FF"/>
+                                            <Setter TargetName="itemBorder" Property="Background" Value="#8000FF"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
+                        <EventSetter Event="PreviewMouseDown" Handler="GameList_PreviewMouseDown"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="60" Height="60" CornerRadius="5" Margin="0,0,16,0" ClipToBounds="True">
+                                <Image Source="{Binding BannerPath, Converter={StaticResource StringToImageSourceConverter}}"
+                                       Stretch="UniformToFill" Width="60" Height="60"/>
+                            </Border>
+                            <TextBlock Text="{Binding Path}"
+                                       Style="{StaticResource BodyTextStyle}"
+                                       FontSize="16"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <!-- Shown instead of the list whenever no valid Battlefront install is
+                 configured - re-evaluated on every RefreshGameList() call, so it comes
+                 back if the saved path stops being valid. -->
+            <TextBlock x:Name="EmptyStateText" Grid.Row="1"
+                       Text="Click LOCATE BATTLEFRONT below and select your Star Wars Battlefront game executable to get started."
+                       Foreground="#888" FontSize="15" TextWrapping="Wrap"
+                       HorizontalAlignment="Left" VerticalAlignment="Top"
+                       Margin="0,15,0,0"
+                       Visibility="Collapsed"/>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+                <Button x:Name="LocateButton" Content="LOCATE BATTLEFRONT" Margin="0,0,12,0"
+                        Style="{StaticResource PurpleButtonStyle}"
+                        Click="LocateButton_Click"/>
+                <Button x:Name="SelectButton" Content="SELECT"
+                        MinWidth="90"
+                        Style="{StaticResource PurpleButtonStyle}"
+                        IsEnabled="False"
+                        Click="SelectButton_Click"/>
+            </StackPanel>
+
+            <!-- Only relevant once there's actually a row to double-click -->
+            <TextBlock x:Name="DoubleClickHintText" Grid.Row="3"
+                       Text="Tip: double-click the game to jump straight to mod selection"
+                       Foreground="#888"
+                       FontSize="12"
+                       HorizontalAlignment="Left"
+                       Margin="0,8,0,0"
+                       Visibility="Collapsed"/>
+        </Grid>
+
         <!-- Version label -->
-        <TextBlock Grid.Row="1" Text="v1.6" FontSize="14" Foreground="White" FontWeight="Bold" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+        <TextBlock Grid.Row="1" Text="v1.7" FontSize="14" Foreground="White" FontWeight="Bold" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,10,0,0"/>
 
         <!-- Update ready notification (hidden until UpdateService has a verified download) -->
         <local:UpdateNotificationBar Grid.Row="2" Margin="0,10,0,0"/>

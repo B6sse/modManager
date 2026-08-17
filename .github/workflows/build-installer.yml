@@ -1,6 +1,6 @@
 # Build BassesModManager in Release and create Inno Setup installer.
 # Run manually: Actions → "Build BassesModManager installer" → Run workflow (set version).
-# The workflow updates AssemblyInfo and version labels in MainWindow.xaml + GameSelectionWindow.xaml to the given version 
+# The workflow updates AssemblyInfo and the version label in MainWindow.xaml to the given version
 # then builds and runs Inno Setup. Installer is uploaded as artifact.
 name: Build BassesModManager installer
 
@@ -34,12 +34,14 @@ jobs:
           (Get-Content $path) -replace 'AssemblyVersion\("[^"]+"\)', "AssemblyVersion(`"$assemblyVersion`")" -replace 'AssemblyFileVersion\("[^"]+"\)', "AssemblyFileVersion(`"$assemblyVersion`")" | Set-Content $path
         shell: pwsh
 
-      - name: Update version text in MainWindow.xaml and GameSelectionWindow.xaml
+      # -creplace, and a digit after the v: -replace is case-insensitive, so the old
+      # pattern also matched Text="Volume of the hover and click sounds..." in the
+      # settings page and overwrote it with the version number.
+      - name: Update version text in MainWindow.xaml
         run: |
           $versionText = "v$env:VERSION"
-          foreach ($path in @("BassesModManager\MainWindow.xaml", "BassesModManager\GameSelectionWindow.xaml")) {
-            (Get-Content $path -Raw) -replace 'Text="v[^"]*"', "Text=`"$versionText`"" | Set-Content $path -NoNewline
-          }
+          $path = "BassesModManager\MainWindow.xaml"
+          (Get-Content $path -Raw) -creplace 'Text="v[0-9][^"]*"', "Text=`"$versionText`"" | Set-Content $path -NoNewline
         shell: pwsh
 
       - name: Setup MSBuild

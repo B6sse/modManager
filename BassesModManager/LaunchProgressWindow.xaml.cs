@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Media.Imaging;
 using Frosty.ModSupport;
 
 namespace BassesModManager
@@ -28,32 +27,11 @@ namespace BassesModManager
             _modsDirectory = modsDirectory;
             _modFileNames = modFileNames;
             _modPackName = modPackName;
-            LoadBanner();
-        }
-
-
-        private void LoadBanner()
-        {
-            try
-            {
-                var bannerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Banners", "SWBF.png");
-                if (File.Exists(bannerPath))
-                {
-                    var bmp = new BitmapImage();
-                    bmp.BeginInit();
-                    bmp.UriSource = new Uri(bannerPath, UriKind.Absolute);
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.EndInit();
-                    bmp.Freeze();
-                    BannerImage.Source = bmp;
-                }
-            }
-            catch { }
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            var logger = new SmoothProgressLogger(this, ProgressBar, StatusText, SpinnerPanel, barOnAnyProgress: true);
+            var logger = Progress.CreateLogger(this, barOnAnyProgress: true);
             logger.Status = "Preparing...";
 
             try
@@ -68,7 +46,6 @@ namespace BassesModManager
                 {
                     CustomMessageBox.Show(this,
                         "The mods could not be applied, so the game was not started.\n\n" +
-                        "Try closing the app and reopening it as administrator (right-click the icon, choose 'Run as administrator').\n\n" +
                         "Error code: " + result, "Could not apply mods");
                     DialogResult = false;
                 }
@@ -77,11 +54,21 @@ namespace BassesModManager
             {
                 DialogResult = false;
             }
+            catch (UnauthorizedAccessException)
+            {
+                // Frosty decided the ModData folder was stale and started rebuilding it in
+                // place, which the game install will not allow a non-elevated app to do.
+                // Named for what it is rather than left to the generic message below, which
+                // would have reported a permission problem as something going wrong.
+                CustomMessageBox.Show(this,
+                    "This mod combination has to be rebuilt, which needs administrator rights. Restart the app as administrator.",
+                    "Administrator needed");
+                DialogResult = false;
+            }
             catch (Exception ex)
             {
                 CustomMessageBox.Show(this,
                     "Something went wrong while applying the mods, so the game was not started.\n\n" +
-                    "Try closing the app and reopening it as administrator (right-click the icon, choose 'Run as administrator').\n\n" +
                     $"Technical details: {ex.Message}", "Could not apply mods");
                 DialogResult = false;
             }
@@ -121,10 +108,6 @@ namespace BassesModManager
             return executor.Run(fs, _cancelSource.Token, logger, _modsDirectory, _modPackName, additionalArgs, silentMode: true, _modFileNames);
         }
 
-        private void CancelButton_Click(object sender, RoutedEventArgs e)
-        {
-            CancelButton.IsEnabled = false;
-            _cancelSource.Cancel();
-        }
+        private void Progress_Cancelled(object sender, EventArgs e) => _cancelSource.Cancel();
     }
 }

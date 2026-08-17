@@ -220,6 +220,12 @@ namespace BassesModManager
                 Modes = ModModes.Both,
                 Variants = new[]
                 {
+                    // First so it lines up with the plain on/off switch used by every other
+                    // row, where off is the left-hand side. It used to be last, back when
+                    // that switch was the labelled kind with ON on the left and OFF on the
+                    // right; the wordless switch that replaced it puts its knob on the left
+                    // when off, so the matching side moved with it.
+                    new CatalogVariant { Label = "OFF" },
                     new CatalogVariant
                     {
                         Label = "WHITE", ImagePath = "Assets/Images/white_dot.png",
@@ -234,10 +240,7 @@ namespace BassesModManager
                     {
                         Label = "GREEN", ImagePath = "Assets/Images/green_dot.png",
                         File = new CatalogFile { FileName = "Green Dot.fbmod", Sha256 = "b0152a45d8dd1cc995fdc92d7f517ce17b08a260a9f9062ff9d6ec17902a1694" }
-                    },
-                    // Kept last so it lines up with the plain on/off switch used by every
-                    // other row, where "off" is likewise the right-hand side.
-                    new CatalogVariant { Label = "OFF" }
+                    }
                 }
             },
 
@@ -295,6 +298,9 @@ namespace BassesModManager
             visibleMods = new ObservableCollection<ModItem>();
             ModListControl.ItemsSource = visibleMods;
 
+            gameEntries = new ObservableCollection<GameEntry>();
+            GameList.ItemsSource = gameEntries;
+
             modsDirectory = CachePathHelper.GetModsPath();
 
             PopulateFromCatalog();
@@ -305,15 +311,56 @@ namespace BassesModManager
             ModeToggle.IsOn = !Properties.Settings.Default.AuricMode;
             ApplyMode();
 
-            // Started from Loaded, not here: verification reports problems through a
-            // message box, and those need an owner window that has actually been shown.
+            // The mod list is built either way; the game screen is only put in front of it,
+            // so there is nothing left to construct on the way through.
+            if (NeedsGameSetup())
+            {
+                RefreshGameList();
+                ShowView(View.GameSelect);
+            }
+            else
+            {
+                ShowView(View.Mods);
+            }
+
+            // Started from Loaded, not here: both the cache install and the verification
+            // report problems through a message box, and those need a window that has
+            // actually been shown.
             Loaded += MainWindow_Loaded;
+        }
+
+        /// <summary>
+        /// Whether anything about the game is still unsettled: no folder picked yet, or one
+        /// picked whose cache was never built. Either way the mod list has nothing it could
+        /// act on, so the game screen comes first.
+        /// </summary>
+        private static bool NeedsGameSetup()
+        {
+            return !FrostyRuntime.IsValidBattlefrontInstall(Properties.Settings.Default.GamePath) ||
+                   !File.Exists(CachePathHelper.GetCacheFilePath());
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             Loaded -= MainWindow_Loaded;
-            BeginVerifyMods();
+
+            if (currentView != View.GameSelect)
+            {
+                EnterModsView();
+                return;
+            }
+
+            // A saved, valid game with only its cache left to build has nothing to ask, so
+            // go on by itself rather than showing a screen with one choice on it. Queued
+            // rather than run here so the window is painted first: the cache install
+            // minimizes this window, and minimizing one that has not been shown yet does
+            // not take.
+            string savedPath = Properties.Settings.Default.GamePath;
+            if (FrostyRuntime.IsValidBattlefrontInstall(savedPath))
+            {
+                Dispatcher.BeginInvoke(new Action(() => ProceedWithSelection(savedPath)),
+                    DispatcherPriority.Background);
+            }
         }
 
         protected override void OnClosed(EventArgs e)
@@ -537,10 +584,11 @@ namespace BassesModManager
         private void RefreshLaunchButton()
         {
             LaunchGameButton.IsEnabled = !modsLoading;
-            LaunchGameButton.ToolTip =
-                modsLoading ? "Checking the mod files..." :
-                IsAuricMode ? "Select at least one Auric mod before launching the game"
-                            : "Select a mod before launching the game";
+
+            // The only thing worth saying is why it cannot be pressed, so the tooltip goes
+            // away with the reason. A button labelled LAUNCH GAME needs no explaining, and
+            // the old text claimed a mod had to be picked first, which was never true.
+            LaunchGameButton.ToolTip = modsLoading ? "Checking the mod files" : null;
         }
 
         /// <summary>
@@ -610,24 +658,52 @@ namespace BassesModManager
                 return;
 
             CustomMessageBox.Show(this,
-                $"{item.Name} could not be downloaded.\n\n" +
-                "Check your internet connection and try again - anything already downloaded is kept.\n\n" +
+                $"{item.Name} could not be downloaded. Anything that already arrived is kept.\n\n" +
                 $"Technical details: {result.Error}", "Download failed");
         }
 
-        #region -- Settings view --
+        #region -- Views --
+
+        /// <summary>The pages this window can show. Exactly one of them is visible.</summary>
+        private enum View
+        {
+            Mods,
+            Settings,
+            GameSelect
+        }
+
+        private View currentView;
 
         /// <summary>
-        /// Swaps the window over to the settings page. Nothing is torn down, so coming
-        /// back is instant and the mod list keeps the state it already had - the settings
-        /// page used to be its own window, which meant rebuilding MainWindow on the way
-        /// back and re-running the whole mod verification with it.
+        /// Swaps the window over to another page. Nothing is torn down, so coming back is
+        /// instant and the mod list keeps the state it already had - settings and game
+        /// selection used to be windows of their own, which meant rebuilding MainWindow on
+        /// the way back and re-running the whole mod verification with it.
         /// </summary>
-        private void ShowSettingsView(bool show)
+        private void ShowView(View view)
         {
-            MainView.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
-            SettingsView.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            currentView = view;
+            MainView.Visibility = view == View.Mods ? Visibility.Visible : Visibility.Collapsed;
+            SettingsView.Visibility = view == View.Settings ? Visibility.Visible : Visibility.Collapsed;
+            GameSelectView.Visibility = view == View.GameSelect ? Visibility.Visible : Visibility.Collapsed;
         }
+
+        protected override void OnPreviewKeyDown(KeyEventArgs e)
+        {
+            base.OnPreviewKeyDown(e);
+
+            // Escape backs out of settings. It does nothing on the other two pages, so it
+            // can neither close the app by surprise nor skip past the game screen.
+            if (e.Key == Key.Escape && currentView == View.Settings)
+            {
+                ShowView(View.Mods);
+                e.Handled = true;
+            }
+        }
+
+        #endregion
+
+        #region -- Settings view --
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
@@ -637,23 +713,10 @@ namespace BassesModManager
             RestoreToggle.IsOn = Properties.Settings.Default.RestoreAfterGame;
             RefreshGamePathText();
 
-            ShowSettingsView(true);
+            ShowView(View.Settings);
         }
 
-        private void BackButton_Click(object sender, RoutedEventArgs e) => ShowSettingsView(false);
-
-        protected override void OnPreviewKeyDown(KeyEventArgs e)
-        {
-            base.OnPreviewKeyDown(e);
-
-            // Escape backs out of settings; on the mod list it does nothing, so it can
-            // never close the app by surprise
-            if (e.Key == Key.Escape && SettingsView.Visibility == Visibility.Visible)
-            {
-                ShowSettingsView(false);
-                e.Handled = true;
-            }
-        }
+        private void BackButton_Click(object sender, RoutedEventArgs e) => ShowView(View.Mods);
 
         private void RefreshGamePathText()
         {
@@ -683,25 +746,11 @@ namespace BassesModManager
 
         private void ChangeGameButton_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "Game Executable|*.exe",
-                Title = "Select Star Wars Battlefront Executable"
-            };
-            if (dialog.ShowDialog() != true)
+            string gamePath = PromptForGameFolder();
+            if (gamePath == null)
                 return;
 
-            string dir = Path.GetDirectoryName(dialog.FileName);
-            if (string.IsNullOrEmpty(dir) || !FrostyRuntime.IsValidBattlefrontInstall(dir))
-            {
-                CustomMessageBox.Show(this,
-                    "This doesn't look like a Star Wars Battlefront installation. Make sure you selected the folder containing StarWarsBattlefront.exe.",
-                    "Wrong game");
-                return;
-            }
-
-            Properties.Settings.Default.GamePath = dir;
-            Properties.Settings.Default.Save();
+            SaveGamePath(gamePath);
             RefreshGamePathText();
         }
 
@@ -710,14 +759,14 @@ namespace BassesModManager
             string gamePath = Properties.Settings.Default.GamePath;
             if (string.IsNullOrEmpty(gamePath) || !Directory.Exists(gamePath))
             {
-                CustomMessageBox.Show(this, "Select your game folder first before opening the mod data folder.", "No game selected");
+                CustomMessageBox.Show(this, "Set your game folder first.", "No game folder");
                 return;
             }
 
             string modDataPath = Path.Combine(gamePath, "ModData");
             if (!Directory.Exists(modDataPath))
             {
-                CustomMessageBox.Show(this, "No mod data yet - launch the game with a crosshair selected at least once first.", "Nothing to show");
+                CustomMessageBox.Show(this, "This folder is created the first time you launch the game.", "Nothing to open");
                 return;
             }
 
@@ -727,8 +776,134 @@ namespace BassesModManager
             }
             catch (Exception ex)
             {
-                CustomMessageBox.Show(this, $"Could not open the ModData folder.\n\nTechnical details: {ex.Message}", "Error");
+                CustomMessageBox.Show(this, $"Could not open the mod data folder.\n\nTechnical details: {ex.Message}", "Error");
             }
+        }
+
+        #endregion
+
+        #region -- Game folder view --
+
+        private ObservableCollection<GameEntry> gameEntries;
+
+        /// <summary>Whether the configured path really is a Battlefront install, so SELECT means something.</summary>
+        private bool gameValid;
+
+        /// <summary>True once mod verification has been started, which happens at most once.</summary>
+        private bool verificationStarted;
+
+        private void RefreshGameList()
+        {
+            gameEntries.Clear();
+
+            string path = Properties.Settings.Default.GamePath;
+            gameValid = FrostyRuntime.IsValidBattlefrontInstall(path);
+            if (gameValid)
+                gameEntries.Add(new GameEntry { Path = path, BannerPath = "Assets/Images/swbf.png" });
+
+            // SELECT wants an actual click on the row first, even when a valid game is
+            // already configured - re-armed on every refresh rather than tied to
+            // GameList.SelectedItem, which with only one possible entry carries no
+            // information and previously drove a permanently purple row.
+            SelectButton.IsEnabled = false;
+            LocateButton.Content = gameValid ? "CHANGE GAME PATH" : "LOCATE BATTLEFRONT";
+
+            EmptyStateText.Visibility = gameValid ? Visibility.Collapsed : Visibility.Visible;
+            DoubleClickHintText.Visibility = gameValid ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void GameList_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            Sounds.PlayClick();
+            SelectButton.IsEnabled = gameValid;
+        }
+
+        private void GameList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (gameEntries.Count > 0)
+                ProceedWithSelection(gameEntries[0].Path);
+        }
+
+        private void SelectButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (gameEntries.Count > 0)
+                ProceedWithSelection(gameEntries[0].Path);
+        }
+
+        private void LocateButton_Click(object sender, RoutedEventArgs e)
+        {
+            string gamePath = PromptForGameFolder();
+            if (gamePath == null)
+                return;
+
+            SaveGamePath(gamePath);
+            RefreshGameList();
+        }
+
+        /// <summary>
+        /// Takes the game folder as settled and moves on to the mod list, building the
+        /// asset cache on the way if this install has never had one. Staying put is the
+        /// answer to a cache that could not be built: the game screen is then still the
+        /// only place with anything to do.
+        /// </summary>
+        private void ProceedWithSelection(string gamePath)
+        {
+            if (!File.Exists(CachePathHelper.GetCacheFilePath()) &&
+                !RunWindowMinimized(new CacheInstallWindow(gamePath), restoreOnSuccess: true))
+            {
+                return;
+            }
+
+            EnterModsView();
+        }
+
+        /// <summary>
+        /// Shows the mod list and, the first time it is reached, starts checking the mod
+        /// files. Verification waits until here because it reports problems through a
+        /// message box, and those must not land on top of the cache install.
+        /// </summary>
+        private void EnterModsView()
+        {
+            ShowView(View.Mods);
+
+            if (verificationStarted)
+                return;
+
+            verificationStarted = true;
+            BeginVerifyMods();
+        }
+
+        /// <summary>
+        /// Asks for the game's executable and hands back the folder it sits in, or null if
+        /// the user backed out or picked something that is not Battlefront. Shared by the
+        /// two places a folder can be chosen: this screen and the settings page.
+        /// </summary>
+        private string PromptForGameFolder()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "Game Executable|*.exe",
+                Title = "Select Star Wars Battlefront Executable"
+            };
+            if (dialog.ShowDialog() != true)
+                return null;
+
+            string dir = Path.GetDirectoryName(dialog.FileName);
+            if (string.IsNullOrEmpty(dir) || !FrostyRuntime.IsValidBattlefrontInstall(dir))
+            {
+                CustomMessageBox.Show(this,
+                    "That folder holds no StarWarsBattlefront.exe. Pick the game's own executable.",
+                    "Wrong folder");
+                return null;
+            }
+
+            return dir;
+        }
+
+        private static void SaveGamePath(string gamePath)
+        {
+            Properties.Settings.Default.GamePath = gamePath;
+            Properties.Settings.Default.Save();
         }
 
         #endregion
@@ -757,7 +932,7 @@ namespace BassesModManager
             catch (Exception ex)
             {
                 // Leave modsLoading set: with nothing verified, launching is not on offer
-                CustomMessageBox.Show(this, $"Could not read the mod files. Try reinstalling the app if this keeps happening.\n\nTechnical details: {ex.Message}", "Error");
+                CustomMessageBox.Show(this, $"Could not read the mod files. Reinstall the app if this keeps happening.\n\nTechnical details: {ex.Message}", "Error");
                 return;
             }
 
@@ -773,7 +948,7 @@ namespace BassesModManager
 
             if (verification.FailedDeletes.Count > 0)
             {
-                CustomMessageBox.Show(this, $"Some files in the Mods folder are not approved mods and could not be removed: {string.Join(", ", verification.FailedDeletes)}.\n\nClose the app, right-click its icon and choose 'Run as administrator' to let it clean them up.", "Warning");
+                CustomMessageBox.Show(this, $"These files in the mods folder are not approved and could not be removed: {string.Join(", ", verification.FailedDeletes)}\n\nRun the app as administrator to clean them up.", "Unapproved files");
             }
         }
 
@@ -921,12 +1096,50 @@ namespace BassesModManager
                 .ToArray();
 
             // Modal progress window runs the whole flow (Frosty init, mod patching, game
-            // launch) on a background thread and shows live status/progress
-            var launchWindow = new LaunchProgressWindow(gamePath, modsDirectory, modFileNames, modPackName) { Owner = this };
-            if (launchWindow.ShowDialog() == true)
+            // launch) on a background thread and shows live status/progress. It stays down
+            // afterwards on success: the game is what the user is now looking at.
+            var launchWindow = new LaunchProgressWindow(gamePath, modsDirectory, modFileNames, modPackName);
+            if (RunWindowMinimized(launchWindow, restoreOnSuccess: false))
             {
                 OnGameLaunched(gamePath);
             }
+        }
+
+        /// <summary>
+        /// Runs one of the progress windows with this one out of the way.
+        /// <para>
+        /// The dialog is deliberately not owned by this window: Windows takes an owned
+        /// window down together with its owner, so it would go straight to the taskbar
+        /// along with this one.
+        /// </para>
+        /// <para>
+        /// Which is why this window goes down on the dialog's first paint rather than
+        /// either side of the call. Minimizing after the dialog closed let this window
+        /// paint once in between, which read as a flash of the screen just left. Doing it
+        /// before the dialog opened handed the foreground to whatever app was behind this
+        /// one, and Windows then refuses to let a process that is no longer in front raise
+        /// a new window, so the dialog opened at the very back of the stack. Waiting until
+        /// it is on screen means the dialog holds the foreground itself when this window
+        /// goes down, and nothing is visible in between either.
+        /// </para>
+        /// </summary>
+        /// <param name="restoreOnSuccess">
+        /// Whether to come back up when the flow worked. False for the launch, where being
+        /// out of the way is the point; a flow that failed always brings the window back,
+        /// since the user has to be able to see what to do about it.
+        /// </param>
+        private bool RunWindowMinimized(Window dialog, bool restoreOnSuccess)
+        {
+            dialog.ContentRendered += (s, e) => WindowState = WindowState.Minimized;
+
+            bool succeeded = dialog.ShowDialog() == true;
+            if (!succeeded || restoreOnSuccess)
+            {
+                WindowState = WindowState.Normal;
+                Activate();
+            }
+
+            return succeeded;
         }
 
         // The app never starts the game itself - Frosty does, through Steam or the game's
@@ -955,9 +1168,9 @@ namespace BassesModManager
 
         private void OnGameLaunched(string gamePath)
         {
-            // New game process, so nothing is injected into it yet
+            // New game process, so nothing is injected into it yet. The window is already
+            // minimized - RunWindowMinimized put it there while the progress window was up.
             InjectKyberButton.Content = "INJECT AURIC";
-            WindowState = WindowState.Minimized;
 
             watchedProcessName = FrostyRuntime.GetProfileKey(gamePath);
             gameStartWatchBegan = DateTime.UtcNow;
@@ -1096,10 +1309,25 @@ namespace BassesModManager
             }
         }
 
+        /// <summary>
+        /// The ModData folder this selection belongs in, named after a hash of the files it
+        /// applies. Returns null when the folder would have to be created and the app is not
+        /// allowed to create it.
+        /// <para>
+        /// The hash has to be taken over <see cref="ModItem.ActiveFileNames"/>, the files
+        /// that are actually applied, and not over every file the row could apply. Using all
+        /// of them made the three crosshair colours share a single folder: the app found it,
+        /// concluded nothing had to be built and let the launch through, while Frosty
+        /// compared the mods.json inside against the one colour actually selected, decided
+        /// the folder was stale and set about rebuilding it - which fails on a folder inside
+        /// the game install unless the app is elevated.
+        /// </para>
+        /// </summary>
         private string GetModPackNameForSelection(List<ModItem> selectedMods, string gamePath)
         {
-            // Create a unique hash based on sorted file names for selected combination
-            var modNames = selectedMods.SelectMany(m => m.FileNames)
+            // Sorted, so the identity of a combination is the set of files and not the order
+            // they happen to be applied in
+            var modNames = selectedMods.SelectMany(m => m.ActiveFileNames)
                                       .OrderBy(n => n)
                                       .ToArray();
             string comboString = string.Join("|", modNames);
@@ -1121,7 +1349,7 @@ namespace BassesModManager
 
                 if (!IsRunAsAdmin())
                 {
-                    CustomMessageBox.Show(this, "First time using this mod combination - the app needs administrator rights to set it up.\n\nClose the app, right-click its icon and choose 'Run as administrator', then try again. This is only needed once per mod combination.", "Administrator needed");
+                    CustomMessageBox.Show(this, "Setting up a new mod combination needs administrator rights. Restart the app as administrator.", "Administrator needed");
                     return null;
                 }
                 else
@@ -1138,7 +1366,7 @@ namespace BassesModManager
                 string gamePath = Properties.Settings.Default.GamePath;
                 if (string.IsNullOrEmpty(gamePath))
                 {
-                    CustomMessageBox.Show(this, "Select your game folder before launching. Open Settings and set your game folder first.", "Game not selected");
+                    CustomMessageBox.Show(this, "Set your game folder in Settings before launching.", "No game folder");
                     return;
                 }
 
@@ -1149,12 +1377,12 @@ namespace BassesModManager
                 // opened and done work, and with a message of its own wording.
                 if (awaitingGameStart)
                 {
-                    CustomMessageBox.Show(this, "The game is already starting. Wait for it to open before launching again.", "Game already starting");
+                    CustomMessageBox.Show(this, "The game is already starting. Wait for it to open.", "Already starting");
                     return;
                 }
                 if (IsGameRunning(gamePath))
                 {
-                    CustomMessageBox.Show(this, "The game is already running. Close it before launching again.", "Game already running");
+                    CustomMessageBox.Show(this, "The game is already running. Close it before launching again.", "Already running");
                     return;
                 }
 
@@ -1166,8 +1394,8 @@ namespace BassesModManager
                 if (!StillVerified(selectedMods))
                 {
                     CustomMessageBox.Show(this,
-                        "The mod files have changed since they were checked, so the game was not started.\n\n" +
-                        "Close and reopen the app to have them checked again.", "Mod files changed");
+                        "The mod files changed after they were checked, so the game was not started. " +
+                        "Restart the app to check them again.", "Mod files changed");
                     return;
                 }
 
@@ -1179,18 +1407,15 @@ namespace BassesModManager
                     return;
                 }
 
-                // First time with this mod combination: a permission/script window will appear
-                string modPackPath = Path.Combine(gamePath, "ModData", modPackName);
-                if (!Directory.Exists(modPackPath))
-                {
-                    CustomMessageBox.Show(this, "First time using this mod combination: a black command window will pop up for a moment while everything is set up. This is normal - just let it finish.", "First-time setup", MessageBoxButton.OK);
-                }
-
+                // Nothing is announced about a first run with this combination. It takes
+                // longer and a console window flashes past, but the progress window is
+                // already saying what is happening, and a dialog in front of it only stood
+                // between the user and the launch they had just asked for.
                 ApplyModsAndLaunch(gamePath, selectedMods, modPackName);
             }
             catch (Exception ex)
             {
-                CustomMessageBox.Show(this, $"Something went wrong before the game could start. Try closing the app and reopening it as administrator (right-click the icon, choose 'Run as administrator').\n\nTechnical details: {ex.Message}", "Error");
+                CustomMessageBox.Show(this, $"Something went wrong before the game could start.\n\nTechnical details: {ex.Message}", "Could not launch");
             }
         }
 
@@ -1233,7 +1458,7 @@ namespace BassesModManager
             string gamePath = Properties.Settings.Default.GamePath;
             if (string.IsNullOrEmpty(gamePath))
             {
-                CustomMessageBox.Show(this, "Select your game folder in Settings first.", "Game not selected");
+                CustomMessageBox.Show(this, "Set your game folder in Settings first.", "No game folder");
                 return;
             }
 
@@ -1253,26 +1478,22 @@ namespace BassesModManager
                     InjectKyberButton.Content = "AURIC INJECTED";
                     break;
                 case InjectionStatus.AlreadyLoaded:
-                    CustomMessageBox.Show(this, "Auric is already loaded in the running game - no need to inject it again.", "Already injected");
+                    CustomMessageBox.Show(this, "Auric is already loaded in the running game.", "Already injected");
                     break;
                 case InjectionStatus.GameNotRunning:
-                    CustomMessageBox.Show(this, "The game isn't running yet. Press LAUNCH GAME, wait until the game is up, then inject Auric.", "Game not running");
+                    CustomMessageBox.Show(this, "The game is not running. Launch it first, then inject Auric.", "Game not running");
                     break;
                 // The two file cases name Kyber.dll on purpose - that is the actual file on
                 // disk the user would have to go and look at
                 case InjectionStatus.DllNotFound:
-                    CustomMessageBox.Show(this, $"Kyber.dll is missing from the app folder ({AppDomain.CurrentDomain.BaseDirectory}). Reinstall the app if this keeps happening.", "File missing");
+                    CustomMessageBox.Show(this, "Kyber.dll is missing from the app folder. Reinstall the app to restore it.", "File missing");
                     break;
                 case InjectionStatus.DllNotApproved:
-                    CustomMessageBox.Show(this,
-                        "The Kyber.dll in the app folder is not the approved one, so it was not loaded into the game.\n\n" +
-                        "Reinstall the app to restore the original file.", "File not approved");
+                    CustomMessageBox.Show(this, "Kyber.dll is not the approved file, so it was not loaded into the game. Reinstall the app to restore it.", "File not approved");
                     break;
                 default:
                     CustomMessageBox.Show(this,
-                        "Auric could not be loaded into the game.\n\n" +
-                        "Try closing the app and reopening it as administrator (right-click the icon, choose 'Run as administrator').\n\n" +
-                        $"Technical details: {result.Detail}", "Could not inject Auric");
+                        $"Auric could not be loaded into the game.\n\nTechnical details: {result.Detail}", "Could not inject Auric");
                     break;
             }
         }

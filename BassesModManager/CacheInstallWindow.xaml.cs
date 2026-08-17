@@ -2,14 +2,15 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Media.Imaging;
 using FrostySdk.Managers;
-using FrostySdk.Interfaces;
-using Frosty.ModSupport;
 using Frosty.Core;
 
 namespace BassesModManager
 {
+    /// <summary>
+    /// Builds the asset cache the mod flow needs, once, before the mod list can do
+    /// anything. DialogResult is true when the cache is ready to use.
+    /// </summary>
     public partial class CacheInstallWindow : Window
     {
         private readonly string _gamePath;
@@ -18,31 +19,11 @@ namespace BassesModManager
         {
             InitializeComponent();
             _gamePath = gamePath;
-            LoadBanner();
-        }
-
-        private void LoadBanner()
-        {
-            try
-            {
-                var bannerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Banners", "SWBF.png");
-                if (File.Exists(bannerPath))
-                {
-                    var bmp = new BitmapImage();
-                    bmp.BeginInit();
-                    bmp.UriSource = new Uri(bannerPath, UriKind.Absolute);
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.EndInit();
-                    bmp.Freeze();
-                    BannerImage.Source = bmp;
-                }
-            }
-            catch { }
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            var logger = new SmoothProgressLogger(this, ProgressBar, StatusText, SpinnerPanel);
+            var logger = Progress.CreateLogger(this);
             logger.Status = "Initializing...";
 
             try
@@ -53,8 +34,7 @@ namespace BassesModManager
             catch (Exception ex)
             {
                 CustomMessageBox.Show(this,
-                    "The first-time setup could not finish. Check that the folder you selected is your Star Wars Battlefront installation, then try again.\n\n" +
-                    $"Technical details: {ex.Message}", "Setup failed");
+                    $"First-time setup could not finish.\n\nTechnical details: {ex.Message}", "Setup failed");
                 DialogResult = false;
             }
             Close();

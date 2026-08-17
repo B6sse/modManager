@@ -10,7 +10,7 @@ namespace BassesModManager
         // the same hover/click sounds without each window wiring it up itself
         private void Button_PlayHoverSound(object sender, MouseEventArgs e) => Sounds.PlayHover();
 
-        private void Button_PlayClickSound(object sender, RoutedEventArgs e) => Sounds.PlayClick();
+        private void Button_PlayClickSound(object sender, MouseButtonEventArgs e) => Sounds.PlayClick();
 
         // The slider's knob is the part you actually grab, so the hover sound belongs to it
         // rather than to the whole control
@@ -85,28 +85,12 @@ namespace BassesModManager
             // one-click install once a verified download is ready. Never blocks startup.
             _ = UpdateService.CheckAndPrepareAsync();
 
-            // StartupUri is removed so we pick the first window ourselves (Frosty-style
-            // flow: game selection -> cache install if needed -> mod selection).
-            //
-            // Once a game is configured and its cache is built, the selection screen has
-            // nothing left to ask, so go straight to the mod list. It used to be shown
-            // regardless and hand over a moment later, which reads as a flash of the wrong
-            // screen. Anything still unresolved - no game picked yet, or no cache built -
-            // goes through GameSelectionWindow, which knows how to handle both.
-            string savedGamePath = BassesModManager.Properties.Settings.Default.GamePath;
-            if (FrostyRuntime.IsValidBattlefrontInstall(savedGamePath) &&
-                System.IO.File.Exists(CachePathHelper.GetCacheFilePath()))
-            {
-                var main = new MainWindow();
-                Application.Current.MainWindow = main;
-                main.Show();
-            }
-            else
-            {
-                var gameSelectionWindow = new GameSelectionWindow();
-                Application.Current.MainWindow = gameSelectionWindow;
-                gameSelectionWindow.Show();
-            }
+            // StartupUri is removed so the first window is picked here. There is only ever
+            // the one: game selection and the cache install used to be separate windows,
+            // and MainWindow now decides for itself which of its pages the app opens on.
+            var main = new MainWindow();
+            Application.Current.MainWindow = main;
+            main.Show();
         }
     }
 }

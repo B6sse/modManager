@@ -170,10 +170,19 @@
             </Style>
 
             <!-- Purple button with hover/click sounds. Use this one for buttons; the Base
-                 style above is only for cases that need styling without the sounds. -->
+                 style above is only for cases that need styling without the sounds.
+                 The click sound is on the tunnelling press, not on Click. Two reasons, and
+                 the first is a correctness one: handlers on a routed event run in the order
+                 they were registered, and a style's EventSetter is registered when the
+                 Style attribute is set - so whether the sound came before or after a
+                 button's own handler depended on which attribute the markup happened to
+                 list first. LAUNCH GAME listed Click first and went silent until all its
+                 checks had finished. A preview event runs ahead of every bubbling handler
+                 whatever the order. The second is that a press is when the user expects to
+                 hear it, rather than on release. -->
             <Style x:Key="PurpleButtonStyle" BasedOn="{StaticResource PurpleButtonStyleBase}" TargetType="Button">
                 <EventSetter Event="MouseEnter" Handler="Button_PlayHoverSound"/>
-                <EventSetter Event="Click" Handler="Button_PlayClickSound"/>
+                <EventSetter Event="PreviewMouseLeftButtonDown" Handler="Button_PlayClickSound"/>
             </Style>
 
         </ResourceDictionary>
