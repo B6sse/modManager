@@ -1,6 +1,6 @@
 # BassesModManager
 
-A streamlined, competition-focused (Frosty) mod manager for **Star Wars Battlefront (2015)**.  
+A streamlined, competition-focused version of Frosty mod manager for **Star Wars Battlefront (2015)**.  
 Designed to make competitive play more secure by allowing players to select from pre-installed, approved mods (without import functionality).
 
 ## Demo
