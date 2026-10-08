@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using Frosty.Core;
 using Frosty.ModSupport;
 
 namespace BassesModManager
@@ -83,7 +86,7 @@ namespace BassesModManager
 
             string profileKey = FrostyRuntime.GetProfileKey(_gamePath);
             FrostyRuntime.EnsureInitialized(logger, profileKey);
-            FrostyRuntime.EnsureGameRegistered(profileKey, _gamePath);
+            FrostyRuntime.EnsureGameRegistered(_gamePath);
 
             CachePathHelper.EnsureCachesDirectory();
 
@@ -105,14 +108,38 @@ namespace BassesModManager
 
             Frosty.Core.App.Logger = logger;
 
+            // The execution actions (LaunchPlatformPlugin) find the mod folder through
+            // these two, the same way they do in Frosty Mod Manager
+            Frosty.Core.App.FileSystem = fs;
+            Frosty.Core.App.SelectedPack = _modPackName;
+            FrostyRuntime.ConfigurePlatformLaunch(_gamePath);
+
             // rootPath is only used to resolve the mod filenames, so it's the mods folder
             string additionalArgs = "";
 
-            // Run FrostyModExecutor in silent mode. Note: Run() launches the game itself
-            // at the end (there is no separate LaunchGame call here - the old extra call
-            // caused the game to be started twice).
-            var executor = new FrostyModExecutor();
-            return executor.Run(fs, _cancelSource.Token, logger, _modsDirectory, _modPackName, additionalArgs, silentMode: true, _modFileNames);
+            // Same shape as Frosty Mod Manager's launch: the plugins' pre-launch actions,
+            // then Run() - which launches the game itself at the end - then the
+            // post-launch actions, which also run when the launch was cancelled.
+            List<ExecutionAction> actions = Frosty.Core.App.PluginManager.ExecutionActions.ToList();
+            try
+            {
+                foreach (ExecutionAction action in actions)
+                    action.PreLaunchAction(logger, PluginManagerType.ModManager, _cancelSource.Token);
+
+                var executor = new FrostyModExecutor();
+                int result = executor.Run(fs, _cancelSource.Token, logger, _modsDirectory, _modPackName, additionalArgs, silentMode: true, _modFileNames);
+
+                foreach (ExecutionAction action in actions)
+                    action.PostLaunchAction(logger, PluginManagerType.ModManager, _cancelSource.Token);
+
+                return result;
+            }
+            catch (OperationCanceledException)
+            {
+                foreach (ExecutionAction action in actions)
+                    action.PostLaunchAction(logger, PluginManagerType.ModManager, _cancelSource.Token);
+                throw;
+            }
         }
 
         private void Progress_Cancelled(object sender, EventArgs e) => _cancelSource.Cancel();

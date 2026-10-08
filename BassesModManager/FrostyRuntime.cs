@@ -201,18 +201,46 @@ namespace BassesModManager
             File.Copy(source, GetLoaderTargetPath(gamePath), true);
         }
 
-        public static void EnsureGameRegistered(string profileKey, string gamePath)
+        /// <summary>
+        /// Registers the game in the Frosty config under the profile's own name. That is
+        /// the key every game-scoped Config lookup in Frosty and its plugins uses, so any
+        /// other spelling (older versions used the exe's on-disk casing, or a hardcoded
+        /// literal) leaves those lookups throwing. Must run after
+        /// <see cref="EnsureInitialized"/>, which is what selects the profile.
+        /// </summary>
+        public static void EnsureGameRegistered(string gamePath)
         {
-            // Drop the legacy hardcoded key left by older versions so the game isn't
-            // registered twice
-            if (!string.Equals(profileKey, DefaultProfileKey, StringComparison.Ordinal) &&
-                Config.Current.Games.ContainsKey(DefaultProfileKey))
+            string key = ProfilesLibrary.ProfileName;
+
+            foreach (string legacy in Config.Current.Games.Keys
+                         .Where(k => !string.Equals(k, key, StringComparison.Ordinal) &&
+                                     string.Equals(k, key, StringComparison.OrdinalIgnoreCase))
+                         .ToList())
             {
-                Config.RemoveGame(DefaultProfileKey);
+                Config.RemoveGame(legacy);
             }
 
-            if (!Config.Current.Games.ContainsKey(profileKey))
-                Config.AddGame(profileKey, gamePath);
+            if (!Config.Current.Games.ContainsKey(key))
+                Config.AddGame(key, gamePath);
+            else
+                Config.Add("GamePath", gamePath, ConfigScope.Game);
+        }
+
+        /// <summary>Steam copies of the game carry this file; Frosty keys its launch path off it too.</summary>
+        public static bool IsSteamInstall(string gamePath) => File.Exists(Path.Combine(gamePath, "steam_appid.txt"));
+
+        /// <summary>
+        /// Tells LaunchPlatformPlugin what to do on this launch. On Steam the game is
+        /// started by Steam, which hands it to the EA app, and -dataPath does not survive
+        /// that chain; the plugin restarts Steam with GAME_DATA_DIR in its environment so
+        /// the game inherits the mod folder instead. Everywhere else the plugin stays out
+        /// of the way: the exe is started directly and the EA app forwards the argument.
+        /// </summary>
+        public static void ConfigurePlatformLaunch(string gamePath)
+        {
+            bool steam = IsSteamInstall(gamePath);
+            Config.Add("PlatformLaunchingEnabled", steam, ConfigScope.Game);
+            Config.Add("Platform", steam ? "Steam" : "Origin", ConfigScope.Game);
         }
     }
 }

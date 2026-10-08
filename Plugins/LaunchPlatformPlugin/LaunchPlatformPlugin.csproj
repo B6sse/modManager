@@ -3,8 +3,8 @@
     <Configurations>Developer - Debug;Release - Alpha;Release - Beta;Release - Final</Configurations>
     <Platforms>x64</Platforms>
     <TargetFrameworks>net48</TargetFrameworks>
-    <AssemblyTitle>BlankPlugin</AssemblyTitle>
-    <Product>BlankPlugin</Product>
+    <AssemblyTitle>LaunchPlatformPlugin</AssemblyTitle>
+    <Product>LaunchPlatformPlugin</Product>
     <Copyright>Copyright ©  2020</Copyright>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -60,7 +60,8 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy /Y $(TargetPath) $(SolutionDir)$(OutDir)Plugins\&#xD;&#xA;xcopy /Y $(TargetPath) C:\Frostbite\FrostyToolsSuite\FrostyToolSuite_Current-v1.0.6\FrostyToolSuite_Current\FrostyModManager\bin\Developer\Debug\Plugins\" />
+    <Exec Command="xcopy /Y $(TargetPath) $(SolutionDir)$(OutDir)Plugins\" />
+    <Exec Command="xcopy /Y $(TargetPath) $(SolutionDir)..\FrostyModManager\$(OutDir)Plugins\" />
   </Target>
 
 </Project>

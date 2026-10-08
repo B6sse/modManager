@@ -243,10 +243,20 @@
        These configurations are the ones BassesModManager.sln already maps the shared
        Frosty libraries to, so the plugins link against the very same FrostySdk /
        FrostyCore builds the app ships.
-       Only plugins that register a custom handler change anything for a mod manager
-       (the rest of a plugin's extension points are editor-only), so this list is the
-       handler-registering ones that apply to Star Wars Battlefront. Add a line to
-       support a mod built with another plugin. -->
+       In a mod manager a plugin can contribute two things: a custom handler (needed to
+       apply a mod built with that plugin; without it the launch fails) and an execution
+       action (runs around the game start). The rest of a plugin's extension points are
+       editor-only. So this list is every plugin that registers either and applies to
+       Star Wars Battlefront:
+       - FsLocalizationPlugin / DifficultyWeaponTableDataPlugin / MeshSetPlugin: the
+         handlers the official Frosty Mod Manager release ships for this game.
+         MeshSetPlugin references SharpDX, but only its editor side touches it; the
+         handler does not, which is why FMM ships it without SharpDX too.
+       - LaunchPlatformPlugin: the Steam launch path. Steam hands the game to the EA app
+         and -dataPath does not survive that, so the plugin restarts Steam with
+         GAME_DATA_DIR set instead. LaunchProgressWindow switches it on for Steam
+         installs. -->
+
   <PropertyGroup>
     <FrostyPluginConfiguration Condition=" '$(Configuration)' == 'Debug' ">Developer - Debug</FrostyPluginConfiguration>
     <FrostyPluginConfiguration Condition=" '$(FrostyPluginConfiguration)' == '' ">Release - Final</FrostyPluginConfiguration>
@@ -256,6 +266,8 @@
   <ItemGroup>
     <FrostyPluginProject Include="..\Plugins\FsLocalizationPlugin\FsLocalizationPlugin.csproj" />
     <FrostyPluginProject Include="..\Plugins\DifficultyWeaponTableDataPlugin\DifficultyWeaponTableDataPlugin.csproj" />
+    <FrostyPluginProject Include="..\Plugins\MeshSetPlugin\MeshSetPlugin.csproj" />
+    <FrostyPluginProject Include="..\Plugins\LaunchPlatformPlugin\LaunchPlatformPlugin.csproj" />
   </ItemGroup>
   <!-- Hooked into the build proper rather than AfterTargets="Build": IncrementalClean
        records @(FileWrites) partway through CoreBuild, so a copy made after the whole

@@ -42,11 +42,9 @@ namespace BassesModManager
 
         private void CreateCache(SmoothProgressLogger logger)
         {
-            // Use the actual exe filename as profile/config key so the entry matches what
-            // Frosty Mod Manager itself would create (avoids duplicate game entries in FMM)
             string profileKey = FrostyRuntime.GetProfileKey(_gamePath);
             FrostyRuntime.EnsureInitialized(logger, profileKey);
-            FrostyRuntime.EnsureGameRegistered(profileKey, _gamePath);
+            FrostyRuntime.EnsureGameRegistered(_gamePath);
 
             CachePathHelper.EnsureCachesDirectory();
             // Frosty SDK uses relative "Caches/..." paths; they resolve via CurrentDirectory
