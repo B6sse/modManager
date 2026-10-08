@@ -22,8 +22,13 @@ namespace Frosty.Core
 
         public static readonly int Version = 1;
 
-        public static string ProfileSettingsPath => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Frosty/" + ProfilesLibrary.ProfileName;
-        public static string GlobalSettingsPath => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Frosty";
+        // A host that keeps its own settings sets this before Config.Load(), so its
+        // manager_config.json never collides with Frosty Mod Manager's. Null keeps
+        // Frosty's usual %LocalAppData%\Frosty.
+        public static string SettingsPathOverride;
+
+        public static string ProfileSettingsPath => GlobalSettingsPath + "/" + ProfilesLibrary.ProfileName;
+        public static string GlobalSettingsPath => SettingsPathOverride ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Frosty";
 
         public static IEditorWindow EditorWindow => Application.Current.MainWindow as IEditorWindow;
     }

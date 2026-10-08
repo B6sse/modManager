@@ -1399,6 +1399,23 @@ namespace BassesModManager
                     return;
                 }
 
+                // Frosty's loader shim has to sit in the game folder, and only an elevated
+                // app can put it there. Asked up front for the same reason the ModPack
+                // folder is: a clear request beats a crash four seconds into the game.
+                if (!FrostyRuntime.IsLoaderInstalled(gamePath))
+                {
+                    if (!File.Exists(FrostyRuntime.GetLoaderSourcePath()))
+                    {
+                        CustomMessageBox.Show(this, FrostyRuntime.LoaderFileName + " is missing from the app folder. Reinstall the app to restore it.", "File missing");
+                        return;
+                    }
+                    if (!IsRunAsAdmin())
+                    {
+                        CustomMessageBox.Show(this, "Setting up the game folder needs administrator rights. Restart the app as administrator.", "Administrator needed");
+                        return;
+                    }
+                }
+
                 // Cache is created in CacheInstallWindow before MainWindow is shown
                 // Find or create the correct ModPack folder
                 string modPackName = GetModPackNameForSelection(selectedMods, gamePath);

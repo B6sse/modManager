@@ -22,6 +22,18 @@ namespace BassesModManager
         /// </summary>
         public static string GetModsPath() => Path.Combine(GetCacheBasePath(), "Mods");
 
+        /// <summary>
+        /// Where the Frosty runtime keeps its own config (manager_config.json) when running
+        /// inside this app. Frosty's default is %LocalAppData%\Frosty, which is Frosty Mod
+        /// Manager's file; this app must never read or write that, so it gets its own folder
+        /// next to the app's user settings.
+        /// </summary>
+        public static string GetFrostySettingsPath()
+        {
+            string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            return Path.Combine(localAppData, "BassesModManager");
+        }
+
         public static void EnsureCachesDirectory()
         {
             var cachesDir = Path.Combine(GetCacheBasePath(), "Caches");

@@ -52,7 +52,8 @@ namespace BassesModManager
             // Frosty SDK uses relative "Caches/..." paths; they resolve via CurrentDirectory
             Environment.CurrentDirectory = CachePathHelper.GetCacheBasePath();
 
-            var fs = new FrostySdk.FileSystem(_gamePath + Path.DirectorySeparatorChar);
+            // No trailing separator: FileSystem adds one itself
+            var fs = new FrostySdk.FileSystem(_gamePath);
             foreach (var source in FrostySdk.ProfilesLibrary.Sources)
                 fs.AddSource(source.Path, source.SubDirs);
             fs.Initialize();

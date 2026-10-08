@@ -56,12 +56,13 @@ namespace BassesModManager
             }
             catch (UnauthorizedAccessException)
             {
-                // Frosty decided the ModData folder was stale and started rebuilding it in
-                // place, which the game install will not allow a non-elevated app to do.
-                // Named for what it is rather than left to the generic message below, which
-                // would have reported a permission problem as something going wrong.
+                // Something had to be written inside the game install (a stale ModData
+                // folder Frosty decided to rebuild in place, or the loader shim), which it
+                // will not allow a non-elevated app to do. Named for what it is rather than
+                // left to the generic message below, which would have reported a permission
+                // problem as something going wrong.
                 CustomMessageBox.Show(this,
-                    "This mod combination has to be rebuilt, which needs administrator rights. Restart the app as administrator.",
+                    "Writing to the game folder needs administrator rights. Restart the app as administrator.",
                     "Administrator needed");
                 DialogResult = false;
             }
@@ -86,10 +87,16 @@ namespace BassesModManager
 
             CachePathHelper.EnsureCachesDirectory();
 
+            // The loader shim goes in before anything else: without it the game crashes a
+            // few seconds in, whatever state ModData is in
+            FrostyRuntime.InstallLoader(_gamePath);
+
             // Only the FileSystem is set up here, like FrostyModManager does. Run() builds
             // its own ResourceManager/AssetManager, and only when the mods actually need
             // reapplying - loading the cache here too just doubled the work every launch.
-            var fs = new FrostySdk.FileSystem(_gamePath + Path.DirectorySeparatorChar);
+            // No trailing separator: FileSystem adds one itself, and a second one ended up
+            // in the -dataPath handed to the game.
+            var fs = new FrostySdk.FileSystem(_gamePath);
             foreach (var source in FrostySdk.ProfilesLibrary.Sources)
                 fs.AddSource(source.Path, source.SubDirs);
             fs.Initialize();

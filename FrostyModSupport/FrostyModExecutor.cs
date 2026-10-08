@@ -1796,8 +1796,10 @@ namespace Frosty.ModSupport
                 if (File.Exists(fs.BasePath + "bcrypt.dll"))
                     File.Delete(fs.BasePath + "bcrypt.dll");
 
-                // copy over new CryptBase
-                CopyFileIfRequired("ThirdParty/CryptBase.dll", fs.BasePath + "CryptBase.dll");
+                // copy over new CryptBase. Absolute path: the host may have moved the working
+                // directory (a cache folder, say), and a relative path then finds nothing and
+                // silently leaves the game without the loader shim it needs.
+                CopyFileIfRequired(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ThirdParty", "CryptBase.dll"), fs.BasePath + "CryptBase.dll");
             }
             CopyFileIfRequired(fs.BasePath + "user.cfg", modDataPath + "user.cfg");
 
@@ -1811,7 +1813,7 @@ namespace Frosty.ModSupport
                     fi.MoveTo(fi.FullName.Replace(".exe", "_orig.exe"));
                 }
 
-                CopyFileIfRequired("thirdparty/fifaconfig.exe", fs.BasePath + "FIFASetup\\fifaconfig.exe");
+                CopyFileIfRequired(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ThirdParty", "fifaconfig.exe"), fs.BasePath + "FIFASetup\\fifaconfig.exe");
             }
 
             // launch the game (redirecting to the modPath directory)
@@ -2219,19 +2221,21 @@ namespace Frosty.ModSupport
 
         private bool RunSymbolicLinkProcess(List<SymLinkStruct> cmdArgs)
         {
-            using (TextWriter writer = new StreamWriter(new FileStream(AppDomain.CurrentDomain.BaseDirectory + "\\run.bat", FileMode.Create)))
+            string batchPath = AppDomain.CurrentDomain.BaseDirectory + "\\run.bat";
+            using (TextWriter writer = new StreamWriter(new FileStream(batchPath, FileMode.Create)))
             {
                 foreach (SymLinkStruct arg in cmdArgs)
                     writer.WriteLine("mklink" + ((arg.isFolder) ? "/D " : " ") + "\"" + arg.dest + "\" \"" + arg.src + "\"");
             }
 
             // create data and update symbolic links
-            ExecuteProcess("cmd.exe", "/C \"" + AppDomain.CurrentDomain.BaseDirectory + "\\run.bat\"", true, true);
+            ExecuteProcess("cmd.exe", "/C \"" + batchPath + "\"", true, true);
 
-            // delete batch
-            if (File.Exists("run.bat"))
+            // delete batch (by the same absolute path it was written to, so it is found
+            // whatever the working directory happens to be)
+            if (File.Exists(batchPath))
             {
-                File.Delete("run.bat");
+                File.Delete(batchPath);
             }
 
             // validate

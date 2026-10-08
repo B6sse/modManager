@@ -84,6 +84,10 @@ namespace BassesModManager
                         Frosty.Core.App.PluginManager = pluginManager;
                         ProfilesLibrary.Initialize(pluginManager.Profiles);
 
+                        // This app's own Frosty config, never Frosty Mod Manager's. Has to be
+                        // set before Config.Load(), which is what resolves the path.
+                        Frosty.Core.App.SettingsPathOverride = CachePathHelper.GetFrostySettingsPath();
+
                         // Ensure Frosty config dir and file exist before Config.Load() (first-run fix)
                         string configDir = Frosty.Core.App.GlobalSettingsPath;
                         string configFile = Path.Combine(configDir, "manager_config.json");
@@ -152,9 +156,55 @@ namespace BassesModManager
             assemblyResolverRegistered = true;
         }
 
+        /// <summary>
+        /// Frosty's loader shim. Windows loads a DLL of this name from the game folder ahead
+        /// of the one in System32, which is how Frosty gets into the game process and makes
+        /// it read from ModData. Without it the game crashes in EA's DRM stage a few seconds
+        /// after start. Frosty copies it in itself right before launch, but this app places
+        /// it first and checks it, so a launch never depends on another tool having done so.
+        /// </summary>
+        public const string LoaderFileName = "CryptBase.dll";
+
+        public static string GetLoaderSourcePath() => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ThirdParty", LoaderFileName);
+
+        public static string GetLoaderTargetPath(string gamePath) => Path.Combine(gamePath, LoaderFileName);
+
+        /// <summary>True when the game folder holds exactly the shim this app ships.</summary>
+        public static bool IsLoaderInstalled(string gamePath)
+        {
+            try
+            {
+                string source = GetLoaderSourcePath();
+                string target = GetLoaderTargetPath(gamePath);
+                return File.Exists(source) && File.Exists(target) &&
+                       string.Equals(FileHash.OfFileCached(source), FileHash.OfFileCached(target), StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Puts the shim in the game folder if it is missing or differs. Writing there needs
+        /// an elevated process; callers check that up front rather than let this throw.
+        /// </summary>
+        public static void InstallLoader(string gamePath)
+        {
+            string source = GetLoaderSourcePath();
+            if (!File.Exists(source))
+                throw new FileNotFoundException(LoaderFileName + " is missing from the app folder. Reinstall the app to restore it.", source);
+
+            if (IsLoaderInstalled(gamePath))
+                return;
+
+            File.Copy(source, GetLoaderTargetPath(gamePath), true);
+        }
+
         public static void EnsureGameRegistered(string profileKey, string gamePath)
         {
-            // Drop the legacy hardcoded key so the game doesn't appear twice in FMM's list
+            // Drop the legacy hardcoded key left by older versions so the game isn't
+            // registered twice
             if (!string.Equals(profileKey, DefaultProfileKey, StringComparison.Ordinal) &&
                 Config.Current.Games.ContainsKey(DefaultProfileKey))
             {
