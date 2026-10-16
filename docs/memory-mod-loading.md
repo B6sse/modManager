@@ -132,8 +132,19 @@ the game's command line has `-dataPath` or
 `%LocalAppData%\BassesModManager\auric-launch.json` exists. A plain start from the EA
 app stays passive (proxy exports only), so leaving the file in the game folder no
 longer changes normal play. Frosty Mod Manager overwrites it with Frosty's own shim
-when it launches (size differs), and Axon puts Auric's back on its next launch; both
-need the one administrator prompt they already ask for.
+every time it launches the game (its copy only compares sizes), and Axon puts Auric's
+back on its next launch. To keep that swap from costing an administrator prompt each
+time, an elevated Axon run grants Users write access to that one file
+(`FrostyRuntime.InstallLoader`); afterwards `CanReplaceLoaderUnelevated` lets a normal
+run overwrite it. To verify in test: that Frosty's `File.Copy` overwrite keeps the
+file's ACL (it writes into the existing file; a delete-and-recreate would reset it).
+
+Axon also writes `%LocalAppData%\BassesModManager\auric-launch.json` right before each
+launch (`MainWindow.WriteLaunchMarker`): Axon version, game path, ModPack name and the
+mods in apply order with their catalog hashes. Auric's gate only checks that the file
+exists today; the mod list is for the in-memory loader. The file is deleted when the
+game exits, when the launch fails or never produces a game process, at app start and
+at app exit, so a later plain start from the EA app never finds it.
 
 Still open on the Auric side for goal 2: the three ModLoader hooks from K.dll log nothing
 even when installed before the engine starts, so the real ResourceManager addresses in

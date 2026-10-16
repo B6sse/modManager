@@ -34,6 +34,15 @@ namespace BassesModManager
             return Path.Combine(localAppData, "BassesModManager");
         }
 
+        /// <summary>
+        /// The file that tells Auric (the DLL the game loads from its folder) that this app
+        /// started the game, and with which mods. Auric only runs its early mode when this
+        /// file exists or -dataPath is on the command line; a plain start from the EA app has
+        /// neither and stays vanilla. Written right before a launch, removed when the game
+        /// exits, at app start and at app exit, so it never outlives the session it was for.
+        /// </summary>
+        public static string GetLaunchMarkerPath() => Path.Combine(GetFrostySettingsPath(), "auric-launch.json");
+
         public static void EnsureCachesDirectory()
         {
             var cachesDir = Path.Combine(GetCacheBasePath(), "Caches");

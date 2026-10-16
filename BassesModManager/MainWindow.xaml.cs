@@ -14,6 +14,8 @@ using System.Windows.Input;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Microsoft.Win32;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace BassesModManager
 {
@@ -338,6 +340,10 @@ namespace BassesModManager
         {
             Loaded -= MainWindow_Loaded;
 
+            // Left behind if the app was killed mid-session; it must not outlive the launch
+            // it was written for
+            DeleteLaunchMarker();
+
             if (currentView != View.GameSelect)
             {
                 EnterModsView();
@@ -364,6 +370,8 @@ namespace BassesModManager
             downloadCancellation.Cancel();
             StopGameStartWatch();
             ReleaseGameProcess();
+            // A running game has long since read it; a later plain start must not
+            DeleteLaunchMarker();
             base.OnClosed(e);
         }
 
@@ -1080,6 +1088,10 @@ namespace BassesModManager
                 .SelectMany(m => m.ActiveFileNames)
                 .ToArray();
 
+            // Auric reads this at process start, before the game's own code runs, so it has
+            // to be on disk before Frosty starts the game
+            WriteLaunchMarker(gamePath, modPackName, modFileNames);
+
             // Modal progress window runs the whole flow (Frosty init, mod patching, game
             // launch) on a background thread and shows live status/progress. It stays down
             // afterwards on success: the game is what the user is now looking at.
@@ -1087,6 +1099,64 @@ namespace BassesModManager
             if (RunWindowMinimized(launchWindow, restoreOnSuccess: false))
             {
                 OnGameLaunched(gamePath);
+            }
+            else
+            {
+                DeleteLaunchMarker();
+            }
+        }
+
+        /// <summary>
+        /// What Auric needs to know about this launch: that it came from here, and the mods
+        /// with their approved hashes in apply order. Today Auric only checks that the file
+        /// exists (its opt-in gate); the mod list is for the in-memory loader to come, which
+        /// will read it instead of a ModData folder.
+        /// </summary>
+        private void WriteLaunchMarker(string gamePath, string modPackName, string[] modFileNames)
+        {
+            try
+            {
+                var marker = new JObject
+                {
+                    ["axonVersion"] = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(),
+                    ["writtenUtc"] = DateTime.UtcNow.ToString("o"),
+                    ["gamePath"] = gamePath,
+                    ["modsDirectory"] = modsDirectory,
+                    ["modPack"] = modPackName,
+                    ["mods"] = new JArray(modFileNames.Select(fileName => new JObject
+                    {
+                        ["file"] = fileName,
+                        ["path"] = Path.Combine(modsDirectory, fileName),
+                        ["sha256"] = catalogFileByName[fileName].Sha256
+                    }))
+                };
+
+                string path = CachePathHelper.GetLaunchMarkerPath();
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllText(path, marker.ToString(Formatting.Indented));
+            }
+            catch (Exception ex)
+            {
+                // Without it Auric stays passive for this session, which is a worse outcome
+                // than a dialog: the game would run without Auric and nobody would know why
+                CustomMessageBox.Show(this,
+                    $"Could not write the launch file Auric reads, so Auric would not start with the game.\n\nTechnical details: {ex.Message}", "Could not prepare launch");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Removes the launch file. Called whenever the session it described is over, so a
+        /// later start from the EA app does not find it and bring Auric up uninvited.
+        /// </summary>
+        private static void DeleteLaunchMarker()
+        {
+            try
+            {
+                File.Delete(CachePathHelper.GetLaunchMarkerPath());
+            }
+            catch
+            {
             }
         }
 
@@ -1173,8 +1243,10 @@ namespace BassesModManager
                 if (DateTime.UtcNow - gameStartWatchBegan < GameStartTimeout)
                     return;
 
-                // Never showed up. Stop looking rather than poll for the rest of the session.
+                // Never showed up. Stop looking rather than poll for the rest of the session,
+                // and take the launch file with it: whatever starts next was not this launch.
                 StopGameStartWatch();
+                DeleteLaunchMarker();
                 return;
             }
 
@@ -1227,6 +1299,7 @@ namespace BassesModManager
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 ReleaseGameProcess();
+                DeleteLaunchMarker();
 
                 if (Properties.Settings.Default.RestoreAfterGame)
                 {
@@ -1283,14 +1356,7 @@ namespace BassesModManager
             }
         }
 
-        private static bool IsRunAsAdmin()
-        {
-            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
-            {
-                WindowsPrincipal principal = new WindowsPrincipal(identity);
-                return principal.IsInRole(WindowsBuiltInRole.Administrator);
-            }
-        }
+        private static bool IsRunAsAdmin() => FrostyRuntime.IsElevated();
 
         /// <summary>
         /// The ModData folder this selection belongs in, named after a hash of the files it
@@ -1382,9 +1448,11 @@ namespace BassesModManager
                     return;
                 }
 
-                // Frosty's loader shim has to sit in the game folder, and only an elevated
-                // app can put it there. Asked up front for the same reason the ModPack
-                // folder is: a clear request beats a crash four seconds into the game.
+                // The shim (Auric) has to sit in the game folder. Putting it there the first
+                // time needs an elevated app; swapping it back after Frosty Mod Manager
+                // replaced it does not, once that first run has opened up the file. Asked up
+                // front for the same reason the ModPack folder is: a clear request beats a
+                // crash four seconds into the game.
                 if (!FrostyRuntime.IsLoaderInstalled(gamePath))
                 {
                     if (!File.Exists(FrostyRuntime.GetLoaderSourcePath()))
@@ -1392,7 +1460,7 @@ namespace BassesModManager
                         CustomMessageBox.Show(this, FrostyRuntime.LoaderFileName + " is missing from the app folder. Reinstall the app to restore it.", "File missing");
                         return;
                     }
-                    if (!IsRunAsAdmin())
+                    if (!IsRunAsAdmin() && !FrostyRuntime.CanReplaceLoaderUnelevated(gamePath))
                     {
                         CustomMessageBox.Show(this, "Setting up the game folder needs administrator rights. Restart the app as administrator.", "Administrator needed");
                         return;

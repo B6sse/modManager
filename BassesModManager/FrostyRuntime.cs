@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using Frosty.Core;
 using FrostySdk;
 using FrostySdk.Interfaces;
@@ -188,9 +190,43 @@ namespace BassesModManager
             }
         }
 
+        public static bool IsElevated()
+        {
+            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+                return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
         /// <summary>
-        /// Puts the shim in the game folder if it is missing or differs. Writing there needs
-        /// an elevated process; callers check that up front rather than let this throw.
+        /// True when this process can overwrite the shim in the game folder as it is, without
+        /// elevation. That is the case once an elevated run has granted Users write access to
+        /// that one file (see <see cref="InstallLoader"/>). A missing file is never replaceable
+        /// this way: creating one needs rights on the folder, which stays administrator-only.
+        /// </summary>
+        public static bool CanReplaceLoaderUnelevated(string gamePath)
+        {
+            string target = GetLoaderTargetPath(gamePath);
+            if (!File.Exists(target))
+                return false;
+
+            try
+            {
+                using (new FileStream(target, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
+                    return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Puts the shim in the game folder if it is missing or differs. Frosty Mod Manager
+        /// puts its own shim back every time it launches the game (the sizes differ, which is
+        /// all its copy checks), so an elevated run also grants Users write access to this one
+        /// file: from then on the swap back works without elevation, and switching between
+        /// the two tools stops costing an administrator prompt on this side. Callers check
+        /// <see cref="CanReplaceLoaderUnelevated"/> or elevation up front rather than let the
+        /// copy throw.
         /// </summary>
         public static void InstallLoader(string gamePath)
         {
@@ -198,10 +234,34 @@ namespace BassesModManager
             if (!File.Exists(source))
                 throw new FileNotFoundException(LoaderFileName + " is missing from the app folder. Reinstall the app to restore it.", source);
 
-            if (IsLoaderInstalled(gamePath))
-                return;
+            string target = GetLoaderTargetPath(gamePath);
+            if (!IsLoaderInstalled(gamePath))
+                File.Copy(source, target, true);
 
-            File.Copy(source, GetLoaderTargetPath(gamePath), true);
+            if (IsElevated())
+                GrantUsersWriteAccess(target);
+        }
+
+        /// <summary>
+        /// Lets ordinary users overwrite one file in the game folder. The game runs as that
+        /// same user, so this hands nobody anything they could not already do by other means,
+        /// and the hash check before every launch catches a swapped file regardless. Best
+        /// effort: without it the next swap simply asks for administrator rights again.
+        /// </summary>
+        private static void GrantUsersWriteAccess(string path)
+        {
+            try
+            {
+                var file = new FileInfo(path);
+                FileSecurity acl = file.GetAccessControl();
+                acl.AddAccessRule(new FileSystemAccessRule(
+                    new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null),
+                    FileSystemRights.Modify, AccessControlType.Allow));
+                file.SetAccessControl(acl);
+            }
+            catch
+            {
+            }
         }
 
         /// <summary>
