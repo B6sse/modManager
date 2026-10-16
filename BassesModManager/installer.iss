@@ -68,10 +68,9 @@ Source: "Mods\Improved_Scoreboard.fbmod"; DestDir: "{commonappdata}\BassesModMan
 Source: "Mods\Improved-Game-Startup.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
 Source: "Mods\Improved-Low-Health-Visibility.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
 Source: "Mods\Improved-Pause-Screen-Effects.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
-; Kyber gets injected into the game, so it stays in the admin-only program folder rather
-; than the user-writable mods folder. Kept out of Mods\ in the repo too - that folder is
-; now exactly "the mods that ship", and this is not a mod.
-Source: "Kyber.dll"; DestDir: "{app}"; Flags: ignoreversion
+; Auric is no longer a separate file: it ships as ThirdParty\CryptBase.dll (copied above
+; with the rest of ThirdParty), the DLL the app places next to the game's exe, and the
+; game loads it itself at start. See the csproj for where that file comes from.
 ; Images – mod card previews (from build output)
 Source: "{#PayloadPath}\Assets\Images\*"; DestDir: "{app}\Assets\Images"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 ; Sounds – hover/click sound effects

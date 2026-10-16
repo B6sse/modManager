@@ -157,11 +157,14 @@ namespace BassesModManager
         }
 
         /// <summary>
-        /// Frosty's loader shim. Windows loads a DLL of this name from the game folder ahead
-        /// of the one in System32, which is how Frosty gets into the game process and makes
-        /// it read from ModData. Without it the game crashes in EA's DRM stage a few seconds
-        /// after start. Frosty copies it in itself right before launch, but this app places
-        /// it first and checks it, so a launch never depends on another tool having done so.
+        /// The DLL the game loads from its own folder at process start, ahead of the one in
+        /// System32. Frosty's shim used this name to get into the game and let it read from
+        /// ModData; without it the game crashes in EA's DRM stage a few seconds after start.
+        /// The file this app ships under that name is Auric's own DLL, which carries the same
+        /// proxy exports and signature hook and starts Auric as well - so placing it is both
+        /// the mod support and the Auric start, and nothing has to be injected later. Frosty
+        /// copies it in itself right before launch too, but this app places it first and
+        /// checks it, so a launch never depends on another tool having done so.
         /// </summary>
         public const string LoaderFileName = "CryptBase.dll";
 

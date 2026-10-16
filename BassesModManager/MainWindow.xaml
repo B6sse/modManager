@@ -304,35 +304,17 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <!-- Action row. In Auric mode the two buttons split the width 70/30; in EA servers
-             mode the Auric button is gone and its columns collapse to zero so LAUNCH GAME
-             goes back to spanning the row on its own. ApplyMode drives both. -->
+        <!-- Action row. Just the launch: Auric rides along as the CryptBase.dll the app
+             places in the game folder, so there is no second step after the game is up. -->
         <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="7*"/>
-                <ColumnDefinition x:Name="ActionGapColumn" Width="0"/>
-                <ColumnDefinition x:Name="InjectKyberColumn" Width="0"/>
-            </Grid.ColumnDefinitions>
-
             <!-- The only tooltip it ever has says why it is out of action, and RefreshLaunchButton
                  clears it again once it isn't. WPF suppresses tooltips on disabled controls
                  unless told otherwise, which is exactly backwards for this one. -->
-            <Button Grid.Column="0"
-                    x:Name="LaunchGameButton"
+            <Button x:Name="LaunchGameButton"
                     Content="LAUNCH GAME"
                     Click="LaunchGameButton_Click"
                     Style="{StaticResource PurpleButtonStyle}"
                     ToolTipService.ShowOnDisabled="True"/>
-
-            <!-- Auric's runtime side is a DLL rather than game data, so it cannot ride
-                 along with the mods on launch - it goes in once the game is already up. -->
-            <Button Grid.Column="2"
-                    x:Name="InjectKyberButton"
-                    Content="INJECT AURIC"
-                    Visibility="Collapsed"
-                    Click="InjectKyberButton_Click"
-                    Style="{StaticResource PurpleButtonStyle}"
-                    ToolTip="Load Auric into the game once it has started"/>
         </Grid>
         </Grid>
 

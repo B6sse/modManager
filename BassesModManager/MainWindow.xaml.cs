@@ -271,12 +271,6 @@ namespace BassesModManager
         private static readonly Dictionary<string, CatalogFile> catalogFileByName =
             modCatalog.SelectMany(e => e.Files).ToDictionary(f => f.FileName, StringComparer.OrdinalIgnoreCase);
 
-        // Injection loads whatever is at Mods\Kyber.dll straight into the game process, so
-        // the file name alone must never be enough to get code in there - dropping some
-        // other DLL under that name has to be rejected. DllInjector verifies this against
-        // the bytes it has locked open, so the file cannot be swapped after the check.
-        private const string approvedKyberHash = "6e0411823f651549e5c8051a3b8ca75058ba2f73a088c961d0c2c216144e6a07";
-
         /// <summary>
         /// Mods whose file on disk has been confirmed against the catalog. Empty until the
         /// background verification finishes, and the only thing <see cref="GetSelectedMods"/>
@@ -556,22 +550,13 @@ namespace BassesModManager
         }
 
         /// <summary>
-        /// Swaps the list over to the active mode's mods and reshapes the action row.
-        /// Selections survive the switch: the hidden mode's mods keep their state, and
-        /// only what is visible can reach a launch.
+        /// Swaps the list over to the active mode's mods. Selections survive the switch:
+        /// the hidden mode's mods keep their state, and only what is visible can reach a
+        /// launch.
         /// </summary>
         private void ApplyMode()
         {
-            bool auric = IsAuricMode;
             RefreshVisibleMods();
-
-            // Auric only means anything in its own mode, so outside it the button goes away
-            // and its columns collapse - otherwise LAUNCH GAME would keep sitting at 70%
-            // of the row with empty space beside it.
-            InjectKyberButton.Visibility = auric ? Visibility.Visible : Visibility.Collapsed;
-            ActionGapColumn.Width = auric ? new GridLength(12) : new GridLength(0);
-            InjectKyberColumn.Width = auric ? new GridLength(3, GridUnitType.Star) : new GridLength(0);
-
             RefreshLaunchButton();
         }
 
@@ -1168,10 +1153,8 @@ namespace BassesModManager
 
         private void OnGameLaunched(string gamePath)
         {
-            // New game process, so nothing is injected into it yet. The window is already
-            // minimized - RunWindowMinimized put it there while the progress window was up.
-            InjectKyberButton.Content = "INJECT AURIC";
-
+            // The window is already minimized - RunWindowMinimized put it there while the
+            // progress window was up.
             watchedProcessName = FrostyRuntime.GetProfileKey(gamePath);
             gameStartWatchBegan = DateTime.UtcNow;
             awaitingGameStart = true;
@@ -1470,50 +1453,6 @@ namespace BassesModManager
             return true;
         }
 
-        private void InjectKyberButton_Click(object sender, RoutedEventArgs e)
-        {
-            string gamePath = Properties.Settings.Default.GamePath;
-            if (string.IsNullOrEmpty(gamePath))
-            {
-                CustomMessageBox.Show(this, "Set your game folder in Settings first.", "No game folder");
-                return;
-            }
-
-            // Alongside the exe rather than in the mods folder: it is a fixed part of the
-            // app, not something the user manages, and the program folder needs
-            // administrator rights to write to - a better place for a DLL that gets loaded
-            // into the game than the mods folder the app itself can write.
-            string dllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Kyber.dll");
-            InjectionResult result = DllInjector.Inject(FrostyRuntime.GetProfileKey(gamePath), dllPath, approvedKyberHash);
-
-            switch (result.Status)
-            {
-                case InjectionStatus.Success:
-                    // No dialog on success - it would only land in front of a user who is
-                    // about to alt-tab into the game. The button label carries the result
-                    // instead, and OnGameLaunched puts it back for the next session.
-                    InjectKyberButton.Content = "AURIC INJECTED";
-                    break;
-                case InjectionStatus.AlreadyLoaded:
-                    CustomMessageBox.Show(this, "Auric is already loaded in the running game.", "Already injected");
-                    break;
-                case InjectionStatus.GameNotRunning:
-                    CustomMessageBox.Show(this, "The game is not running. Launch it first, then inject Auric.", "Game not running");
-                    break;
-                // The two file cases name Kyber.dll on purpose - that is the actual file on
-                // disk the user would have to go and look at
-                case InjectionStatus.DllNotFound:
-                    CustomMessageBox.Show(this, "Kyber.dll is missing from the app folder. Reinstall the app to restore it.", "File missing");
-                    break;
-                case InjectionStatus.DllNotApproved:
-                    CustomMessageBox.Show(this, "Kyber.dll is not the approved file, so it was not loaded into the game. Reinstall the app to restore it.", "File not approved");
-                    break;
-                default:
-                    CustomMessageBox.Show(this,
-                        $"Auric could not be loaded into the game.\n\nTechnical details: {result.Detail}", "Could not inject Auric");
-                    break;
-            }
-        }
     }
 
     /// <summary>One interchangeable version of a mod, shown as a swatch on its row.</summary>

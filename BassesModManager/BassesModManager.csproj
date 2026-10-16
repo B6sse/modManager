@@ -127,7 +127,6 @@
     </Compile>
     <Compile Include="CacheInstallLogger.cs" />
     <Compile Include="CachePathHelper.cs" />
-    <Compile Include="DllInjector.cs" />
     <Compile Include="FileHash.cs" />
     <Compile Include="FrostyRuntime.cs" />
     <Compile Include="GameEntry.cs" />
@@ -159,12 +158,6 @@
     <Compile Include="SmoothScrollBehavior.cs" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Injected into the game from the app folder, which is where the installer puts it
-         too. Copied to the output so running from Visual Studio behaves like an install
-         rather than reporting Kyber as missing. -->
-    <Content Include="Kyber.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="Assets\Images\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -235,6 +228,26 @@
       <Name>FrostySdk</Name>
     </ProjectReference>
   </ItemGroup>
+  <!-- Auric's DLL, shipped under the name of Frosty's loader shim. The game loads
+       CryptBase.dll from its own folder at process start, and Auric's build carries the
+       same proxy exports plus the signature hook Frosty's shim had, so it replaces that
+       file completely and is in the game from the first instruction - nothing is injected
+       afterwards. FrostyRuntime.InstallLoader places and hash-checks ThirdParty\CryptBase.dll
+       in the game folder, and Frosty's executor copies the same file, so swapping the
+       source here is all it takes. Auric\CryptBase.dll is a copy of Kyber.dll from the
+       Auric repo's build (C:\Auric\Auric2, CI artifact "Auric-dll"); AuricCryptBaseDll
+       can point the build at another copy, e.g. a fresh CI artifact. It has to overwrite
+       the Frosty one that FrostyModSupport's content items copy, hence the explicit
+       target after the copy step rather than a content item of its own. -->
+  <PropertyGroup>
+    <AuricCryptBaseDll Condition=" '$(AuricCryptBaseDll)' == '' ">$(MSBuildProjectDirectory)\Auric\CryptBase.dll</AuricCryptBaseDll>
+  </PropertyGroup>
+  <Target Name="CopyAuricCryptBase" AfterTargets="CopyFilesToOutputDirectory">
+    <Error Condition="!Exists('$(AuricCryptBaseDll)')" Text="Auric's CryptBase.dll not found at $(AuricCryptBaseDll)" />
+    <Copy SourceFiles="$(AuricCryptBaseDll)" DestinationFiles="$(OutDir)ThirdParty\CryptBase.dll" SkipUnchangedFiles="true">
+      <Output TaskParameter="DestinationFiles" ItemName="FileWrites"/>
+    </Copy>
+  </Target>
   <!-- Frosty plugins. A .fbmod can store part of its data in a plugin-specific format,
        and only that plugin knows how to apply it - without it those assets are dropped
        on launch. The plugins are separate projects that are deliberately not referenced:

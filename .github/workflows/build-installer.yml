@@ -56,6 +56,30 @@ jobs:
           msbuild BassesModManager\BassesModManager.sln -p:Configuration=Release -p:Platform="Any CPU" -v:minimal
         shell: pwsh
 
+      # ThirdParty\CryptBase.dll is Auric's DLL (see BassesModManager.csproj). Only the
+      # public Auric build may ship: the developer build carries console commands a host
+      # could use against players (Teleport, KillPlayer, SetPlayerHealth, ...). Their
+      # names are plain strings in the DLL, so a scan tells the two apart.
+      - name: Refuse a developer build of Auric
+        run: |
+          $dll = "BassesModManager\bin\Release\ThirdParty\CryptBase.dll"
+          $bytes = [IO.File]::ReadAllBytes($dll)
+          $text = [Text.Encoding]::ASCII.GetString($bytes) + "`n" +
+                  [Text.Encoding]::Unicode.GetString($bytes) + "`n" +
+                  [Text.Encoding]::Unicode.GetString($bytes, 1, $bytes.Length - 1)
+          $devMarkers = @('Teleport', 'KillPlayer', 'SetSprintSpeed', 'SetJumpHeight', 'SetPlayerHealth', 'SetPlayerVisibility', 'SetPlayerWeaponById', 'PrintTypeCount', 'DrawAuricDebug')
+          $found = $devMarkers | Where-Object { $text.Contains($_) }
+          if ($found) {
+            Write-Error "ThirdParty\CryptBase.dll is a developer build of Auric (found: $($found -join ', ')). Bundle the public build."
+            exit 1
+          }
+          if (-not $text.Contains('Initialized Auric')) {
+            Write-Error "ThirdParty\CryptBase.dll does not look like Auric's DLL at all."
+            exit 1
+          }
+          Write-Host "Auric shim OK: public build, sha256 $((Get-FileHash $dll).Hash.ToLower())"
+        shell: pwsh
+
       - name: Install Inno Setup
         run: |
           choco install innosetup -y
