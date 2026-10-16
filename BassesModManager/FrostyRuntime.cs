@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.AccessControl;
 using System.Security.Principal;
 using Frosty.Core;
 using FrostySdk;
@@ -158,29 +157,55 @@ namespace BassesModManager
             assemblyResolverRegistered = true;
         }
 
-        /// <summary>
-        /// The DLL the game loads from its own folder at process start, ahead of the one in
-        /// System32. Frosty's shim used this name to get into the game and let it read from
-        /// ModData; without it the game crashes in EA's DRM stage a few seconds after start.
-        /// The file this app ships under that name is Auric's own DLL, which carries the same
-        /// proxy exports and signature hook and starts Auric as well - so placing it is both
-        /// the mod support and the Auric start, and nothing has to be injected later. Frosty
-        /// copies it in itself right before launch too, but this app places it first and
-        /// checks it, so a launch never depends on another tool having done so.
-        /// </summary>
+        // Two files this app keeps next to the game's exe. Both are DLLs the game loads from
+        // its own folder at process start, ahead of the copies in System32; both are placed
+        // and hash-checked before every launch, and writing them needs an elevated run, since
+        // the game lives in Program Files.
+        //
+        // Frosty's loader shim. It makes the game read from ModData; without it the game
+        // crashes in EA's DRM stage a few seconds after start. Frosty copies it in itself
+        // right before launch too, but this app places it first and checks it, so a launch
+        // never depends on another tool having done so. Frosty Mod Manager overwrites this
+        // name on every launch it makes, which is why Auric does not share it.
         public const string LoaderFileName = "CryptBase.dll";
+
+        // Auric, the in-game half. version.dll is a static import of the game itself, not a
+        // KnownDLL, and nothing else ever writes it, so Auric is in the game from the first
+        // instruction and no longer has to be injected afterwards. It decides whether to run
+        // from the launch marker this app writes (CachePathHelper.GetLaunchMarkerPath); a
+        // plain start from the EA app leaves it passive.
+        public const string AuricFileName = "version.dll";
 
         public static string GetLoaderSourcePath() => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ThirdParty", LoaderFileName);
 
         public static string GetLoaderTargetPath(string gamePath) => Path.Combine(gamePath, LoaderFileName);
 
+        public static string GetAuricSourcePath() => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Auric", AuricFileName);
+
+        public static string GetAuricTargetPath(string gamePath) => Path.Combine(gamePath, AuricFileName);
+
         /// <summary>True when the game folder holds exactly the shim this app ships.</summary>
-        public static bool IsLoaderInstalled(string gamePath)
+        public static bool IsLoaderInstalled(string gamePath) => IsGameFileCurrent(GetLoaderSourcePath(), GetLoaderTargetPath(gamePath));
+
+        /// <summary>True when the game folder holds exactly the Auric build this app ships.</summary>
+        public static bool IsAuricInstalled(string gamePath) => IsGameFileCurrent(GetAuricSourcePath(), GetAuricTargetPath(gamePath));
+
+        /// <summary>Puts the shim in the game folder if it is missing or differs. Needs elevation.</summary>
+        public static void InstallLoader(string gamePath) => InstallGameFile(GetLoaderSourcePath(), GetLoaderTargetPath(gamePath));
+
+        /// <summary>Puts Auric in the game folder if it is missing or differs. Needs elevation.</summary>
+        public static void InstallAuric(string gamePath) => InstallGameFile(GetAuricSourcePath(), GetAuricTargetPath(gamePath));
+
+        public static bool IsElevated()
+        {
+            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+                return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
+        private static bool IsGameFileCurrent(string source, string target)
         {
             try
             {
-                string source = GetLoaderSourcePath();
-                string target = GetLoaderTargetPath(gamePath);
                 return File.Exists(source) && File.Exists(target) &&
                        string.Equals(FileHash.OfFileCached(source), FileHash.OfFileCached(target), StringComparison.OrdinalIgnoreCase);
             }
@@ -190,78 +215,17 @@ namespace BassesModManager
             }
         }
 
-        public static bool IsElevated()
-        {
-            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
-                return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
-        }
-
         /// <summary>
-        /// True when this process can overwrite the shim in the game folder as it is, without
-        /// elevation. That is the case once an elevated run has granted Users write access to
-        /// that one file (see <see cref="InstallLoader"/>). A missing file is never replaceable
-        /// this way: creating one needs rights on the folder, which stays administrator-only.
+        /// Callers check elevation up front rather than let the copy throw; a missing source
+        /// is a broken install and is reported as such.
         /// </summary>
-        public static bool CanReplaceLoaderUnelevated(string gamePath)
+        private static void InstallGameFile(string source, string target)
         {
-            string target = GetLoaderTargetPath(gamePath);
-            if (!File.Exists(target))
-                return false;
-
-            try
-            {
-                using (new FileStream(target, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
-                    return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Puts the shim in the game folder if it is missing or differs. Frosty Mod Manager
-        /// puts its own shim back every time it launches the game (the sizes differ, which is
-        /// all its copy checks), so an elevated run also grants Users write access to this one
-        /// file: from then on the swap back works without elevation, and switching between
-        /// the two tools stops costing an administrator prompt on this side. Callers check
-        /// <see cref="CanReplaceLoaderUnelevated"/> or elevation up front rather than let the
-        /// copy throw.
-        /// </summary>
-        public static void InstallLoader(string gamePath)
-        {
-            string source = GetLoaderSourcePath();
             if (!File.Exists(source))
-                throw new FileNotFoundException(LoaderFileName + " is missing from the app folder. Reinstall the app to restore it.", source);
+                throw new FileNotFoundException(Path.GetFileName(source) + " is missing from the app folder. Reinstall the app to restore it.", source);
 
-            string target = GetLoaderTargetPath(gamePath);
-            if (!IsLoaderInstalled(gamePath))
+            if (!IsGameFileCurrent(source, target))
                 File.Copy(source, target, true);
-
-            if (IsElevated())
-                GrantUsersWriteAccess(target);
-        }
-
-        /// <summary>
-        /// Lets ordinary users overwrite one file in the game folder. The game runs as that
-        /// same user, so this hands nobody anything they could not already do by other means,
-        /// and the hash check before every launch catches a swapped file regardless. Best
-        /// effort: without it the next swap simply asks for administrator rights again.
-        /// </summary>
-        private static void GrantUsersWriteAccess(string path)
-        {
-            try
-            {
-                var file = new FileInfo(path);
-                FileSecurity acl = file.GetAccessControl();
-                acl.AddAccessRule(new FileSystemAccessRule(
-                    new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null),
-                    FileSystemRights.Modify, AccessControlType.Allow));
-                file.SetAccessControl(acl);
-            }
-            catch
-            {
-            }
         }
 
         /// <summary>

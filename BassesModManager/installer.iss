@@ -68,9 +68,10 @@ Source: "Mods\Improved_Scoreboard.fbmod"; DestDir: "{commonappdata}\BassesModMan
 Source: "Mods\Improved-Game-Startup.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
 Source: "Mods\Improved-Low-Health-Visibility.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
 Source: "Mods\Improved-Pause-Screen-Effects.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
-; Auric is no longer a separate file: it ships as ThirdParty\CryptBase.dll (copied above
-; with the rest of ThirdParty), the DLL the app places next to the game's exe, and the
-; game loads it itself at start. See the csproj for where that file comes from.
+; Auric, the in-game half. The app places it next to the game's exe as version.dll and the
+; game loads it itself at start, so nothing is injected. Public build only; see the csproj
+; for where the file comes from.
+Source: "{#PayloadPath}\Auric\*"; DestDir: "{app}\Auric"; Flags: ignoreversion
 ; Images – mod card previews (from build output)
 Source: "{#PayloadPath}\Assets\Images\*"; DestDir: "{app}\Assets\Images"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 ; Sounds – hover/click sound effects

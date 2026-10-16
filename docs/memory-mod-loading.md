@@ -109,42 +109,36 @@ game plainly through the EA app, show status from Auric, keep the catalog/hash
 verification and the auto-update. The Frosty executor, ModPack folders, symlinks and
 the admin gate go away.
 
-## Status 2026-10-16: goal 1 done, Axon ships Auric as the shim
+## Status 2026-10-16: goal 1 done, Axon installs Auric as version.dll
 
 Auric's side is tested in the game: its `Kyber.dll`, placed in the game folder as
-`CryptBase.dll`, is loaded at process start, hooks `BCryptVerifySignature` like Frosty's
-shim did (so ModData mods still load) and starts Auric in stages as the engine comes up
-(`C:\Auric\Auric2\docs\sideload-plan.md`).
+`version.dll` (a static import of the game, not a KnownDLL, never touched by Frosty Mod
+Manager), is loaded at process start and starts Auric in stages as the engine comes up
+(`C:\Auric\Auric2\docs\sideload-plan.md`). Frosty's `CryptBase.dll` stays Frosty's.
+An earlier variant shipped Auric under the `CryptBase.dll` name; it worked, but Frosty
+Mod Manager overwrites that name on every launch it makes (its copy only compares
+sizes), so every switch between the tools cost an administrator prompt. `wintrust.dll`
+was tried and failed (KnownDLL by dependency), `version.dll` was the answer.
 
-Axon's part, done on this branch: `BassesModManager\Auric\CryptBase.dll` is a copy of
-Auric's build, the `CopyAuricCryptBase` target in the csproj puts it in
-`bin\Release\ThirdParty\CryptBase.dll` over Frosty's copy (override with
-`-p:AuricCryptBaseDll=<path>`), the installer ships `ThirdParty\*` as before, and
-`FrostyRuntime.InstallLoader` places and hash-checks it in the game folder exactly as it
-did for Frosty's file. The INJECT AURIC button, `DllInjector.cs` and the old
-`BassesModManager\Kyber.dll` are gone. The launch itself is unchanged: `-dataPath` to a
-ModPack built by Frosty's executor. To update Auric, copy the new public `Kyber.dll`
-(`AURIC_DEV_BUILD=OFF`) over `BassesModManager\Auric\CryptBase.dll` and rebuild; CI
-refuses a developer build by scanning the DLL for its command names.
+Axon's part, done on this branch:
 
-The bundled copy is Auric 1.4.0, the first with the opt-in gate: early mode only when
-the game's command line has `-dataPath` or
-`%LocalAppData%\BassesModManager\auric-launch.json` exists. A plain start from the EA
-app stays passive (proxy exports only), so leaving the file in the game folder no
-longer changes normal play. Frosty Mod Manager overwrites it with Frosty's own shim
-every time it launches the game (its copy only compares sizes), and Axon puts Auric's
-back on its next launch. To keep that swap from costing an administrator prompt each
-time, an elevated Axon run grants Users write access to that one file
-(`FrostyRuntime.InstallLoader`); afterwards `CanReplaceLoaderUnelevated` lets a normal
-run overwrite it. To verify in test: that Frosty's `File.Copy` overwrite keeps the
-file's ACL (it writes into the existing file; a delete-and-recreate would reset it).
-
-Axon also writes `%LocalAppData%\BassesModManager\auric-launch.json` right before each
-launch (`MainWindow.WriteLaunchMarker`): Axon version, game path, ModPack name and the
-mods in apply order with their catalog hashes. Auric's gate only checks that the file
-exists today; the mod list is for the in-memory loader. The file is deleted when the
-game exits, when the launch fails or never produces a game process, at app start and
-at app exit, so a later plain start from the EA app never finds it.
+- `BassesModManager\Auric\version.dll` is a copy of Auric's public build (1.4.0, sha256
+  `925be706...`), copied to `bin\Release\Auric\version.dll` by a content item and
+  shipped by the installer as `Auric\*`. CI refuses a developer build by scanning the
+  DLL for its command names.
+- `FrostyRuntime.InstallAuric` / `IsAuricInstalled` place and hash-check it in the game
+  folder before every launch, next to `InstallLoader` for Frosty's shim. Both need an
+  elevated run, asked for up front in `MainWindow` when either file is missing or
+  differs.
+- `MainWindow.WriteLaunchMarker` writes `%LocalAppData%\BassesModManager\auric-launch.json`
+  right before each launch, in the shape Auric asked for:
+  `{ "writtenAt": ISO-8601, "modPackPath": "<game>\ModData\<pack>", "mods": [names] }`.
+  Auric treats it as the launch signal for ten minutes after its write time; `-dataPath`
+  is only a fallback there. Axon deletes the file when the game exits, on a failed
+  launch, at app start and at app exit, so a plain start from the EA app stays vanilla.
+- The INJECT AURIC button, `DllInjector.cs` and the old `BassesModManager\Kyber.dll`
+  are gone. The launch itself is unchanged: `-dataPath` to a ModPack built by Frosty's
+  executor.
 
 Still open on the Auric side for goal 2: the three ModLoader hooks from K.dll log nothing
 even when installed before the engine starts, so the real ResourceManager addresses in

@@ -1107,10 +1107,11 @@ namespace BassesModManager
         }
 
         /// <summary>
-        /// What Auric needs to know about this launch: that it came from here, and the mods
-        /// with their approved hashes in apply order. Today Auric only checks that the file
-        /// exists (its opt-in gate); the mod list is for the in-memory loader to come, which
-        /// will read it instead of a ModData folder.
+        /// Auric's launch signal, in the shape the Auric side asked for: when it was written,
+        /// the ModData folder this launch uses, and the mod file names in apply order. Auric
+        /// goes by the file's write time (it counts for ten minutes), so a marker left behind
+        /// by a crash cannot turn a later plain start into an Auric one. The mod list is for
+        /// the in-memory loader to come, which will read it instead of a ModData folder.
         /// </summary>
         private void WriteLaunchMarker(string gamePath, string modPackName, string[] modFileNames)
         {
@@ -1118,17 +1119,9 @@ namespace BassesModManager
             {
                 var marker = new JObject
                 {
-                    ["axonVersion"] = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(),
-                    ["writtenUtc"] = DateTime.UtcNow.ToString("o"),
-                    ["gamePath"] = gamePath,
-                    ["modsDirectory"] = modsDirectory,
-                    ["modPack"] = modPackName,
-                    ["mods"] = new JArray(modFileNames.Select(fileName => new JObject
-                    {
-                        ["file"] = fileName,
-                        ["path"] = Path.Combine(modsDirectory, fileName),
-                        ["sha256"] = catalogFileByName[fileName].Sha256
-                    }))
+                    ["writtenAt"] = DateTime.UtcNow.ToString("o"),
+                    ["modPackPath"] = Path.Combine(gamePath, "ModData", modPackName),
+                    ["mods"] = new JArray(modFileNames)
                 };
 
                 string path = CachePathHelper.GetLaunchMarkerPath();
@@ -1448,19 +1441,20 @@ namespace BassesModManager
                     return;
                 }
 
-                // The shim (Auric) has to sit in the game folder. Putting it there the first
-                // time needs an elevated app; swapping it back after Frosty Mod Manager
-                // replaced it does not, once that first run has opened up the file. Asked up
-                // front for the same reason the ModPack folder is: a clear request beats a
-                // crash four seconds into the game.
-                if (!FrostyRuntime.IsLoaderInstalled(gamePath))
+                // Frosty's shim and Auric both have to sit in the game folder, and only an
+                // elevated app can put them there. Asked up front for the same reason the
+                // ModPack folder is: a clear request beats a crash four seconds into the game.
+                if (!FrostyRuntime.IsLoaderInstalled(gamePath) || !FrostyRuntime.IsAuricInstalled(gamePath))
                 {
-                    if (!File.Exists(FrostyRuntime.GetLoaderSourcePath()))
+                    foreach (string source in new[] { FrostyRuntime.GetLoaderSourcePath(), FrostyRuntime.GetAuricSourcePath() })
                     {
-                        CustomMessageBox.Show(this, FrostyRuntime.LoaderFileName + " is missing from the app folder. Reinstall the app to restore it.", "File missing");
-                        return;
+                        if (!File.Exists(source))
+                        {
+                            CustomMessageBox.Show(this, Path.GetFileName(source) + " is missing from the app folder. Reinstall the app to restore it.", "File missing");
+                            return;
+                        }
                     }
-                    if (!IsRunAsAdmin() && !FrostyRuntime.CanReplaceLoaderUnelevated(gamePath))
+                    if (!IsRunAsAdmin())
                     {
                         CustomMessageBox.Show(this, "Setting up the game folder needs administrator rights. Restart the app as administrator.", "Administrator needed");
                         return;

@@ -90,9 +90,11 @@ namespace BassesModManager
 
             CachePathHelper.EnsureCachesDirectory();
 
-            // The loader shim goes in before anything else: without it the game crashes a
-            // few seconds in, whatever state ModData is in
+            // The two game-folder files go in before anything else: without the shim the
+            // game crashes a few seconds in, whatever state ModData is in, and without
+            // Auric the game would run but nothing of Auric's would
             FrostyRuntime.InstallLoader(_gamePath);
+            FrostyRuntime.InstallAuric(_gamePath);
 
             // Only the FileSystem is set up here, like FrostyModManager does. Run() builds
             // its own ResourceManager/AssetManager, and only when the mods actually need
