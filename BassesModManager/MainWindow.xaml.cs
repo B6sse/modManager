@@ -14,8 +14,6 @@ using System.Windows.Input;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Microsoft.Win32;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace BassesModManager
 {
@@ -1088,10 +1086,6 @@ namespace BassesModManager
                 .SelectMany(m => m.ActiveFileNames)
                 .ToArray();
 
-            // Auric reads this at process start, before the game's own code runs, so it has
-            // to be on disk before Frosty starts the game
-            WriteLaunchMarker(gamePath, modPackName, modFileNames);
-
             // Modal progress window runs the whole flow (Frosty init, mod patching, game
             // launch) on a background thread and shows live status/progress. It stays down
             // afterwards on success: the game is what the user is now looking at.
@@ -1106,52 +1100,8 @@ namespace BassesModManager
             }
         }
 
-        /// <summary>
-        /// Auric's launch signal, in the shape the Auric side asked for: when it was written,
-        /// the ModData folder this launch uses, and the mod file names in apply order. Auric
-        /// goes by the file's write time (it counts for ten minutes), so a marker left behind
-        /// by a crash cannot turn a later plain start into an Auric one. The mod list is for
-        /// the in-memory loader to come, which will read it instead of a ModData folder.
-        /// </summary>
-        private void WriteLaunchMarker(string gamePath, string modPackName, string[] modFileNames)
-        {
-            try
-            {
-                var marker = new JObject
-                {
-                    ["writtenAt"] = DateTime.UtcNow.ToString("o"),
-                    ["modPackPath"] = Path.Combine(gamePath, "ModData", modPackName),
-                    ["mods"] = new JArray(modFileNames)
-                };
-
-                string path = CachePathHelper.GetLaunchMarkerPath();
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
-                File.WriteAllText(path, marker.ToString(Formatting.Indented));
-            }
-            catch (Exception ex)
-            {
-                // Without it Auric stays passive for this session, which is a worse outcome
-                // than a dialog: the game would run without Auric and nobody would know why
-                CustomMessageBox.Show(this,
-                    $"Could not write the launch file Auric reads, so Auric would not start with the game.\n\nTechnical details: {ex.Message}", "Could not prepare launch");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Removes the launch file. Called whenever the session it described is over, so a
-        /// later start from the EA app does not find it and bring Auric up uninvited.
-        /// </summary>
-        private static void DeleteLaunchMarker()
-        {
-            try
-            {
-                File.Delete(CachePathHelper.GetLaunchMarkerPath());
-            }
-            catch
-            {
-            }
-        }
+        /// <summary>The launch marker is written by LaunchProgressWindow; this window only ends its life.</summary>
+        private static void DeleteLaunchMarker() => LaunchMarker.Delete();
 
         /// <summary>
         /// Runs one of the progress windows with this one out of the way.

@@ -110,6 +110,14 @@ namespace BassesModManager
 
             Frosty.Core.App.Logger = logger;
 
+            // Auric reads this at process start, before the game's own code runs, so it has
+            // to be on disk before Run() starts the game. Written here rather than in
+            // MainWindow because the EBX-only check reads the .fbmod headers with Frosty's
+            // reader, which needs the runtime initialized first. Without the file Auric stays
+            // passive for this session, so a failure here fails the launch.
+            logger.Status = "Preparing Auric...";
+            LaunchMarker.Write(_gamePath, _modsDirectory, _modPackName, _modFileNames, logger);
+
             // The execution actions (LaunchPlatformPlugin) find the mod folder through
             // these two, the same way they do in Frosty Mod Manager
             Frosty.Core.App.FileSystem = fs;

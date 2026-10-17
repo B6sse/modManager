@@ -129,6 +129,7 @@
     <Compile Include="CachePathHelper.cs" />
     <Compile Include="FileHash.cs" />
     <Compile Include="FrostyRuntime.cs" />
+    <Compile Include="LaunchMarker.cs" />
     <Compile Include="GameEntry.cs" />
     <Compile Include="LaunchProgressWindow.xaml.cs">
       <DependentUpon>LaunchProgressWindow.xaml</DependentUpon>

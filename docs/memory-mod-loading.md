@@ -130,12 +130,24 @@ Axon's part, done on this branch:
   folder before every launch, next to `InstallLoader` for Frosty's shim. Both need an
   elevated run, asked for up front in `MainWindow` when either file is missing or
   differs.
-- `MainWindow.WriteLaunchMarker` writes `%LocalAppData%\BassesModManager\auric-launch.json`
-  right before each launch, in the shape Auric asked for:
-  `{ "writtenAt": ISO-8601, "modPackPath": "<game>\ModData\<pack>", "mods": [names] }`.
-  Auric treats it as the launch signal for ten minutes after its write time; `-dataPath`
-  is only a fallback there. Axon deletes the file when the game exits, on a failed
-  launch, at app start and at app exit, so a plain start from the EA app stays vanilla.
+- `LaunchMarker.Write` (called from `LaunchProgressWindow` once the Frosty runtime is up)
+  writes `%LocalAppData%\BassesModManager\auric-launch.json` right before each launch:
+  `writtenAt` (ISO-8601), `modPackPath` (`<game>\ModData\<pack>`), `mods` (file names in
+  apply order), `fbmods` (one `{ "path", "sha256" }` per mod, absolute path and lowercase
+  hex of the file on disk, same order; the hash comes from the cache the catalog check
+  already filled, so a normal launch pays nothing) and `ebxOnly` (true when every mod
+  holds only EBX resources besides its embedded icon and screenshots, read with Frosty's
+  `FrostyMod`; res, chunk or bundle changes, legacy mods and unreadable mods make it
+  false). Auric treats the file as the launch signal for ten minutes after its write
+  time and, since 2026-10-16 (tested in the game with a hand-written marker: two mods,
+  four partitions served, intro skipped, no -dataPath, no ModData), reads `fbmods` at S1
+  and serves the EBX partitions from memory, skipping a mod whose hash does not match or
+  whose profile is not `starwarsbattlefront`. Axon deletes the file when the game exits,
+  on a failed launch, at app start and at app exit, so a plain start from the EA app
+  stays vanilla. The launch itself still builds ModData and passes `-dataPath`: Auric
+  serves EBX only so far (res, chunks and new bundles come later), and the same EBX in
+  ModData and in memory are the same bytes. `ebxOnly` is the groundwork for letting such
+  launches skip ModData once Auric covers the rest.
 - The INJECT AURIC button, `DllInjector.cs` and the old `BassesModManager\Kyber.dll`
   are gone. The launch itself is unchanged: `-dataPath` to a ModPack built by Frosty's
   executor.
