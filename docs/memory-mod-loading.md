@@ -1,208 +1,139 @@
-# In-memory mod loading for Axon: feasibility notes
+# In-memory mod loading: how Axon launches the game
 
-Branch: `memory-mod-loading`. Written 2026-10-15 after reading the Kyber V2 sources
-(ArmchairDevelopers/Kyber, GPL-3.0) and Frosty's executor.
+Branch: `memory-mod-loading`. Current state first; the history that led here is at the
+end. The in-game half, Auric, lives in `C:\Auric\Auric2` (private repo B6sse/Auric2); its
+plan and test log is `docs\memory-mod-loading-plan.md` there (section 0 is the handoff).
 
-## How Axon loads mods today
+## What Axon does on launch (since 2026-10-17)
 
-Frosty rebuilds the game's data layout on disk: a `ModData\<pack>` folder inside the
-game install with directory symlinks to `Data` and `Update`, file symlinks to the
-original `.cas` archives, rewritten `.toc`/`.sb` superbundles and `cas.cat` catalogs,
-plus new `cas_NN.cas` files holding the mod payload. The game is started with
-`-dataPath <that folder>` and Frosty's `CryptBase.dll` shim next to the exe makes it
-honour the argument. Consequences: administrator rights for the symlinks and for
-writing inside the game folder, one rebuild per mod combination, nothing can change
-while the game runs.
+Frosty's executor, the `ModData` folders, the symlinks, `-dataPath` and Frosty's
+`CryptBase.dll` shim are gone. A launch is three steps, all in `LaunchProgressWindow`:
 
-## How Kyber V2 does it (Module/Source/ModLoader, C++)
+1. **Auric into the game folder.** `FrostyRuntime.InstallAuric` copies
+   `BassesModManager\Auric\version.dll` to `<game>\version.dll` when the hash differs.
+   `version.dll` is a static import of the game and not a KnownDLL, so the game loads it
+   from its own folder at process start; Auric is in from the first instruction, nothing
+   is injected. It also answers the engine's toc signature check itself, which is all
+   Frosty's shim ever did. Writing inside Program Files needs an elevated run, asked for
+   up front in `MainWindow` only when the file is missing or differs (so once per Auric
+   update, never for a new mod combination).
+2. **The launch marker.** `LaunchMarker.Write` writes
+   `%LocalAppData%\BassesModManager\auric-launch.json`:
+   ```json
+   { "writtenAt": "<ISO-8601 UTC>",
+     "fbmods": [ { "path": "C:\\ProgramData\\BassesModManager\\Mods\\<file>.fbmod", "sha256": "<hex>" }, ... ] }
+   ```
+   `fbmods` is the apply order (a later mod overrides an earlier one), absolute paths,
+   lowercase hex of the file on disk from the `FileHash` cache. Auric treats the file as
+   its launch signal for ten minutes after its write time and skips a mod whose hash does
+   not match or whose profile is not `starwarsbattlefront`. Axon deletes the file when the
+   game exits, on a failed launch, at app start and at app exit, so a plain start from the
+   EA app stays vanilla.
+3. **The game, plainly.** `FrostyRuntime.StartGame` starts `starwarsbattlefront.exe` with
+   no arguments (the EA app takes over), or `steam://run/<appid>` on a Steam install.
+   Auric reads the marker at its S1 stage, parses each `.fbmod` itself and lays the mods
+   over the game's files in memory through the engine's own virtual file system.
 
-Nothing is written to the game folder. A DLL injected into the game process:
+Before the progress window opens, `MemoryLoading.Plan` reads each selected `.fbmod` with
+Frosty's reader (`FrostyMod`, which needs the game profile selected in `ProfilesLibrary`;
+`FrostyRuntime.EnsureInitialized` does only that, no plugins, SDK files or Frosty config
+involved). The answer is cached per file (path, size, write time) and warmed on the
+verification thread at start-up. A mod the reader cannot open (legacy format, another
+game, a damaged file) stops the launch with a message; resources that only a Frosty
+plugin could apply (see below) raise a one-time dialog naming them, and the launch goes
+ahead. An empty selection starts the game unmodded through the same path.
 
-1. Parses `.fbmod` files with `FBRuntimeTweaker` (MIT, vendored under
-   `Module/ThirdParty`): `RT_FrostyLoadMod`, `RT_FrostyParseResources`.
-2. Mounts the mods folder into the engine's own virtual file system
-   (`VirtualFileSystem_mount(vfs, backend, "/kyber_mods")`), so the engine can read
-   mod payload through its normal file layer.
-3. Hooks about twenty engine functions by hardcoded address in the Battlefront II
-   executable: `ResourceManager::beginChunkRead/endChunkRead/pollChunkOperation`,
-   `RuntimeDatabaseDomain::readEbxPartitionFromStream`, `EbxPartitionReader::process`,
-   `BundleManager::loadBundle`, `MainLoop::initResourceManager`, shader block depot
-   fixups, and more. When the engine asks for a chunk or EBX partition a mod replaced,
-   the hook answers from memory instead of letting the read reach disk
-   (`s_modifiedChunksMap`, `s_pendingChunksMap`, `MemoryUtils::Patch`).
-4. Merges bundle and layout manifests in memory (`BundleMerger`, `ManifestMerger`,
-   `ResourceMerger`) so added assets show up in the bundles the engine enumerates.
-5. Custom handlers for asset types that need merging rather than replacement
-   (localization, mesh variation DB, network registry, profile options, UI metadata).
-6. Gets into the process early: Kyber's launcher starts the game through Maxima, their
-   own GPL replacement for the EA app, and injects the module via Maxima's background
-   service before the resource manager initializes.
+What is left of Frosty in the app: `FrostyCore` and `FrostySdk` for reading `.fbmod`
+headers, `FrostyControls` for two controls in the progress panel and the update bar,
+`FrostyHash` as their native dependency. `FrostyModSupport`, the plugins, the asset cache
+(`CacheInstallWindow`) and `ThirdParty\*` are no longer built or shipped.
 
-Hooking uses `safetyhook` (inline hooks with trampolines). Addresses are compile-time
-constants for one exe build; the merge code is written against Battlefront II's
-manifest-based layout.
+## What Auric supports, and what it does not
 
-## What a port to Battlefront 2015 would need
+Auric (build of commit `cdca9ee`, bundled 2026-10-17, sha256 `3f11e287...`) loads from
+the `.fbmod` files:
 
-- **Engine reverse engineering.** Every hooked function and struct layout has to be
-  found again in `starwarsbattlefront.exe`. In our favour: the exe is build
-  1.0.7.64833 from 2017-01-03 and has not changed since, so addresses found once stay
-  valid for everyone. Auric already hooks parts of this exe (client state, present,
-  server backend, player weapon), so some SDK knowledge for 2015 exists.
-- **A different data format.** Battlefront 2015 is pre-manifest Frostbite: `layout.toc`
-  plus per-superbundle `.toc`/`.sb` and `cas.cat` catalogs. Kyber's mergers do not
-  apply. The reference for what has to happen in memory is Frosty's
-  `FrostyModSupport/Actions/Standard.cs` (1659 lines) and the chunk/catalog handling in
-  `FrostyModExecutor`.
-- **Early injection.** Auric is injected after the game is up; a mod loader must be in
-  before the resource manager initializes. Options: a sideloaded DLL in the game
-  folder (the trick Frosty's `CryptBase.dll` already relies on; placed once by the
-  installer, which runs elevated), or a Maxima-style launcher that owns process
-  creation. Note the EA app relaunches the game itself, so Axon never owns the real
-  game process today.
-- **fbmod parsing** can be taken from FBRuntimeTweaker as is; the format is the same
-  across games.
-- **Where it lives.** This is native code in the game process. It belongs in Auric
-  (C++), with Axon reduced to the launcher that selects mods and hands the list over.
+- EBX, res and chunks, served through a virtual CAS (a rewritten `cas.cat` and a virtual
+  `cas_NN.cas`) and superbundles rewritten in memory when the engine opens their
+  `.toc`/`.sb`, following Frosty's `Standard.cs` Modify logic.
+- Resources added to bundles they were not in before (`addedBundles`), whole new bundles
+  (`.fbmod` bundle resources) and the chunk list of `Win32/chunks0.toc`, following
+  Frosty's Add actions.
+- The localization plugin's text changes (handler `0xDECFF314`, Frosty's Fnv1 of
+  `fsuitextdatabase`): Auric merges them into the language's text chunk itself.
 
-Licenses line up: Frosty, Kyber and Auric's Kyber heritage are all GPL-3.0;
-FBRuntimeTweaker is MIT.
+Not supported: resources of any other Frosty plugin (ShaderBlockDepot from the MeshSet
+plugin, DifficultyWeaponTableData). Auric skips them with a log line; Axon warns before
+the launch (`<mod> uses a Frosty plugin for <resource>, that part is not loaded`). No
+catalog mod has any today: the Auric set (axonmod p1/p2/p3) holds EBX, res, chunks, 151
+resources added to bundles and one localization resource per part.
 
-## A cheaper intermediate step: keep Frosty's output, move it out of the game folder
+Tested in the game: Red Dot and Improved-Game-Startup (EBX, res, chunk) without ModData
+on 2026-10-16. Not yet tested in the game as of this writing: the add actions and the
+localization merge; the Auric set is the test for both.
 
-`-dataPath` accepts an absolute path (Frosty CLI docs), so `ModData` can live under
-`%LocalAppData%`. That removes all writing inside the game install. What remains is
-the symlinks:
+## How to test
 
-- `Data` and `Update` are directory links. Directory junctions do the same job and
-  need no privileges.
-- The `.cas` files are file symlinks, which need either administrator rights or
-  Developer Mode. Two ways out: (a) test whether the engine actually needs them, by
-  deleting the `.cas` links from a working ModPack and launching; (b) if it does, a
-  small sideloaded DLL that redirects opens of `<ModData>\Patch\...\cas_XX.cas` to the
-  original file in the game folder. That is a few hundred lines, not a mod loader.
-- `CryptBase.dll` itself still has to sit next to the exe. The installer runs
-  elevated and can place it, so no UAC prompt is ever needed at runtime.
+1. Build (`MSBuild ... -p:PlatformToolset=v145`, see CLAUDE.md) and start
+   `bin\Release\BassesModManager.exe` as administrator the first time after an Auric
+   update, so it can replace `<game>\version.dll`.
+2. Switch the mods on, press LAUNCH. The progress window says `Loading N mods in memory`
+   and the game starts with no `-dataPath` (check the process command line); no
+   `ModData` folder is created or touched.
+3. While the game runs, `%LocalAppData%\BassesModManager\auric-launch.json` holds
+   `writtenAt` and the `fbmods` list; it is gone after the game exits.
+4. `%APPDATA%\Auric\auric.log` (readable while the game runs) should show, in order:
+   `==== Auric ... loaded: early (auric-launch.json present)`, one Info line per mod
+   `[ModLoader] Mod <title>: N EBX, R res, C chunk(s) served from memory[; A of them
+   added to bundles][; B new bundle(s)][; S set(s) of text changes merged]`, then
+   `[ModLoader] X of Y mod(s) from auric-launch.json loaded`. For the Auric set expect
+   `Mod axionmod p1 ...: 163 EBX, 20 res, 50 chunk(s) served from memory; 150 of them
+   added to bundles; 1 set(s) of text changes merged`, `[Localization] en: 37 string(s)
+   from axionmod p1, axionmod p2 merged into the game's text (35 new, 2 changed; chunk
+   319869 -> 322267 bytes)` and `[BundlePatcher]` lines for `weapons.toc`, `globals.toc`,
+   `chunks0.toc` and `loc/en.toc`. A skipped plugin resource shows up as
+   `N resource(s) need a Frosty plugin, skipped`.
+5. In the game: Improved-Game-Startup skips the intro, the crosshair dot has the chosen
+   colour, the Auric set's new weapons have their names (the localization merge).
 
-Result: no administrator rights after install, mod combinations rebuilt in seconds
-by Frosty's existing code, and the ModPack folders out of the game install. Most of
-what players notice about Kyber, at a fraction of the cost and risk. True in-memory
-loading in Auric can follow as phase two.
+Headless check of the launch rule without starting anything: compile a small console
+program against `bin\Release\BassesModManager.exe` that calls `MemoryLoading.Plan` by
+reflection (it must run from `bin\Release`); done on 2026-10-17 over every installed mod,
+all readable, no plugin warnings.
 
-## Where the work goes (decided 2026-10-15)
+## Updating Auric
 
-The owner's Auric source (`C:\Auric\Auric2`, private repo B6sse/Auric2) is a C++ CMake DLL
-for Battlefront 2015 with 108 known engine addresses, MinHook, a trimmed port of Kyber's
-ModLoader (three ResourceManager hooks already found in the 2015 exe), website integration
-over HTTPS, a host-side anti-cheat and a C++ launcher that injects by CreateRemoteThread.
-Everything native in the plan (mod loader, early start, anti-cheat) belongs there.
+`BassesModManager\Auric\update-auric.ps1` copies a public `Kyber.dll` (default: the local
+`x64-Release` build) into the repo after the same developer-build scan CI runs, and
+prints the hash and the Auric commit; see `BassesModManager\Auric\README.md`. Rebuild,
+commit, note the hash here. Players get the file on their next launch, with one
+administrator prompt.
 
-Early start without a Maxima-style launcher: ship Auric as a sideloaded DLL in the game
-folder, placed once by Axon's installer (which runs elevated). The game loads it at
-process start, the same way it loads Frosty's `CryptBase.dll` today, so EA's DRM has
-already been shown to tolerate this. The DLL waits for the engine to reach resource
-manager init, then hooks. With in-memory loading there is no `-dataPath`, no Frosty shim
-and no ModData at all.
+## History
 
-Axon's share afterwards: write the selected mod list to a file Auric reads, start the
-game plainly through the EA app, show status from Auric, keep the catalog/hash
-verification and the auto-update. The Frosty executor, ModPack folders, symlinks and
-the admin gate go away.
-
-## Status 2026-10-16: goal 1 done, Axon installs Auric as version.dll
-
-Auric's side is tested in the game: its `Kyber.dll`, placed in the game folder as
-`version.dll` (a static import of the game, not a KnownDLL, never touched by Frosty Mod
-Manager), is loaded at process start and starts Auric in stages as the engine comes up
-(`C:\Auric\Auric2\docs\sideload-plan.md`). Frosty's `CryptBase.dll` stays Frosty's.
-An earlier variant shipped Auric under the `CryptBase.dll` name; it worked, but Frosty
-Mod Manager overwrites that name on every launch it makes (its copy only compares
-sizes), so every switch between the tools cost an administrator prompt. `wintrust.dll`
-was tried and failed (KnownDLL by dependency), `version.dll` was the answer.
-
-Axon's part, done on this branch:
-
-- `BassesModManager\Auric\version.dll` is a copy of Auric's public build (since the
-  evening of 2026-10-16 the build of Auric commit 891eccb, sha256 `5f35faa9...`, with
-  level A and level C; the first bundle, `7714f3ae...`, had the EBX loader only and left
-  res and chunks to ModData), copied to `bin\Release\Auric\version.dll` by a content item and
-  shipped by the installer as `Auric\*`. CI refuses a developer build by scanning the
-  DLL for its command names.
-- `FrostyRuntime.InstallAuric` / `IsAuricInstalled` place and hash-check it in the game
-  folder before every launch, next to `InstallLoader` for Frosty's shim. Both need an
-  elevated run, asked for up front in `MainWindow` when either file is missing or
-  differs.
-- `LaunchMarker.Write` (called from `LaunchProgressWindow` once the Frosty runtime is up)
-  writes `%LocalAppData%\BassesModManager\auric-launch.json` right before each launch:
-  `writtenAt` (ISO-8601), `modPackPath` (`<game>\ModData\<pack>`), `mods` (file names in
-  apply order), `fbmods` (one `{ "path", "sha256" }` per mod, absolute path and lowercase
-  hex of the file on disk, same order; the hash comes from the cache the catalog check
-  already filled, so a normal launch pays nothing) and `ebxOnly` (true when every mod
-  holds only EBX resources besides its embedded icon and screenshots, read with Frosty's
-  `FrostyMod`; res, chunk or bundle changes, legacy mods and unreadable mods make it
-  false). Auric treats the file as the launch signal for ten minutes after its write
-  time and, since 2026-10-16 (tested in the game with a hand-written marker: two mods,
-  four partitions served, intro skipped, no -dataPath, no ModData), reads `fbmods` at S1
-  and serves the EBX partitions from memory, skipping a mod whose hash does not match or
-  whose profile is not `starwarsbattlefront`. Axon deletes the file when the game exits,
-  on a failed launch, at app start and at app exit, so a plain start from the EA app
-  stays vanilla.
-- The INJECT AURIC button, `DllInjector.cs` and the old `BassesModManager\Kyber.dll`
-  are gone.
-
-## Status 2026-10-16, later: Auric loads mods in memory, Axon skips ModData when it can
-
-Auric's loader is complete for what the catalog ships, tested in the game 2026-10-16 with
-the public build started from Axon: level A (EBX partitions served from memory by name)
-and level C (a virtual CAS with a rewritten `cas.cat` and a virtual `cas_21.cas` for res
-and chunk payloads, and superbundles rewritten in memory at `.toc`/`.sb` open, following
-Frosty's Modify logic in `Standard.cs`). Improved-Game-Startup and Green Dot (EBX + res +
-chunk) load with no ModData, no `-dataPath` and no Frosty executor. Auric's log,
-`%APPDATA%\Auric\auric.log`, says `[ModLoader] Mod <title> ...: N EBX partition(s) served
-from memory; R res, C chunk(s) through the virtual CAS` per mod and `X of Y mod(s) from
-auric-launch.json loaded`. Not covered yet: resources added to a bundle they were not in
-before (a non-empty `addedBundles` list) and new bundles (resources of type bundle). No
-catalog mod uses either. The Auric-side plan is `C:\Auric\Auric2\docs\memory-mod-loading-plan.md`.
-
-This is step 2 of 3 in retiring Frosty from Axon (step 1: `fbmods` in the marker; step 3:
-remove the executor once Auric handles added bundles). Axon's launch rule, in
-`MemoryLoading.cs`:
-
-- A mod is **memory-safe** when Frosty's reader opens it (new format, this game's profile)
-  and no resource is of type bundle or has a non-empty `AddedBundles` list. The answer is
-  cached per file (path, size, write time); the files are read on the verification thread
-  at start-up, which is also what brings the Frosty runtime up for the session.
-- When **every** selected mod is memory-safe, `LaunchProgressWindow` writes the marker,
-  places the two game-folder DLLs as before, and starts the game plainly
-  (`FrostyRuntime.StartGame`: the exe with no arguments, the EA app takes over; on Steam
-  the `steam://run` URL). No ModPack folder, no executor, no symlinks, no `-dataPath`, and
-  no administrator rights for a new mod combination. An empty selection starts plainly too.
-- When **at least one** is not, or the Settings switch "Use ModData (Frosty) for all mods"
-  (`ForceModData`, off by default) is on, the flow is today's: ModPack folder, executor,
-  `-dataPath`. The marker is written with `fbmods` either way.
-- The decision is one line, shown under the progress bar for the whole launch and logged
-  as a status line: `Starting without ModData: all N mods load in memory`, or
-  `Using ModData: <mod> adds resources to bundles` / `adds a bundle` /
-  `is in the legacy mod format` / `could not be read (...)` / `forced in Settings`. The
-  marker carries it as `launchDecision`, next to `usesModData` (bool) and `modPackPath`
-  (null when nothing is built), so a session can be read back afterwards.
-
-Checked headlessly 2026-10-16: all seven catalog mods are memory-safe. Tested in the game
-the same evening (owner) with Red Dot + Improved-Game-Startup, a combination no ModPack
-held: switch off gave `Starting without ModData: all 2 mods load in memory`, the exe was
-started with no arguments, ModData was untouched, Auric logged `2 EBX partition(s) served
-from memory; 1 res, 1 chunk(s) through the virtual CAS` for Red Dot and `2 of 2 mod(s)
-from auric-launch.json loaded`, intro skipped and red dot in the sight. Switch on gave
-`Using ModData: forced in Settings`, a new ModPack, `-dataPath`, and the same result in
-the game. Note: the first run of this test loaded the earlier bundle (`7714f3ae...`,
-level A only) and logged `not supported yet: 1 res, 1 chunk(s)`; the dot still showed,
-since its colour lives in the EBX, and the bundle was replaced the same evening.
-
-## Open questions
-
-1. Is Auric's source a Kyber v1 fork in C++, and which 2015 engine functions does it
-   already know?
-2. Does the 2015 engine fall back to the original `.cas` when the one referenced from
-   `ModData` is missing? (One launch test answers this.)
-3. Does `starwarsbattlefront.exe` open `.cas` files through Win32 `CreateFileW`, so a
-   redirect hook is enough? (Procmon during a launch answers this.)
+- **2026-10-15.** Feasibility notes after reading Kyber V2 (ArmchairDevelopers/Kyber,
+  GPL-3.0, `Module/Source/ModLoader`) and Frosty's executor. Kyber hooks about twenty
+  engine functions by address in Battlefront II and merges manifests in memory; for
+  Battlefront 2015 (pre-manifest Frostbite: `layout.toc`, per-superbundle `.toc`/`.sb`,
+  `cas.cat`) the reference for what has to happen in memory is Frosty's
+  `FrostyModSupport/Actions/Standard.cs`. The exe is build 1.0.7.64833 from 2017 and
+  never changed, so addresses found once hold for everyone. Decided: the native side
+  belongs in Auric (C++, already hooking this exe), Axon becomes the launcher that
+  selects mods and hands the list over. A cheaper intermediate step (Frosty's output
+  moved out of the game folder, junctions instead of symlinks) was noted and not needed.
+- **2026-10-16, goal 1.** Auric shipped as a sideloaded DLL. `CryptBase.dll` worked but
+  Frosty Mod Manager overwrites that name on every launch it makes; `wintrust.dll` is a
+  KnownDLL by dependency; `version.dll` was the answer. Axon installs it before every
+  launch when the hash differs; the INJECT AURIC button, `DllInjector.cs` and the old
+  `Kyber.dll` went away. The marker grew `fbmods` with hashes.
+- **2026-10-16, evening.** Auric's level C (virtual CAS, superbundle rewrite) tested in
+  the game. Axon's step 2: a launch rule that skipped ModData when every mod was
+  "memory-safe" (no `addedBundles`, no bundle resources), with a Settings switch to force
+  the old flow. Tested in the game with Red Dot + Improved-Game-Startup both ways; the
+  first run loaded an older bundle with the EBX loader only (`not supported yet: 1 res,
+  1 chunk(s)`), the dot still showed since its colour lives in the EBX, and the bundle
+  was replaced the same evening.
+- **2026-10-17.** Auric added the Add actions, added bundles, the toc chunk list and the
+  localization plugin, and dropped its level A (level C serves the same EBX through the
+  bundles). Axon's step 3: the launch rule, the switch, the executor, ModData, the shim,
+  the plugins and the asset cache removed; the marker trimmed to `writtenAt` + `fbmods`.
