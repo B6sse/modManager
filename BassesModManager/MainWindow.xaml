@@ -304,7 +304,7 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <!-- Action row. Just the launch: Auric rides along as the CryptBase.dll the app
+        <!-- Action row. Just the launch: Auric rides along as the version.dll the app
              places in the game folder, so there is no second step after the game is up. -->
         <Grid Grid.Row="2">
             <!-- The only tooltip it ever has says why it is out of action, and RefreshLaunchButton
@@ -408,44 +408,11 @@
                                          HorizontalAlignment="Left" VerticalAlignment="Center"
                                          Toggled="RestoreToggle_Toggled"/>
                 </Grid>
-
-                <!-- The way back if in-memory loading misbehaves for someone: on, every
-                     launch goes through Frosty's mod data folder and -dataPath as before -->
-                <Grid Margin="0,22,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="SettingControl"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
-                        <TextBlock Text="Use ModData (Frosty) for all mods" Style="{StaticResource SettingNameStyle}"/>
-                        <TextBlock Text="Off lets Auric load mods straight from the mod files when it can; on applies them through the mod data folder every time" Style="{StaticResource SettingHintStyle}"/>
-                    </StackPanel>
-                    <local:SettingToggle x:Name="ForceModDataToggle" Grid.Column="1"
-                                         Compact="True" CompactHeight="34"
-                                         HorizontalAlignment="Left" VerticalAlignment="Center"
-                                         Toggled="ForceModDataToggle_Toggled"/>
-                </Grid>
-
-                <Grid Margin="0,22,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="SettingControl"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
-                        <TextBlock Text="Mod data folder" Style="{StaticResource SettingNameStyle}"/>
-                        <TextBlock Text="Where applied mod combinations are stored" Style="{StaticResource SettingHintStyle}"/>
-                    </StackPanel>
-                    <Button Grid.Column="1" x:Name="OpenModDataButton" Content="OPEN"
-                            HorizontalAlignment="Left"
-                            Height="34" Padding="16,0"
-                            Style="{StaticResource PurpleButtonStyle}"
-                            Click="OpenModDataButton_Click"/>
-                </Grid>
             </StackPanel>
         </Grid>
 
-        <!-- Game folder view. Shown at startup only, and only while something is still
-             unsettled: no game picked yet, or its cache not built. Once past it there is
+        <!-- Game folder view. Shown at startup only, and only while no valid game folder
+             is configured. Once past it there is
              nothing left to ask, so there is no way back into it - changing an
              already-working path happens on the settings page instead. -->
         <Grid Grid.Row="0" x:Name="GameSelectView" Visibility="Collapsed">

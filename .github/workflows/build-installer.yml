@@ -70,11 +70,11 @@ jobs:
           $devMarkers = @('Teleport', 'KillPlayer', 'SetSprintSpeed', 'SetJumpHeight', 'SetPlayerHealth', 'SetPlayerVisibility', 'SetPlayerWeaponById', 'PrintTypeCount', 'DrawAuricDebug')
           $found = $devMarkers | Where-Object { $text.Contains($_) }
           if ($found) {
-            Write-Error "ThirdParty\CryptBase.dll is a developer build of Auric (found: $($found -join ', ')). Bundle the public build."
+            Write-Error "Auric\version.dll is a developer build of Auric (found: $($found -join ', ')). Bundle the public build."
             exit 1
           }
           if (-not $text.Contains('Initialized Auric')) {
-            Write-Error "ThirdParty\CryptBase.dll does not look like Auric's DLL at all."
+            Write-Error "Auric\version.dll does not look like Auric's DLL at all."
             exit 1
           }
           Write-Host "Auric DLL OK: public build, sha256 $((Get-FileHash $dll).Hash.ToLower())"

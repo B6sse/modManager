@@ -1,78 +1,44 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using Frosty.Core;
-using Frosty.ModSupport;
 
 namespace BassesModManager
 {
     /// <summary>
-    /// Modal progress window for the full launch flow: initializing the Frosty runtime,
-    /// applying the selected mods (creating the ModData folder when needed) and starting
-    /// the game. DialogResult is true when the game was launched successfully.
+    /// Modal progress window for the launch: placing Auric in the game folder, writing the
+    /// launch marker and starting the game. DialogResult is true when the game was started.
     /// </summary>
     public partial class LaunchProgressWindow : Window
     {
         private readonly string _gamePath;
         private readonly string _modsDirectory;
         private readonly string[] _modFileNames;
-        private readonly string _modPackName;
-        private readonly LaunchPlan _plan;
-        private readonly CancellationTokenSource _cancelSource = new CancellationTokenSource();
 
-        /// <param name="modPackName">The ModData folder to build or reuse; null when <paramref name="plan"/> skips ModData.</param>
-        public LaunchProgressWindow(string gamePath, string modsDirectory, string[] modFileNames, string modPackName, LaunchPlan plan)
+        public LaunchProgressWindow(string gamePath, string modsDirectory, string[] modFileNames, LaunchPlan plan)
         {
             InitializeComponent();
             _gamePath = gamePath;
             _modsDirectory = modsDirectory;
             _modFileNames = modFileNames;
-            _modPackName = modPackName;
-            _plan = plan;
 
-            // The decision stays on screen for the whole launch; the status line above it is
-            // replaced by every step the executor reports
-            Progress.HintText = plan.UseModData
-                ? plan.Reason + ". The first launch with a new mod combination takes longer."
-                : plan.Reason + ".";
+            Progress.HintText = plan.Reason + ".";
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            var logger = Progress.CreateLogger(this, barOnAnyProgress: true);
+            var logger = Progress.CreateLogger(this);
             logger.Status = "Preparing...";
 
             try
             {
-                int result = await Task.Run(() => ApplyModsAndLaunch(logger));
-
-                if (result == 0)
-                {
-                    DialogResult = true;
-                }
-                else
-                {
-                    CustomMessageBox.Show(this,
-                        "The mods could not be applied, so the game was not started.\n\n" +
-                        "Error code: " + result, "Could not apply mods");
-                    DialogResult = false;
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                DialogResult = false;
+                await Task.Run(() => PrepareAndLaunch(logger));
+                DialogResult = true;
             }
             catch (UnauthorizedAccessException)
             {
-                // Something had to be written inside the game install (a stale ModData
-                // folder Frosty decided to rebuild in place, or the loader shim), which it
-                // will not allow a non-elevated app to do. Named for what it is rather than
-                // left to the generic message below, which would have reported a permission
-                // problem as something going wrong.
+                // Auric's DLL had to be replaced inside the game install, which a non-elevated
+                // app is not allowed to do. MainWindow asks for elevation up front; this is
+                // the case where that check and the copy disagreed.
                 CustomMessageBox.Show(this,
                     "Writing to the game folder needs administrator rights. Restart the app as administrator.",
                     "Administrator needed");
@@ -81,96 +47,29 @@ namespace BassesModManager
             catch (Exception ex)
             {
                 CustomMessageBox.Show(this,
-                    "Something went wrong while applying the mods, so the game was not started.\n\n" +
-                    $"Technical details: {ex.Message}", "Could not apply mods");
+                    "Something went wrong before the game could start.\n\n" +
+                    $"Technical details: {ex.Message}", "Could not launch");
                 DialogResult = false;
             }
             Close();
         }
 
-        private int ApplyModsAndLaunch(SmoothProgressLogger logger)
+        private void PrepareAndLaunch(SmoothProgressLogger logger)
         {
-            // Frosty SDK uses relative "Caches/..." paths; they resolve via CurrentDirectory
-            Environment.CurrentDirectory = CachePathHelper.GetCacheBasePath();
-
-            string profileKey = FrostyRuntime.GetProfileKey(_gamePath);
-            FrostyRuntime.EnsureInitialized(logger, profileKey);
-            FrostyRuntime.EnsureGameRegistered(_gamePath);
-
-            CachePathHelper.EnsureCachesDirectory();
-
-            // The two game-folder files go in before anything else: without the shim the
-            // game crashes a few seconds in, whatever state ModData is in, and without
-            // Auric the game would run but nothing of Auric's would
-            FrostyRuntime.InstallLoader(_gamePath);
+            // Auric goes in first: it is the game-folder DLL that reads the marker and loads
+            // the mods, so without the current build nothing below means anything
+            logger.Status = "Preparing Auric...";
             FrostyRuntime.InstallAuric(_gamePath);
 
-            // Only the FileSystem is set up here, like FrostyModManager does. Run() builds
-            // its own ResourceManager/AssetManager, and only when the mods actually need
-            // reapplying - loading the cache here too just doubled the work every launch.
-            // No trailing separator: FileSystem adds one itself, and a second one ended up
-            // in the -dataPath handed to the game.
-            var fs = new FrostySdk.FileSystem(_gamePath);
-            foreach (var source in FrostySdk.ProfilesLibrary.Sources)
-                fs.AddSource(source.Path, source.SubDirs);
-            fs.Initialize();
-
-            _cancelSource.Token.ThrowIfCancellationRequested();
-
-            Frosty.Core.App.Logger = logger;
-
             // Auric reads this at process start, before the game's own code runs, so it has
-            // to be on disk before Run() starts the game. Written here rather than in
-            // MainWindow because the EBX-only check reads the .fbmod headers with Frosty's
-            // reader, which needs the runtime initialized first. Without the file Auric stays
-            // passive for this session, so a failure here fails the launch.
-            logger.Status = "Preparing Auric...";
-            LaunchMarker.Write(_gamePath, _modsDirectory, _modPackName, _modFileNames, _plan, logger);
-            logger.Log(_plan.Reason);
+            // to be on disk before the game is started. Without the file Auric stays passive
+            // for this session, so a failure here fails the launch.
+            LaunchMarker.Write(_gamePath, _modsDirectory, _modFileNames, logger);
 
-            if (!_plan.UseModData)
-            {
-                // Nothing of Frosty's past this point: no FileSystem, no ModPack, no executor
-                // and no platform plugin (it only exists to get -dataPath through Steam). The
-                // game reads its own files and Auric lays the mods over them from the marker.
-                FrostyRuntime.StartGame(_gamePath);
-                return 0;
-            }
-
-            // The execution actions (LaunchPlatformPlugin) find the mod folder through
-            // these two, the same way they do in Frosty Mod Manager
-            Frosty.Core.App.FileSystem = fs;
-            Frosty.Core.App.SelectedPack = _modPackName;
-            FrostyRuntime.ConfigurePlatformLaunch(_gamePath);
-
-            // rootPath is only used to resolve the mod filenames, so it's the mods folder
-            string additionalArgs = "";
-
-            // Same shape as Frosty Mod Manager's launch: the plugins' pre-launch actions,
-            // then Run() - which launches the game itself at the end - then the
-            // post-launch actions, which also run when the launch was cancelled.
-            List<ExecutionAction> actions = Frosty.Core.App.PluginManager.ExecutionActions.ToList();
-            try
-            {
-                foreach (ExecutionAction action in actions)
-                    action.PreLaunchAction(logger, PluginManagerType.ModManager, _cancelSource.Token);
-
-                var executor = new FrostyModExecutor();
-                int result = executor.Run(fs, _cancelSource.Token, logger, _modsDirectory, _modPackName, additionalArgs, silentMode: true, _modFileNames);
-
-                foreach (ExecutionAction action in actions)
-                    action.PostLaunchAction(logger, PluginManagerType.ModManager, _cancelSource.Token);
-
-                return result;
-            }
-            catch (OperationCanceledException)
-            {
-                foreach (ExecutionAction action in actions)
-                    action.PostLaunchAction(logger, PluginManagerType.ModManager, _cancelSource.Token);
-                throw;
-            }
+            // The game is started as a player would start it: no arguments, the EA app takes
+            // over. The mods ride along in memory, from the marker.
+            logger.Status = "Starting the game...";
+            FrostyRuntime.StartGame(_gamePath);
         }
-
-        private void Progress_Cancelled(object sender, EventArgs e) => _cancelSource.Cancel();
     }
 }

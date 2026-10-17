@@ -3,16 +3,20 @@ using System.IO;
 
 namespace BassesModManager
 {
+    /// <summary>
+    /// The two folders this app keeps outside its own install: one shared by all users
+    /// under ProgramData (mods, update downloads), one per user under LocalAppData (the
+    /// launch marker). Named for the asset cache it once held; the cache is gone, the paths
+    /// stayed so existing installs keep finding their files.
+    /// </summary>
     public static class CachePathHelper
     {
-        // Shared cache folder for all users: %ProgramData%\BassesModManager\Caches
+        // Shared folder for all users: %ProgramData%\BassesModManager
         public static string GetCacheBasePath()
         {
             string programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
             return Path.Combine(programData, "BassesModManager");
         }
-
-        public static string GetCacheFilePath() => Path.Combine(GetCacheBasePath(), "Caches", "starwars.cache");
 
         /// <summary>
         /// Where the mod files live. Deliberately not next to the exe: the app runs
@@ -22,13 +26,8 @@ namespace BassesModManager
         /// </summary>
         public static string GetModsPath() => Path.Combine(GetCacheBasePath(), "Mods");
 
-        /// <summary>
-        /// Where the Frosty runtime keeps its own config (manager_config.json) when running
-        /// inside this app. Frosty's default is %LocalAppData%\Frosty, which is Frosty Mod
-        /// Manager's file; this app must never read or write that, so it gets its own folder
-        /// next to the app's user settings.
-        /// </summary>
-        public static string GetFrostySettingsPath()
+        /// <summary>Per-user folder next to the app's user settings: %LocalAppData%\BassesModManager.</summary>
+        public static string GetUserDataPath()
         {
             string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             return Path.Combine(localAppData, "BassesModManager");
@@ -37,18 +36,11 @@ namespace BassesModManager
         /// <summary>
         /// The file that tells Auric (the DLL the game loads from its folder) that this app
         /// started the game, and with which mods. Auric only runs its early mode when this
-        /// file exists or -dataPath is on the command line; a plain start from the EA app has
-        /// neither and stays vanilla. Written right before a launch, removed when the game
-        /// exits, at app start and at app exit, so it never outlives the session it was for.
+        /// file exists; a plain start from the EA app has none and stays vanilla. Written
+        /// right before a launch, removed when the game exits, at app start and at app exit,
+        /// so it never outlives the session it was for.
         /// </summary>
-        public static string GetLaunchMarkerPath() => Path.Combine(GetFrostySettingsPath(), "auric-launch.json");
-
-        public static void EnsureCachesDirectory()
-        {
-            var cachesDir = Path.Combine(GetCacheBasePath(), "Caches");
-            if (!Directory.Exists(cachesDir))
-                Directory.CreateDirectory(cachesDir);
-        }
+        public static string GetLaunchMarkerPath() => Path.Combine(GetUserDataPath(), "auric-launch.json");
 
         public static void EnsureModsDirectory()
         {

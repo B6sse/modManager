@@ -9,8 +9,9 @@
         Background="Transparent" AllowsTransparency="True"
         Loaded="Window_Loaded">
     <!-- Centred on the screen rather than on an owner: MainWindow is minimized out of the
-         way before this opens, and an owned window would have gone down with it. -->
+         way before this opens, and an owned window would have gone down with it. No cancel:
+         the whole flow is a file copy, a file write and a process start. -->
     <local:ProgressPanel x:Name="Progress"
-                         ShowCancel="True" Cancelled="Progress_Cancelled"
-                         HintText="Applying mods and starting the game. The first launch with a new mod combination takes longer."/>
+                         ShowCancel="False"
+                         HintText="Starting the game with the selected mods."/>
 </Window>

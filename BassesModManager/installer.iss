@@ -10,7 +10,7 @@
 #define MyAppPublisher "Basse"
 #define MyAppExeName "BassesModManager.exe"
 
-; PayloadPath: folder that contains exe, dlls, .config, ThirdParty, Profiles (from build).
+; PayloadPath: folder that contains exe, dlls, .config, Auric and Assets (from build).
 ; Relative to script dir. CI can pass /DPayloadPath=...
 #ifndef PayloadPath
   #define PayloadPath "bin\Release"
@@ -49,14 +49,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#PayloadPath}\BassesModManager.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PayloadPath}\BassesModManager.exe.config"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PayloadPath}\*.dll"; DestDir: "{app}"; Flags: ignoreversion
-; ThirdParty (from build; required by FrostyModExecutor)
-Source: "{#PayloadPath}\ThirdParty\*"; DestDir: "{app}\ThirdParty"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
-; Profiles – only the SDK for the one game this app supports. The full Frosty set is
-; ~150 MB of SDKs for Anthem, FIFA, Madden and the rest, none of which can ever be loaded
-; here: the app hardcodes one profile and looks the SDK up by name.
-Source: "{#PayloadPath}\Profiles\StarWarsSDK.dll"; DestDir: "{app}\Profiles"; Flags: ignoreversion
-; Plugins (from build; required to apply mods whose data is in a plugin's own format)
-Source: "{#PayloadPath}\Plugins\*"; DestDir: "{app}\Plugins"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
+; No ThirdParty, Profiles or Plugins any more: the mods are applied by Auric inside the
+; game, so Frosty's executor, its shim, its SDK files and its plugins are not shipped.
 ; Mods – only the small approved ones. The Auric set is several hundred MB and is NOT
 ; bundled: it would be re-downloaded by every auto-update even for a code-only change, so
 ; the app fetches it on demand instead. Mods live under ProgramData rather than {app} so
@@ -121,7 +115,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 ; Prereqs: .NET 4.8 is bundled in Prereqs\.NET_Framework_4.8_setup.exe and installed automatically if missing.
 ; VC++ 2015-2022 Redist (x64) is bundled in Prereqs\vc_redist.x64.exe and installed automatically if missing
-; (required by the native Frosty DLLs: FrostyHash, zlibwapi, libzstd, CryptBase).
+; (required by FrostyHash.dll, the one native Frosty DLL left, and by Auric's version.dll).
 [Code]
 function IsDotNet48Installed: Boolean;
 var

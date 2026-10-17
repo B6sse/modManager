@@ -87,10 +87,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="CacheInstallWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -122,10 +118,7 @@
     <Compile Include="CustomMessageBox.xaml.cs">
       <DependentUpon>CustomMessageBox.xaml</DependentUpon>
     </Compile>
-    <Compile Include="CacheInstallWindow.xaml.cs">
-      <DependentUpon>CacheInstallWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="CacheInstallLogger.cs" />
+    <Compile Include="SmoothProgressLogger.cs" />
     <Compile Include="CachePathHelper.cs" />
     <Compile Include="FileHash.cs" />
     <Compile Include="FrostyRuntime.cs" />
@@ -166,7 +159,8 @@
          against players, and CI refuses it. FrostyRuntime.InstallAuric places it in the
          game folder as version.dll, a static import the game loads at process start, so
          Auric is in the game from the first instruction and nothing is injected later.
-         Frosty's own shim, ThirdParty\CryptBase.dll, is untouched and still placed as well. -->
+         It also takes over what Frosty's CryptBase.dll shim did (the toc signature
+         check), so that shim is no longer shipped. Update with Auric\update-auric.ps1. -->
     <Content Include="Auric\version.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -227,10 +221,6 @@
       <Project>{51d3305b-48d0-4d4c-9d64-727185420eac}</Project>
       <Name>FrostyControls</Name>
     </ProjectReference>
-    <ProjectReference Include="..\FrostyModSupport\FrostyModSupport.csproj">
-      <Project>{e703b059-36f3-4ebf-8f86-32561bc47dcb}</Project>
-      <Name>FrostyModSupport</Name>
-    </ProjectReference>
     <ProjectReference Include="..\FrostyPlugin\FrostyCore.csproj">
       <Project>{d86d23d9-db93-4d4e-b383-5022f759aba8}</Project>
       <Name>FrostyCore</Name>
@@ -240,64 +230,10 @@
       <Name>FrostySdk</Name>
     </ProjectReference>
   </ItemGroup>
-  <!-- Frosty plugins. A .fbmod can store part of its data in a plugin-specific format,
-       and only that plugin knows how to apply it - without it those assets are dropped
-       on launch. The plugins are separate projects that are deliberately not referenced:
-       PluginManager discovers the DLLs at runtime from the Plugins folder next to the
-       exe, so all this needs to do is build them and drop the output there.
-       These configurations are the ones BassesModManager.sln already maps the shared
-       Frosty libraries to, so the plugins link against the very same FrostySdk /
-       FrostyCore builds the app ships.
-       In a mod manager a plugin can contribute two things: a custom handler (needed to
-       apply a mod built with that plugin; without it the launch fails) and an execution
-       action (runs around the game start). The rest of a plugin's extension points are
-       editor-only. So this list is every plugin that registers either and applies to
-       Star Wars Battlefront:
-       - FsLocalizationPlugin / DifficultyWeaponTableDataPlugin / MeshSetPlugin: the
-         handlers the official Frosty Mod Manager release ships for this game.
-         MeshSetPlugin references SharpDX, but only its editor side touches it; the
-         handler does not, which is why FMM ships it without SharpDX too.
-       - LaunchPlatformPlugin: the Steam launch path. Steam hands the game to the EA app
-         and -dataPath does not survive that, so the plugin restarts Steam with
-         GAME_DATA_DIR set instead. LaunchProgressWindow switches it on for Steam
-         installs. -->
-
-  <PropertyGroup>
-    <FrostyPluginConfiguration Condition=" '$(Configuration)' == 'Debug' ">Developer - Debug</FrostyPluginConfiguration>
-    <FrostyPluginConfiguration Condition=" '$(FrostyPluginConfiguration)' == '' ">Release - Final</FrostyPluginConfiguration>
-    <FrostyPluginOutputPath Condition=" '$(FrostyPluginConfiguration)' == 'Developer - Debug' ">bin\Developer\Debug\</FrostyPluginOutputPath>
-    <FrostyPluginOutputPath Condition=" '$(FrostyPluginOutputPath)' == '' ">bin\Release\Final\</FrostyPluginOutputPath>
-  </PropertyGroup>
-  <ItemGroup>
-    <FrostyPluginProject Include="..\Plugins\FsLocalizationPlugin\FsLocalizationPlugin.csproj" />
-    <FrostyPluginProject Include="..\Plugins\DifficultyWeaponTableDataPlugin\DifficultyWeaponTableDataPlugin.csproj" />
-    <FrostyPluginProject Include="..\Plugins\MeshSetPlugin\MeshSetPlugin.csproj" />
-    <FrostyPluginProject Include="..\Plugins\LaunchPlatformPlugin\LaunchPlatformPlugin.csproj" />
-  </ItemGroup>
-  <!-- Hooked into the build proper rather than AfterTargets="Build": IncrementalClean
-       records @(FileWrites) partway through CoreBuild, so a copy made after the whole
-       build has finished is invisible to Clean and its files linger forever. -->
-  <Target Name="BuildFrostyPlugins" AfterTargets="CopyFilesToOutputDirectory">
-    <!-- Restore in its own pass: the plugins are SDK-style projects, and NuGet refuses to
-         restore and build a project within a single MSBuild invocation. -->
-    <MSBuild Projects="@(FrostyPluginProject)" Targets="Restore"
-             Properties="Configuration=$(FrostyPluginConfiguration);Platform=x64" />
-    <MSBuild Projects="@(FrostyPluginProject)" Targets="Build"
-             Properties="Configuration=$(FrostyPluginConfiguration);Platform=x64" />
-    <!-- Named explicitly rather than taken from the MSBuild task's TargetOutputs, which
-         comes back empty for these multi-targeting projects. Copying only the plugin
-         assembly is deliberate: a plugin's output folder also holds copies of
-         FrostySdk/FrostyCore/etc., and a second copy of those under Plugins would load as
-         separate assemblies whose types don't match the ones already in use. -->
-    <ItemGroup>
-      <FrostyPluginAssembly Include="@(FrostyPluginProject->'%(RootDir)%(Directory)$(FrostyPluginOutputPath)%(Filename).dll')" />
-    </ItemGroup>
-    <!-- Registering the copies as FileWrites is what lets Clean remove them again. Without
-         it the Plugins folder is invisible to Clean and a stale plugin DLL would survive a
-         rebuild. -->
-    <Copy SourceFiles="@(FrostyPluginAssembly)" DestinationFolder="$(OutDir)Plugins" SkipUnchangedFiles="true">
-      <Output TaskParameter="DestinationFiles" ItemName="FileWrites"/>
-    </Copy>
-  </Target>
+  <!-- What is left of Frosty: FrostyCore and FrostySdk for reading .fbmod headers
+       (MemoryLoading), FrostyControls for two controls in the progress panel and the
+       update bar. The mods themselves are applied by Auric, in the game, from the files;
+       Frosty's executor, its plugins, its asset cache and its CryptBase.dll shim are not
+       part of the app any more. -->
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

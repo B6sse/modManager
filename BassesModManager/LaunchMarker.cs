@@ -11,8 +11,7 @@ namespace BassesModManager
     /// The file Auric reads at process start, before the game's own code runs. It is both
     /// Auric's launch signal (the file's write time counts for ten minutes, so a copy left
     /// behind by a crash cannot turn a later plain start into an Auric one) and the mod list
-    /// Auric's in-memory loader serves from. Written with the Frosty runtime up, because
-    /// telling what a .fbmod contains means reading its header with Frosty's reader.
+    /// Auric's in-memory loader serves from.
     /// </summary>
     internal static class LaunchMarker
     {
@@ -20,21 +19,18 @@ namespace BassesModManager
 
         /// <summary>
         /// Writes the marker for one launch. <paramref name="modFileNames"/> is the apply
-        /// order, the same order Frosty's executor gets: a later mod overrides an earlier one.
-        /// <paramref name="modPackName"/> is null when the launch skips ModData.
+        /// order: a later mod overrides an earlier one.
         /// </summary>
-        public static void Write(string gamePath, string modsDirectory, string modPackName, string[] modFileNames, LaunchPlan plan, ILogger logger)
+        public static void Write(string gamePath, string modsDirectory, string[] modFileNames, ILogger logger)
         {
             string[] modPaths = modFileNames.Select(name => System.IO.Path.Combine(modsDirectory, name)).ToArray();
-            bool ebxOnly = MemoryLoading.AreAllEbxOnly(gamePath, modPaths);
+            bool ebxOnly = MemoryLoading.AreAllEbxOnly(modPaths);
 
             var marker = new JObject
             {
                 ["writtenAt"] = DateTime.UtcNow.ToString("o"),
-                // Null when nothing is built: Auric loads from fbmods, not from here
-                ["modPackPath"] = plan.UseModData
-                    ? (JToken)System.IO.Path.Combine(gamePath, "ModData", modPackName)
-                    : JValue.CreateNull(),
+                // Nothing is built any more; Auric loads from fbmods, not from here
+                ["modPackPath"] = JValue.CreateNull(),
                 ["mods"] = new JArray(modFileNames),
                 // Absolute paths with the hash of the file as it is on disk (cached by path,
                 // size and write time, so a normal launch pays nothing). Auric skips a mod
@@ -44,18 +40,13 @@ namespace BassesModManager
                     ["path"] = path,
                     ["sha256"] = FileHash.OfFileCached(path)
                 })),
-                ["ebxOnly"] = ebxOnly,
-                // The launch rule's verdict, kept here so a session can be read back after
-                // the fact: whether -dataPath was passed, and the line the user was shown
-                ["usesModData"] = plan.UseModData,
-                ["launchDecision"] = plan.Reason
+                ["ebxOnly"] = ebxOnly
             };
 
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path));
             File.WriteAllText(Path, marker.ToString(Formatting.Indented));
 
-            logger?.Log("Launch marker written: {0} mod(s), EBX-only: {1}, ModData: {2}",
-                modFileNames.Length, ebxOnly ? "yes" : "no", plan.UseModData ? "yes" : "no");
+            logger?.Log("Launch marker written: {0} mod(s)", modFileNames.Length);
         }
 
         /// <summary>

@@ -9,12 +9,10 @@ using System.Windows.Threading;
 namespace BassesModManager
 {
     /// <summary>
-    /// Like Frosty: spinner during read phase (Loading Catalogs, Indexing).
-    /// Progress bar only during write phase - smooth animation toward target so the bar fills gradually
-    /// even when the backend completes a phase very quickly.
-    /// Shared between the cache install window and the launch progress window; with
-    /// barOnAnyProgress the bar is shown as soon as any "progress:" message arrives
-    /// (used by the launch flow, where phases are not named "Writing to cache").
+    /// The status line, spinner and progress bar behind the progress panel. Written for
+    /// Frosty's phased loggers (spinner while reading, a smoothly animated bar while
+    /// writing, "progress:" messages); the launch flow now only ever sets the status line,
+    /// and the rest stays for whatever the panel is used for next.
     /// </summary>
     internal class SmoothProgressLogger : ILogger, INotifyPropertyChanged
     {

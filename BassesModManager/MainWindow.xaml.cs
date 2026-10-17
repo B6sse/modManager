@@ -324,14 +324,13 @@ namespace BassesModManager
         }
 
         /// <summary>
-        /// Whether anything about the game is still unsettled: no folder picked yet, or one
-        /// picked whose cache was never built. Either way the mod list has nothing it could
-        /// act on, so the game screen comes first.
+        /// Whether the game folder is still unsettled: none picked yet, or one that is not a
+        /// Battlefront install. The mod list has nothing it could act on without it, so the
+        /// game screen comes first.
         /// </summary>
         private static bool NeedsGameSetup()
         {
-            return !FrostyRuntime.IsValidBattlefrontInstall(Properties.Settings.Default.GamePath) ||
-                   !File.Exists(CachePathHelper.GetCacheFilePath());
+            return !FrostyRuntime.IsValidBattlefrontInstall(Properties.Settings.Default.GamePath);
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -702,7 +701,6 @@ namespace BassesModManager
             // page always reflects what is actually in effect
             SoundSlider.Value = Sounds.VolumePercent;
             RestoreToggle.IsOn = Properties.Settings.Default.RestoreAfterGame;
-            ForceModDataToggle.IsOn = Properties.Settings.Default.ForceModData;
             RefreshGamePathText();
 
             ShowView(View.Settings);
@@ -736,12 +734,6 @@ namespace BassesModManager
             Properties.Settings.Default.Save();
         }
 
-        private void ForceModDataToggle_Toggled(object sender, EventArgs e)
-        {
-            Properties.Settings.Default.ForceModData = ForceModDataToggle.IsOn;
-            Properties.Settings.Default.Save();
-        }
-
         private void ChangeGameButton_Click(object sender, RoutedEventArgs e)
         {
             string gamePath = PromptForGameFolder();
@@ -750,32 +742,6 @@ namespace BassesModManager
 
             SaveGamePath(gamePath);
             RefreshGamePathText();
-        }
-
-        private void OpenModDataButton_Click(object sender, RoutedEventArgs e)
-        {
-            string gamePath = Properties.Settings.Default.GamePath;
-            if (string.IsNullOrEmpty(gamePath) || !Directory.Exists(gamePath))
-            {
-                CustomMessageBox.Show(this, "Set your game folder first.", "No game folder");
-                return;
-            }
-
-            string modDataPath = Path.Combine(gamePath, "ModData");
-            if (!Directory.Exists(modDataPath))
-            {
-                CustomMessageBox.Show(this, "This folder is created the first time you launch the game.", "Nothing to open");
-                return;
-            }
-
-            try
-            {
-                Process.Start("explorer.exe", modDataPath);
-            }
-            catch (Exception ex)
-            {
-                CustomMessageBox.Show(this, $"Could not open the mod data folder.\n\nTechnical details: {ex.Message}", "Error");
-            }
         }
 
         #endregion
@@ -838,20 +804,9 @@ namespace BassesModManager
             RefreshGameList();
         }
 
-        /// <summary>
-        /// Takes the game folder as settled and moves on to the mod list, building the
-        /// asset cache on the way if this install has never had one. Staying put is the
-        /// answer to a cache that could not be built: the game screen is then still the
-        /// only place with anything to do.
-        /// </summary>
+        /// <summary>Takes the game folder as settled and moves on to the mod list.</summary>
         private void ProceedWithSelection(string gamePath)
         {
-            if (!File.Exists(CachePathHelper.GetCacheFilePath()) &&
-                !RunWindowMinimized(new CacheInstallWindow(gamePath), restoreOnSuccess: true))
-            {
-                return;
-            }
-
             EnterModsView();
         }
 
@@ -921,7 +876,6 @@ namespace BassesModManager
         private async void BeginVerifyMods()
         {
             string directory = modsDirectory;
-            string gamePath = Properties.Settings.Default.GamePath;
 
             VerificationResult verification;
             try
@@ -931,9 +885,8 @@ namespace BassesModManager
                     VerificationResult result = VerifyMods(directory);
 
                     // With the files known genuine, read what each holds so the launch button
-                    // can say on the spot whether ModData is needed. This is also what brings
-                    // the Frosty runtime up, which the launch needed anyway.
-                    MemoryLoading.Warm(gamePath, result.VerifiedFileNames.Select(name => Path.Combine(directory, name)));
+                    // has its verdict (readable, which parts a plugin would have applied) ready
+                    MemoryLoading.Warm(result.VerifiedFileNames.Select(name => Path.Combine(directory, name)));
                     return result;
                 });
             }
@@ -1120,13 +1073,12 @@ namespace BassesModManager
         }
 
         /// <param name="modFileNames">The files to apply, in apply order, relative to the mods folder.</param>
-        /// <param name="modPackName">The ModData folder for this selection; null when the plan skips ModData.</param>
-        private void ApplyModsAndLaunch(string gamePath, string[] modFileNames, string modPackName, LaunchPlan plan)
+        private void ApplyModsAndLaunch(string gamePath, string[] modFileNames, LaunchPlan plan)
         {
-            // Modal progress window runs the whole flow (Frosty init, mod patching, game
-            // launch) on a background thread and shows live status/progress. It stays down
-            // afterwards on success: the game is what the user is now looking at.
-            var launchWindow = new LaunchProgressWindow(gamePath, modsDirectory, modFileNames, modPackName, plan);
+            // Modal progress window runs the launch (Auric into the game folder, the marker,
+            // the game start) on a background thread. It stays down afterwards on success:
+            // the game is what the user is now looking at.
+            var launchWindow = new LaunchProgressWindow(gamePath, modsDirectory, modFileNames, plan);
             if (RunWindowMinimized(launchWindow, restoreOnSuccess: false))
             {
                 OnGameLaunched(gamePath);
@@ -1338,56 +1290,6 @@ namespace BassesModManager
 
         private static bool IsRunAsAdmin() => FrostyRuntime.IsElevated();
 
-        /// <summary>
-        /// The ModData folder this selection belongs in, named after a hash of the files it
-        /// applies. Returns null when the folder would have to be created and the app is not
-        /// allowed to create it.
-        /// <para>
-        /// The hash has to be taken over <see cref="ModItem.ActiveFileNames"/>, the files
-        /// that are actually applied, and not over every file the row could apply. Using all
-        /// of them made the three crosshair colours share a single folder: the app found it,
-        /// concluded nothing had to be built and let the launch through, while Frosty
-        /// compared the mods.json inside against the one colour actually selected, decided
-        /// the folder was stale and set about rebuilding it - which fails on a folder inside
-        /// the game install unless the app is elevated.
-        /// </para>
-        /// </summary>
-        private string GetModPackNameForSelection(List<ModItem> selectedMods, string gamePath)
-        {
-            // Sorted, so the identity of a combination is the set of files and not the order
-            // they happen to be applied in
-            var modNames = selectedMods.SelectMany(m => m.ActiveFileNames)
-                                      .OrderBy(n => n)
-                                      .ToArray();
-            string comboString = string.Join("|", modNames);
-            using (var sha256 = System.Security.Cryptography.SHA256.Create())
-            {
-                var hash = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(comboString));
-                string hashString = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                string modDataPath = System.IO.Path.Combine(gamePath, "ModData");
-                // Check if mod pack folder exists
-                if (System.IO.Directory.Exists(modDataPath))
-                {
-                    var existing = System.IO.Directory.GetDirectories(modDataPath, "ModPack_*_" + hashString);
-                    if (existing.Length > 0)
-                    {
-                        // Use existing folder
-                        return System.IO.Path.GetFileName(existing[0]);
-                    }
-                }
-
-                if (!IsRunAsAdmin())
-                {
-                    CustomMessageBox.Show(this, "Setting up a new mod combination needs administrator rights. Restart the app as administrator.", "Administrator needed");
-                    return null;
-                }
-                else
-                {
-                    return $"ModPack_{DateTime.Now:yyyyMMdd_HHmmss}_{hashString}";
-                }
-            }
-        }
-
         private void LaunchGameButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1415,10 +1317,8 @@ namespace BassesModManager
                     return;
                 }
 
-                // An empty selection is allowed and launches the game unmodded, the same as
-                // Frosty Mod Manager does. With nothing for Auric to load it starts plainly,
-                // unless Settings force the ModData flow, in which case the game runs from a
-                // clean patched copy rather than the original files.
+                // An empty selection is allowed and launches the game unmodded: the marker
+                // is written with no mods and Auric has nothing to lay over the game's files
                 List<ModItem> selectedMods = GetSelectedMods();
 
                 if (!StillVerified(selectedMods))
@@ -1429,18 +1329,14 @@ namespace BassesModManager
                     return;
                 }
 
-                // Frosty's shim and Auric both have to sit in the game folder, and only an
-                // elevated app can put them there. Asked up front for the same reason the
-                // ModPack folder is: a clear request beats a crash four seconds into the game.
-                if (!FrostyRuntime.IsLoaderInstalled(gamePath) || !FrostyRuntime.IsAuricInstalled(gamePath))
+                // Auric has to sit in the game folder, and only an elevated app can put it
+                // there. Asked up front: a clear request beats a launch that fails halfway.
+                if (!FrostyRuntime.IsAuricInstalled(gamePath))
                 {
-                    foreach (string source in new[] { FrostyRuntime.GetLoaderSourcePath(), FrostyRuntime.GetAuricSourcePath() })
+                    if (!File.Exists(FrostyRuntime.GetAuricSourcePath()))
                     {
-                        if (!File.Exists(source))
-                        {
-                            CustomMessageBox.Show(this, Path.GetFileName(source) + " is missing from the app folder. Reinstall the app to restore it.", "File missing");
-                            return;
-                        }
+                        CustomMessageBox.Show(this, FrostyRuntime.AuricFileName + " is missing from the app folder. Reinstall the app to restore it.", "File missing");
+                        return;
                     }
                     if (!IsRunAsAdmin())
                     {
@@ -1449,44 +1345,25 @@ namespace BassesModManager
                     }
                 }
 
-                // Pass plain filenames with the mods folder as the root, like FrostyModManager
-                // does. mods.json stores these strings verbatim and compares them to decide
-                // whether the ModData folder is still valid, so absolute paths would tie it to
-                // one install location and force a full rebuild whenever that location differs.
-                // Flattened in list order, then file order within each mod: a mod split across
-                // several files still has to go in front to back, since Frosty applies the list
-                // in order and lets later entries win.
+                // Plain filenames relative to the mods folder, flattened in list order and
+                // then file order within each mod: a mod split across several files still
+                // has to go in front to back, since Auric applies the list in order and lets
+                // later entries win.
                 string[] modFileNames = selectedMods
                     .SelectMany(m => m.ActiveFileNames)
                     .ToArray();
 
-                // Which way the mods reach the game. Auric loads them from the .fbmod files in
-                // memory when it can cover every one of them; otherwise, or when Settings
-                // insist, Frosty's ModData flow runs as before. Decided ahead of the ModPack
-                // lookup: a launch that skips ModData never needs a folder created, so it
-                // never needs administrator rights for one.
-                LaunchPlan plan = MemoryLoading.Plan(gamePath,
-                    modFileNames.Select(name => Path.Combine(modsDirectory, name)),
-                    Properties.Settings.Default.ForceModData);
+                // What Auric will make of the files: a mod it cannot read stops the launch,
+                // parts only a Frosty plugin could apply are named and then skipped
+                LaunchPlan plan = MemoryLoading.Plan(modFileNames.Select(name => Path.Combine(modsDirectory, name)));
+                if (plan.Error != null)
+                {
+                    CustomMessageBox.Show(this, plan.Error + ", so the game was not started.", "Could not read a mod");
+                    return;
+                }
                 ShowPluginWarnings(plan);
 
-                // Cache is created in CacheInstallWindow before MainWindow is shown
-                // Find or create the correct ModPack folder
-                string modPackName = null;
-                if (plan.UseModData)
-                {
-                    modPackName = GetModPackNameForSelection(selectedMods, gamePath);
-                    if (modPackName == null)
-                    {
-                        return;
-                    }
-                }
-
-                // Nothing is announced about a first run with this combination. It takes
-                // longer and a console window flashes past, but the progress window is
-                // already saying what is happening, and a dialog in front of it only stood
-                // between the user and the launch they had just asked for.
-                ApplyModsAndLaunch(gamePath, modFileNames, modPackName, plan);
+                ApplyModsAndLaunch(gamePath, modFileNames, plan);
             }
             catch (Exception ex)
             {
