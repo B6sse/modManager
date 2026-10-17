@@ -123,7 +123,7 @@ was tried and failed (KnownDLL by dependency), `version.dll` was the answer.
 Axon's part, done on this branch:
 
 - `BassesModManager\Auric\version.dll` is a copy of Auric's public build (1.4.0, sha256
-  `925be706...`), copied to `bin\Release\Auric\version.dll` by a content item and
+  `7714f3ae...`, the first public build with the marker-based EBX loader), copied to `bin\Release\Auric\version.dll` by a content item and
   shipped by the installer as `Auric\*`. CI refuses a developer build by scanning the
   DLL for its command names.
 - `FrostyRuntime.InstallAuric` / `IsAuricInstalled` place and hash-check it in the game
