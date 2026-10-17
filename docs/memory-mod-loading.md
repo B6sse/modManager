@@ -50,8 +50,10 @@ headers, `FrostyControls` for two controls in the progress panel and the update 
 
 ## What Auric supports, and what it does not
 
-Auric (build of commit `722723e` from 2026-10-17 01:18, bundled the same night, sha256
-`50f820f2...`) loads from the `.fbmod` files:
+Auric (build of commit `71cf0e5` from 2026-10-17, sha256 `db3d9f2b...`; it frees the
+`.fbmod` file buffers once the virtual CAS is built, logged as `[ModLoader] N MB of
+.fbmod file buffers freed`, tested in the game 2026-10-17 15:07 with the five-mod set,
+562 MB freed, same lines as before, no warnings) loads from the `.fbmod` files:
 
 - EBX, res and chunks that replace existing ones, served through a virtual CAS (a
   rewritten `cas.cat` and a virtual `cas_NN.cas`) and superbundles rewritten in memory
