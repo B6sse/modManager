@@ -50,27 +50,30 @@ headers, `FrostyControls` for two controls in the progress panel and the update 
 
 ## What Auric supports, and what it does not
 
-Auric (build of commit `cdca9ee`, bundled 2026-10-17, sha256 `3f11e287...`) loads from
-the `.fbmod` files:
+Auric (build of commit `722723e` from 2026-10-17 01:18, bundled the same night, sha256
+`50f820f2...`) loads from the `.fbmod` files:
 
-- EBX, res and chunks, served through a virtual CAS (a rewritten `cas.cat` and a virtual
-  `cas_NN.cas`) and superbundles rewritten in memory when the engine opens their
-  `.toc`/`.sb`, following Frosty's `Standard.cs` Modify logic.
-- Resources added to bundles they were not in before (`addedBundles`), whole new bundles
-  (`.fbmod` bundle resources) and the chunk list of `Win32/chunks0.toc`, following
-  Frosty's Add actions.
+- EBX, res and chunks that replace existing ones, served through a virtual CAS (a
+  rewritten `cas.cat` and a virtual `cas_NN.cas`) and superbundles rewritten in memory
+  when the engine opens their `.toc`/`.sb`, following Frosty's `Standard.cs` Modify
+  logic. Tested in the game 2026-10-16 (Red Dot, Improved-Game-Startup).
+- Resources added to bundles they were not in before (`addedBundles`) and the chunk list
+  of `Win32/chunks0.toc`, following Frosty's Add actions. Tested in the game 2026-10-17
+  with the Axion set (axonmod p1/p2/p3: new weapons with the right meshes). The first
+  bundled build with add actions (`cdca9ee`, `3f11e287...`) crashed the game with the
+  set: a mesh has an ebx and a res under one name, the res overwrote the ebx in the
+  registry and the added meshes never loaded; `722723e` keeps them apart.
 - The localization plugin's text changes (handler `0xDECFF314`, Frosty's Fnv1 of
-  `fsuitextdatabase`): Auric merges them into the language's text chunk itself.
+  `fsuitextdatabase`): Auric merges them into the language's text chunk itself. Tested
+  in the game 2026-10-17 with the Axion set.
+
+Written but untested: whole new bundles (`.fbmod` bundle resources); no mod has one.
 
 Not supported: resources of any other Frosty plugin (ShaderBlockDepot from the MeshSet
 plugin, DifficultyWeaponTableData). Auric skips them with a log line; Axon warns before
 the launch (`<mod> uses a Frosty plugin for <resource>, that part is not loaded`). No
-catalog mod has any today: the Auric set (axonmod p1/p2/p3) holds EBX, res, chunks, 151
-resources added to bundles and one localization resource per part.
-
-Tested in the game: Red Dot and Improved-Game-Startup (EBX, res, chunk) without ModData
-on 2026-10-16. Not yet tested in the game as of this writing: the add actions and the
-localization merge; the Auric set is the test for both.
+catalog mod has any today: the Axion set holds EBX, res, chunks, 151 resources added to
+bundles and one localization resource per part.
 
 ## How to test
 
@@ -86,13 +89,18 @@ localization merge; the Auric set is the test for both.
    `==== Auric ... loaded: early (auric-launch.json present)`, one Info line per mod
    `[ModLoader] Mod <title>: N EBX, R res, C chunk(s) served from memory[; A of them
    added to bundles][; B new bundle(s)][; S set(s) of text changes merged]`, then
-   `[ModLoader] X of Y mod(s) from auric-launch.json loaded`. For the Auric set expect
-   `Mod axionmod p1 ...: 163 EBX, 20 res, 50 chunk(s) served from memory; 150 of them
-   added to bundles; 1 set(s) of text changes merged`, `[Localization] en: 37 string(s)
-   from axionmod p1, axionmod p2 merged into the game's text (35 new, 2 changed; chunk
-   319869 -> 322267 bytes)` and `[BundlePatcher]` lines for `weapons.toc`, `globals.toc`,
-   `chunks0.toc` and `loc/en.toc`. A skipped plugin resource shows up as
-   `N resource(s) need a Frosty plugin, skipped`.
+   `[ModLoader] X of Y mod(s) from auric-launch.json loaded`. For the Axion set expect
+   `Mod axionmod p1 ...: 162 EBX, 20 res, 50 chunk(s) served from memory; 150 of them
+   added to bundles; 1 set(s) of text changes merged` (162, not 163: the localization
+   EBX is counted under text changes), `[Localization] en: 37 string(s) from axionmod
+   p1, axionmod p2 merged into the game's text (35 new, 2 changed; chunk 319869 ->
+   322267 bytes)` and, as the game opens them, `[BundlePatcher]` Info lines for
+   `globals`, `chunks0`, `loc/en`, `frontend`, `weapons` and `characters`. No Warning
+   lines from `[ModLoader]`, `[BundlePatcher]`, `[VirtualCas]` or `[Localization]`. A
+   skipped plugin resource shows up as `N resource(s) need a Frosty plugin, skipped`.
+   A hard crash leaves no `Unloading` line; Windows Error Reporting (Application log,
+   `Application Error`) then has the faulting offset in the exe, image base
+   `0x140000000`.
 5. In the game: Improved-Game-Startup skips the intro, the crosshair dot has the chosen
    colour, the Auric set's new weapons have their names (the localization merge).
 
@@ -137,3 +145,7 @@ administrator prompt.
   localization plugin, and dropped its level A (level C serves the same EBX through the
   bundles). Axon's step 3: the launch rule, the switch, the executor, ModData, the shim,
   the plugins and the asset cache removed; the marker trimmed to `writtenAt` + `fbmods`.
+  The first launch of the Axion set through this flow crashed the game ten seconds after
+  Auric's init (access violation at `0x143E97384`, no Warning in Auric's log); isolated
+  on the Auric side to a mesh's res overwriting its ebx in the registry, fixed in
+  `722723e`, which also logs the superbundle and localization lines at Info.
