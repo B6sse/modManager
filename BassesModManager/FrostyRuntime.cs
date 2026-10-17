@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -268,6 +269,30 @@ namespace BassesModManager
             bool steam = IsSteamInstall(gamePath);
             Config.Add("PlatformLaunchingEnabled", steam, ConfigScope.Game);
             Config.Add("Platform", steam ? "Steam" : "Origin", ConfigScope.Game);
+        }
+
+        /// <summary>
+        /// Starts the game the way a player would, with no arguments: the exe hands itself
+        /// to the EA app, which starts the real game process, and on Steam the run URL does
+        /// the same through Steam (the two roads Frosty's executor takes too, minus
+        /// -dataPath). The game then reads its own files, and Auric, loaded with it as
+        /// version.dll, lays the mods from the launch marker over them in memory.
+        /// </summary>
+        public static void StartGame(string gamePath)
+        {
+            if (IsSteamInstall(gamePath))
+            {
+                string steamAppId = File.ReadLines(Path.Combine(gamePath, "steam_appid.txt")).First().Trim();
+                using (Process.Start(new ProcessStartInfo("steam://run/" + steamAppId) { UseShellExecute = true }))
+                {
+                }
+                return;
+            }
+
+            string exe = Path.Combine(gamePath, GetProfileKey(gamePath) + ".exe");
+            using (Process.Start(new ProcessStartInfo(exe) { WorkingDirectory = gamePath, UseShellExecute = false }))
+            {
+            }
         }
     }
 }

@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Frosty.Core.Mod;
 using FrostySdk.Interfaces;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -23,16 +21,20 @@ namespace BassesModManager
         /// <summary>
         /// Writes the marker for one launch. <paramref name="modFileNames"/> is the apply
         /// order, the same order Frosty's executor gets: a later mod overrides an earlier one.
+        /// <paramref name="modPackName"/> is null when the launch skips ModData.
         /// </summary>
-        public static void Write(string gamePath, string modsDirectory, string modPackName, string[] modFileNames, ILogger logger)
+        public static void Write(string gamePath, string modsDirectory, string modPackName, string[] modFileNames, LaunchPlan plan, ILogger logger)
         {
             string[] modPaths = modFileNames.Select(name => System.IO.Path.Combine(modsDirectory, name)).ToArray();
-            bool ebxOnly = AreAllEbxOnly(modPaths, logger);
+            bool ebxOnly = MemoryLoading.AreAllEbxOnly(gamePath, modPaths);
 
             var marker = new JObject
             {
                 ["writtenAt"] = DateTime.UtcNow.ToString("o"),
-                ["modPackPath"] = System.IO.Path.Combine(gamePath, "ModData", modPackName),
+                // Null when nothing is built: Auric loads from fbmods, not from here
+                ["modPackPath"] = plan.UseModData
+                    ? (JToken)System.IO.Path.Combine(gamePath, "ModData", modPackName)
+                    : JValue.CreateNull(),
                 ["mods"] = new JArray(modFileNames),
                 // Absolute paths with the hash of the file as it is on disk (cached by path,
                 // size and write time, so a normal launch pays nothing). Auric skips a mod
@@ -42,15 +44,18 @@ namespace BassesModManager
                     ["path"] = path,
                     ["sha256"] = FileHash.OfFileCached(path)
                 })),
-                // Groundwork: a launch whose mods only touch EBX could one day skip ModData
-                // and -dataPath altogether, since Auric already serves EBX from memory
-                ["ebxOnly"] = ebxOnly
+                ["ebxOnly"] = ebxOnly,
+                // The launch rule's verdict, kept here so a session can be read back after
+                // the fact: whether -dataPath was passed, and the line the user was shown
+                ["usesModData"] = plan.UseModData,
+                ["launchDecision"] = plan.Reason
             };
 
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path));
             File.WriteAllText(Path, marker.ToString(Formatting.Indented));
 
-            logger?.Log("Launch marker written: {0} mod(s), EBX-only: {1}", modFileNames.Length, ebxOnly ? "yes" : "no");
+            logger?.Log("Launch marker written: {0} mod(s), EBX-only: {1}, ModData: {2}",
+                modFileNames.Length, ebxOnly ? "yes" : "no", plan.UseModData ? "yes" : "no");
         }
 
         /// <summary>
@@ -66,47 +71,6 @@ namespace BassesModManager
             catch
             {
             }
-        }
-
-        /// <summary>
-        /// True when every mod consists of EBX resources only (icons and screenshots are
-        /// embedded data and do not count). Res, chunk or bundle changes make it false, as
-        /// does a mod Frosty's reader cannot open: unknown content is not EBX-only. Needs the
-        /// Frosty runtime initialized, since the reader checks the mod's game profile.
-        /// </summary>
-        public static bool AreAllEbxOnly(IEnumerable<string> modPaths, ILogger logger)
-        {
-            bool all = true;
-            foreach (string path in modPaths)
-            {
-                try
-                {
-                    var mod = new FrostyMod(path);
-                    if (!mod.NewFormat)
-                    {
-                        logger?.LogWarning("{0}: legacy mod format, not EBX-only", System.IO.Path.GetFileName(path));
-                        all = false;
-                        continue;
-                    }
-
-                    var other = mod.Resources
-                        .Where(r => r.Type != ModResourceType.Ebx && r.Type != ModResourceType.Embedded)
-                        .Select(r => r.Type)
-                        .Distinct()
-                        .ToList();
-                    if (other.Count > 0)
-                    {
-                        logger?.Log("{0}: not EBX-only ({1})", System.IO.Path.GetFileName(path), string.Join(", ", other));
-                        all = false;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger?.LogWarning("{0}: could not read mod ({1}), not EBX-only", System.IO.Path.GetFileName(path), ex.Message);
-                    all = false;
-                }
-            }
-            return all;
         }
     }
 }

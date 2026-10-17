@@ -21,15 +21,24 @@ namespace BassesModManager
         private readonly string _modsDirectory;
         private readonly string[] _modFileNames;
         private readonly string _modPackName;
+        private readonly LaunchPlan _plan;
         private readonly CancellationTokenSource _cancelSource = new CancellationTokenSource();
 
-        public LaunchProgressWindow(string gamePath, string modsDirectory, string[] modFileNames, string modPackName)
+        /// <param name="modPackName">The ModData folder to build or reuse; null when <paramref name="plan"/> skips ModData.</param>
+        public LaunchProgressWindow(string gamePath, string modsDirectory, string[] modFileNames, string modPackName, LaunchPlan plan)
         {
             InitializeComponent();
             _gamePath = gamePath;
             _modsDirectory = modsDirectory;
             _modFileNames = modFileNames;
             _modPackName = modPackName;
+            _plan = plan;
+
+            // The decision stays on screen for the whole launch; the status line above it is
+            // replaced by every step the executor reports
+            Progress.HintText = plan.UseModData
+                ? plan.Reason + ". The first launch with a new mod combination takes longer."
+                : plan.Reason + ".";
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -116,7 +125,17 @@ namespace BassesModManager
             // reader, which needs the runtime initialized first. Without the file Auric stays
             // passive for this session, so a failure here fails the launch.
             logger.Status = "Preparing Auric...";
-            LaunchMarker.Write(_gamePath, _modsDirectory, _modPackName, _modFileNames, logger);
+            LaunchMarker.Write(_gamePath, _modsDirectory, _modPackName, _modFileNames, _plan, logger);
+            logger.Log(_plan.Reason);
+
+            if (!_plan.UseModData)
+            {
+                // Nothing of Frosty's past this point: no FileSystem, no ModPack, no executor
+                // and no platform plugin (it only exists to get -dataPath through Steam). The
+                // game reads its own files and Auric lays the mods over them from the marker.
+                FrostyRuntime.StartGame(_gamePath);
+                return 0;
+            }
 
             // The execution actions (LaunchPlatformPlugin) find the mod folder through
             // these two, the same way they do in Frosty Mod Manager

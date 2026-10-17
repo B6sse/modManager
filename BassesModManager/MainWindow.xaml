@@ -409,6 +409,23 @@
                                          Toggled="RestoreToggle_Toggled"/>
                 </Grid>
 
+                <!-- The way back if in-memory loading misbehaves for someone: on, every
+                     launch goes through Frosty's mod data folder and -dataPath as before -->
+                <Grid Margin="0,22,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="SettingControl"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
+                        <TextBlock Text="Use ModData (Frosty) for all mods" Style="{StaticResource SettingNameStyle}"/>
+                        <TextBlock Text="Off lets Auric load mods straight from the mod files when it can; on applies them through the mod data folder every time" Style="{StaticResource SettingHintStyle}"/>
+                    </StackPanel>
+                    <local:SettingToggle x:Name="ForceModDataToggle" Grid.Column="1"
+                                         Compact="True" CompactHeight="34"
+                                         HorizontalAlignment="Left" VerticalAlignment="Center"
+                                         Toggled="ForceModDataToggle_Toggled"/>
+                </Grid>
+
                 <Grid Margin="0,22,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>

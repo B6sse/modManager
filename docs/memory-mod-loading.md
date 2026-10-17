@@ -122,8 +122,10 @@ was tried and failed (KnownDLL by dependency), `version.dll` was the answer.
 
 Axon's part, done on this branch:
 
-- `BassesModManager\Auric\version.dll` is a copy of Auric's public build (1.4.0, sha256
-  `7714f3ae...`, the first public build with the marker-based EBX loader), copied to `bin\Release\Auric\version.dll` by a content item and
+- `BassesModManager\Auric\version.dll` is a copy of Auric's public build (since the
+  evening of 2026-10-16 the build of Auric commit 891eccb, sha256 `5f35faa9...`, with
+  level A and level C; the first bundle, `7714f3ae...`, had the EBX loader only and left
+  res and chunks to ModData), copied to `bin\Release\Auric\version.dll` by a content item and
   shipped by the installer as `Auric\*`. CI refuses a developer build by scanning the
   DLL for its command names.
 - `FrostyRuntime.InstallAuric` / `IsAuricInstalled` place and hash-check it in the game
@@ -144,17 +146,57 @@ Axon's part, done on this branch:
   and serves the EBX partitions from memory, skipping a mod whose hash does not match or
   whose profile is not `starwarsbattlefront`. Axon deletes the file when the game exits,
   on a failed launch, at app start and at app exit, so a plain start from the EA app
-  stays vanilla. The launch itself still builds ModData and passes `-dataPath`: Auric
-  serves EBX only so far (res, chunks and new bundles come later), and the same EBX in
-  ModData and in memory are the same bytes. `ebxOnly` is the groundwork for letting such
-  launches skip ModData once Auric covers the rest.
+  stays vanilla.
 - The INJECT AURIC button, `DllInjector.cs` and the old `BassesModManager\Kyber.dll`
-  are gone. The launch itself is unchanged: `-dataPath` to a ModPack built by Frosty's
-  executor.
+  are gone.
 
-Still open on the Auric side for goal 2: the three ModLoader hooks from K.dll log nothing
-even when installed before the engine starts, so the real ResourceManager addresses in
-this exe have to be found before in-memory loading can begin.
+## Status 2026-10-16, later: Auric loads mods in memory, Axon skips ModData when it can
+
+Auric's loader is complete for what the catalog ships, tested in the game 2026-10-16 with
+the public build started from Axon: level A (EBX partitions served from memory by name)
+and level C (a virtual CAS with a rewritten `cas.cat` and a virtual `cas_21.cas` for res
+and chunk payloads, and superbundles rewritten in memory at `.toc`/`.sb` open, following
+Frosty's Modify logic in `Standard.cs`). Improved-Game-Startup and Green Dot (EBX + res +
+chunk) load with no ModData, no `-dataPath` and no Frosty executor. Auric's log,
+`%APPDATA%\Auric\auric.log`, says `[ModLoader] Mod <title> ...: N EBX partition(s) served
+from memory; R res, C chunk(s) through the virtual CAS` per mod and `X of Y mod(s) from
+auric-launch.json loaded`. Not covered yet: resources added to a bundle they were not in
+before (a non-empty `addedBundles` list) and new bundles (resources of type bundle). No
+catalog mod uses either. The Auric-side plan is `C:\Auric\Auric2\docs\memory-mod-loading-plan.md`.
+
+This is step 2 of 3 in retiring Frosty from Axon (step 1: `fbmods` in the marker; step 3:
+remove the executor once Auric handles added bundles). Axon's launch rule, in
+`MemoryLoading.cs`:
+
+- A mod is **memory-safe** when Frosty's reader opens it (new format, this game's profile)
+  and no resource is of type bundle or has a non-empty `AddedBundles` list. The answer is
+  cached per file (path, size, write time); the files are read on the verification thread
+  at start-up, which is also what brings the Frosty runtime up for the session.
+- When **every** selected mod is memory-safe, `LaunchProgressWindow` writes the marker,
+  places the two game-folder DLLs as before, and starts the game plainly
+  (`FrostyRuntime.StartGame`: the exe with no arguments, the EA app takes over; on Steam
+  the `steam://run` URL). No ModPack folder, no executor, no symlinks, no `-dataPath`, and
+  no administrator rights for a new mod combination. An empty selection starts plainly too.
+- When **at least one** is not, or the Settings switch "Use ModData (Frosty) for all mods"
+  (`ForceModData`, off by default) is on, the flow is today's: ModPack folder, executor,
+  `-dataPath`. The marker is written with `fbmods` either way.
+- The decision is one line, shown under the progress bar for the whole launch and logged
+  as a status line: `Starting without ModData: all N mods load in memory`, or
+  `Using ModData: <mod> adds resources to bundles` / `adds a bundle` /
+  `is in the legacy mod format` / `could not be read (...)` / `forced in Settings`. The
+  marker carries it as `launchDecision`, next to `usesModData` (bool) and `modPackPath`
+  (null when nothing is built), so a session can be read back afterwards.
+
+Checked headlessly 2026-10-16: all seven catalog mods are memory-safe. Tested in the game
+the same evening (owner) with Red Dot + Improved-Game-Startup, a combination no ModPack
+held: switch off gave `Starting without ModData: all 2 mods load in memory`, the exe was
+started with no arguments, ModData was untouched, Auric logged `2 EBX partition(s) served
+from memory; 1 res, 1 chunk(s) through the virtual CAS` for Red Dot and `2 of 2 mod(s)
+from auric-launch.json loaded`, intro skipped and red dot in the sight. Switch on gave
+`Using ModData: forced in Settings`, a new ModPack, `-dataPath`, and the same result in
+the game. Note: the first run of this test loaded the earlier bundle (`7714f3ae...`,
+level A only) and logged `not supported yet: 1 res, 1 chunk(s)`; the dot still showed,
+since its colour lives in the EBX, and the bundle was replaced the same evening.
 
 ## Open questions
 

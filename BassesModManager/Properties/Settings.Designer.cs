@@ -139,5 +139,21 @@ namespace BassesModManager.Properties {
                 this["EnabledMods"] = value;
             }
         }
+
+        /// <summary>
+        /// Sends every launch through Frosty's ModData flow, even one Auric could load in
+        /// memory. Off by default; the way back if in-memory loading misbehaves.
+        /// </summary>
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ForceModData {
+            get {
+                return ((bool)(this["ForceModData"]));
+            }
+            set {
+                this["ForceModData"] = value;
+            }
+        }
     }
 }
