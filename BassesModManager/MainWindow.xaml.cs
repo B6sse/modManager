@@ -1090,6 +1090,35 @@ namespace BassesModManager
             return result;
         }
 
+        /// <summary>The warning text last shown, so the same selection does not raise the same dialog on every launch.</summary>
+        private string lastPluginWarning;
+
+        /// <summary>
+        /// Tells the user which parts of the selection Auric will skip (resources that only a
+        /// Frosty plugin could apply). Informational: the launch goes ahead after OK. Shown
+        /// once per distinct set, since a player who keeps the same mods on would otherwise
+        /// read the same dialog before every single game.
+        /// </summary>
+        private void ShowPluginWarnings(LaunchPlan plan)
+        {
+            if (plan.Warnings.Count == 0)
+                return;
+
+            const int maxLines = 8;
+            IEnumerable<string> lines = plan.Warnings.Take(maxLines);
+            if (plan.Warnings.Count > maxLines)
+                lines = lines.Concat(new[] { "... and " + (plan.Warnings.Count - maxLines) + " more" });
+            string text = string.Join("\n", lines);
+
+            if (text == lastPluginWarning)
+                return;
+            lastPluginWarning = text;
+
+            CustomMessageBox.Show(this,
+                text + "\n\nThe game starts with the rest of the mods as usual.",
+                "Some parts will not load");
+        }
+
         /// <param name="modFileNames">The files to apply, in apply order, relative to the mods folder.</param>
         /// <param name="modPackName">The ModData folder for this selection; null when the plan skips ModData.</param>
         private void ApplyModsAndLaunch(string gamePath, string[] modFileNames, string modPackName, LaunchPlan plan)
@@ -1439,6 +1468,7 @@ namespace BassesModManager
                 LaunchPlan plan = MemoryLoading.Plan(gamePath,
                     modFileNames.Select(name => Path.Combine(modsDirectory, name)),
                     Properties.Settings.Default.ForceModData);
+                ShowPluginWarnings(plan);
 
                 // Cache is created in CacheInstallWindow before MainWindow is shown
                 // Find or create the correct ModPack folder

@@ -10,12 +10,17 @@ namespace BassesModManager
 {
     /// <summary>
     /// Decides how a launch gets its mods into the game. Auric opens the .fbmod files the
-    /// launch marker lists and serves their EBX, res and chunks from memory, so a launch it
-    /// covers in full needs no ModData folder, no Frosty executor and no -dataPath. What it
-    /// does not cover yet is anything that changes the bundle layout: a resource added to a
-    /// bundle it was not in before (a non-empty addedBundles list) and whole new bundles
-    /// (bundle resources). One such mod in the selection sends the launch through ModData,
-    /// as does the switch in Settings that forces it.
+    /// launch marker lists and serves everything from memory: EBX, res and chunks, resources
+    /// added to bundles they were not in before, whole new bundles, the chunk superbundle's
+    /// toc list, and the localization plugin's text changes (which Auric merges itself). So a
+    /// launch Auric covers needs no ModData folder, no Frosty executor and no -dataPath.
+    /// What sends a launch through ModData is a mod Frosty's reader cannot open at all (legacy
+    /// format, another game, a damaged file) or the switch in Settings that forces it.
+    /// <para>
+    /// A resource with any other handler hash is a Frosty plugin's private data (shader block
+    /// depots from the MeshSet plugin, difficulty weapon tables): Auric skips those with a
+    /// log line, and the launch goes ahead with a warning naming them.
+    /// </para>
     /// <para>
     /// Reading a .fbmod goes through Frosty's reader, which checks the mod's game profile
     /// and therefore needs the Frosty runtime up; the answer is cached per file (path,
@@ -24,6 +29,12 @@ namespace BassesModManager
     /// </summary>
     internal static class MemoryLoading
     {
+        /// <summary>
+        /// Frosty's Fnv1 of "fsuitextdatabase": the localization plugin's handler. Its payload
+        /// is text changes, which Auric applies itself; every other handler is skipped.
+        /// </summary>
+        private const uint LocalizationHandler = 0xDECFF314;
+
         private static readonly object cacheLock = new object();
         private static readonly Dictionary<string, CacheEntry> cache =
             new Dictionary<string, CacheEntry>(StringComparer.OrdinalIgnoreCase);
@@ -43,6 +54,9 @@ namespace BassesModManager
 
             /// <summary>True when the mod holds nothing but EBX besides its embedded icon and screenshots.</summary>
             public bool EbxOnly;
+
+            /// <summary>Names of the resources that belong to a Frosty plugin Auric does not do; Auric skips them.</summary>
+            public List<string> PluginResources = new List<string>();
         }
 
         /// <summary>
@@ -54,19 +68,24 @@ namespace BassesModManager
             string[] paths = modPaths.ToArray();
 
             if (forceModData)
-                return new LaunchPlan(useModData: true, "Using ModData: forced in Settings");
+                return new LaunchPlan(useModData: true, "Using ModData: forced in Settings", new List<string>());
 
+            var warnings = new List<string>();
             foreach (string path in paths)
             {
-                string blocker = Inspect(gamePath, path).MemoryBlocker;
-                if (blocker != null)
-                    return new LaunchPlan(useModData: true, "Using ModData: " + Path.GetFileNameWithoutExtension(path) + " " + blocker);
+                ModContents contents = Inspect(gamePath, path);
+                string modName = Path.GetFileNameWithoutExtension(path);
+                if (contents.MemoryBlocker != null)
+                    return new LaunchPlan(useModData: true, "Using ModData: " + modName + " " + contents.MemoryBlocker, new List<string>());
+
+                foreach (string resource in contents.PluginResources)
+                    warnings.Add(modName + " uses a Frosty plugin for " + resource + ", that part is not loaded");
             }
 
             string reason = paths.Length == 0 ? "no mods selected"
                 : paths.Length == 1 ? "1 mod loads in memory"
                 : "all " + paths.Length + " mods load in memory";
-            return new LaunchPlan(useModData: false, "Starting without ModData: " + reason);
+            return new LaunchPlan(useModData: false, "Starting without ModData: " + reason, warnings);
         }
 
         /// <summary>True when every mod consists of EBX resources only (icons and screenshots do not count).</summary>
@@ -144,16 +163,8 @@ namespace BassesModManager
 
                 foreach (BaseModResource resource in mod.Resources)
                 {
-                    if (resource.Type == ModResourceType.Bundle)
-                    {
-                        contents.MemoryBlocker = "adds a bundle";
-                        return contents;
-                    }
-                    if (resource.AddedBundles.Any())
-                    {
-                        contents.MemoryBlocker = "adds resources to bundles";
-                        return contents;
-                    }
+                    if (resource.HasHandler && (uint)resource.Handler != LocalizationHandler)
+                        contents.PluginResources.Add(resource.Name);
                 }
             }
             catch (Exception ex)
@@ -180,13 +191,14 @@ namespace BassesModManager
         }
     }
 
-    /// <summary>What one launch does about ModData, and the one line that says why.</summary>
+    /// <summary>What one launch does about ModData, the one line that says why, and what the user should hear first.</summary>
     public sealed class LaunchPlan
     {
-        public LaunchPlan(bool useModData, string reason)
+        public LaunchPlan(bool useModData, string reason, List<string> warnings)
         {
             UseModData = useModData;
             Reason = reason;
+            Warnings = warnings;
         }
 
         /// <summary>True for the Frosty flow: ModPack folder, executor, -dataPath. False starts the game plainly.</summary>
@@ -194,5 +206,11 @@ namespace BassesModManager
 
         /// <summary>"Starting without ModData: ..." or "Using ModData: ...", for the status line and the marker.</summary>
         public string Reason { get; }
+
+        /// <summary>
+        /// One line per resource a Frosty plugin would have applied and Auric skips. Shown to
+        /// the user before the launch; it goes ahead regardless.
+        /// </summary>
+        public List<string> Warnings { get; }
     }
 }
