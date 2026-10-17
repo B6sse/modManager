@@ -11,7 +11,7 @@ namespace BassesModManager
     /// The file Auric reads at process start, before the game's own code runs. It is both
     /// Auric's launch signal (the file's write time counts for ten minutes, so a copy left
     /// behind by a crash cannot turn a later plain start into an Auric one) and the mod list
-    /// Auric's in-memory loader serves from.
+    /// its loader serves from: <c>writtenAt</c> and <c>fbmods</c>, nothing else.
     /// </summary>
     internal static class LaunchMarker
     {
@@ -21,26 +21,23 @@ namespace BassesModManager
         /// Writes the marker for one launch. <paramref name="modFileNames"/> is the apply
         /// order: a later mod overrides an earlier one.
         /// </summary>
-        public static void Write(string gamePath, string modsDirectory, string[] modFileNames, ILogger logger)
+        public static void Write(string modsDirectory, string[] modFileNames, ILogger logger)
         {
-            string[] modPaths = modFileNames.Select(name => System.IO.Path.Combine(modsDirectory, name)).ToArray();
-            bool ebxOnly = MemoryLoading.AreAllEbxOnly(modPaths);
-
             var marker = new JObject
             {
                 ["writtenAt"] = DateTime.UtcNow.ToString("o"),
-                // Nothing is built any more; Auric loads from fbmods, not from here
-                ["modPackPath"] = JValue.CreateNull(),
-                ["mods"] = new JArray(modFileNames),
                 // Absolute paths with the hash of the file as it is on disk (cached by path,
                 // size and write time, so a normal launch pays nothing). Auric skips a mod
                 // whose file no longer hashes to this.
-                ["fbmods"] = new JArray(modPaths.Select(path => new JObject
+                ["fbmods"] = new JArray(modFileNames.Select(name =>
                 {
-                    ["path"] = path,
-                    ["sha256"] = FileHash.OfFileCached(path)
-                })),
-                ["ebxOnly"] = ebxOnly
+                    string path = System.IO.Path.Combine(modsDirectory, name);
+                    return new JObject
+                    {
+                        ["path"] = path,
+                        ["sha256"] = FileHash.OfFileCached(path)
+                    };
+                }))
             };
 
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path));

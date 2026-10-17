@@ -48,9 +48,6 @@ namespace BassesModManager
             /// <summary>Null when Auric can read the mod; otherwise why not, as a predicate on the mod's name.</summary>
             public string Error;
 
-            /// <summary>True when the mod holds nothing but EBX besides its embedded icon and screenshots.</summary>
-            public bool EbxOnly;
-
             /// <summary>Names of the resources that belong to a Frosty plugin Auric does not do; Auric skips them.</summary>
             public List<string> PluginResources = new List<string>();
         }
@@ -79,12 +76,6 @@ namespace BassesModManager
                 : paths.Length == 1 ? "Loading 1 mod in memory"
                 : "Loading " + paths.Length + " mods in memory";
             return LaunchPlan.Ready(reason, warnings);
-        }
-
-        /// <summary>True when every mod consists of EBX resources only (icons and screenshots do not count).</summary>
-        public static bool AreAllEbxOnly(IEnumerable<string> modPaths)
-        {
-            return modPaths.All(path => Inspect(path).EbxOnly);
         }
 
         /// <summary>
@@ -152,8 +143,6 @@ namespace BassesModManager
                     return contents;
                 }
 
-                contents.EbxOnly = mod.Resources.All(r => r.Type == ModResourceType.Ebx || r.Type == ModResourceType.Embedded);
-
                 foreach (BaseModResource resource in mod.Resources)
                 {
                     if (resource.HasHandler && (uint)resource.Handler != LocalizationHandler)
@@ -163,7 +152,6 @@ namespace BassesModManager
             catch (Exception ex)
             {
                 contents.Error = "could not be read (" + ex.Message + ")";
-                contents.EbxOnly = false;
             }
             return contents;
         }

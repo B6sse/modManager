@@ -64,7 +64,7 @@ namespace BassesModManager
             // Auric reads this at process start, before the game's own code runs, so it has
             // to be on disk before the game is started. Without the file Auric stays passive
             // for this session, so a failure here fails the launch.
-            LaunchMarker.Write(_gamePath, _modsDirectory, _modFileNames, logger);
+            LaunchMarker.Write(_modsDirectory, _modFileNames, logger);
 
             // The game is started as a player would start it: no arguments, the EA app takes
             // over. The mods ride along in memory, from the marker.
