@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using FrostySdk.Interfaces;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -21,7 +20,7 @@ namespace BassesModManager
         /// Writes the marker for one launch. <paramref name="modFileNames"/> is the apply
         /// order: a later mod overrides an earlier one.
         /// </summary>
-        public static void Write(string modsDirectory, string[] modFileNames, ILogger logger)
+        public static void Write(string modsDirectory, string[] modFileNames, SmoothProgressLogger logger)
         {
             var marker = new JObject
             {

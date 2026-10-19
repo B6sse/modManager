@@ -59,7 +59,7 @@ namespace BassesModManager
             // Auric goes in first: it is the game-folder DLL that reads the marker and loads
             // the mods, so without the current build nothing below means anything
             logger.Status = "Preparing Auric...";
-            FrostyRuntime.InstallAuric(_gamePath);
+            GameFolder.InstallAuric(_gamePath);
 
             // Auric reads this at process start, before the game's own code runs, so it has
             // to be on disk before the game is started. Without the file Auric stays passive
@@ -69,7 +69,7 @@ namespace BassesModManager
             // The game is started as a player would start it: no arguments, the EA app takes
             // over. The mods ride along in memory, from the marker.
             logger.Status = "Starting the game...";
-            FrostyRuntime.StartGame(_gamePath);
+            GameFolder.StartGame(_gamePath);
         }
     }
 }

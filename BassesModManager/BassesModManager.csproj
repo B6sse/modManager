@@ -121,7 +121,8 @@
     <Compile Include="SmoothProgressLogger.cs" />
     <Compile Include="CachePathHelper.cs" />
     <Compile Include="FileHash.cs" />
-    <Compile Include="FrostyRuntime.cs" />
+    <Compile Include="GameFolder.cs" />
+    <Compile Include="FbModHeader.cs" />
     <Compile Include="LaunchMarker.cs" />
     <Compile Include="MemoryLoading.cs" />
     <Compile Include="GameEntry.cs" />
@@ -156,7 +157,7 @@
     <!-- Auric, the in-game half. A copy of Kyber.dll from the Auric repo's public build
          (C:\Auric\Auric2, out\build\x64-Release, or the "Auric-dll" CI artifact), always
          the public variant: the developer build has console commands a host could use
-         against players, and CI refuses it. FrostyRuntime.InstallAuric places it in the
+         against players, and CI refuses it. GameFolder.InstallAuric places it in the
          game folder as version.dll, a static import the game loads at process start, so
          Auric is in the game from the first instruction and nothing is injected later.
          It also takes over what Frosty's CryptBase.dll shim did (the toc signature

@@ -330,7 +330,7 @@ namespace BassesModManager
         /// </summary>
         private static bool NeedsGameSetup()
         {
-            return !FrostyRuntime.IsValidBattlefrontInstall(Properties.Settings.Default.GamePath);
+            return !GameFolder.IsValidBattlefrontInstall(Properties.Settings.Default.GamePath);
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -353,7 +353,7 @@ namespace BassesModManager
             // minimizes this window, and minimizing one that has not been shown yet does
             // not take.
             string savedPath = Properties.Settings.Default.GamePath;
-            if (FrostyRuntime.IsValidBattlefrontInstall(savedPath))
+            if (GameFolder.IsValidBattlefrontInstall(savedPath))
             {
                 Dispatcher.BeginInvoke(new Action(() => ProceedWithSelection(savedPath)),
                     DispatcherPriority.Background);
@@ -761,7 +761,7 @@ namespace BassesModManager
             gameEntries.Clear();
 
             string path = Properties.Settings.Default.GamePath;
-            gameValid = FrostyRuntime.IsValidBattlefrontInstall(path);
+            gameValid = GameFolder.IsValidBattlefrontInstall(path);
             if (gameValid)
                 gameEntries.Add(new GameEntry { Path = path, BannerPath = "Assets/Images/swbf.png" });
 
@@ -842,7 +842,7 @@ namespace BassesModManager
                 return null;
 
             string dir = Path.GetDirectoryName(dialog.FileName);
-            if (string.IsNullOrEmpty(dir) || !FrostyRuntime.IsValidBattlefrontInstall(dir))
+            if (string.IsNullOrEmpty(dir) || !GameFolder.IsValidBattlefrontInstall(dir))
             {
                 CustomMessageBox.Show(this,
                     "That folder holds no StarWarsBattlefront.exe. Pick the game's own executable.",
@@ -1157,7 +1157,7 @@ namespace BassesModManager
         {
             // The window is already minimized - RunWindowMinimized put it there while the
             // progress window was up.
-            watchedProcessName = FrostyRuntime.GetProfileKey(gamePath);
+            watchedProcessName = GameFolder.GetExeName(gamePath);
             gameStartWatchBegan = DateTime.UtcNow;
             awaitingGameStart = true;
 
@@ -1277,7 +1277,7 @@ namespace BassesModManager
         {
             try
             {
-                Process[] processes = Process.GetProcessesByName(FrostyRuntime.GetProfileKey(gamePath));
+                Process[] processes = Process.GetProcessesByName(GameFolder.GetExeName(gamePath));
                 foreach (Process p in processes)
                     p.Dispose();
                 return processes.Length > 0;
@@ -1288,7 +1288,7 @@ namespace BassesModManager
             }
         }
 
-        private static bool IsRunAsAdmin() => FrostyRuntime.IsElevated();
+        private static bool IsRunAsAdmin() => GameFolder.IsElevated();
 
         private void LaunchGameButton_Click(object sender, RoutedEventArgs e)
         {
@@ -1331,11 +1331,11 @@ namespace BassesModManager
 
                 // Auric has to sit in the game folder, and only an elevated app can put it
                 // there. Asked up front: a clear request beats a launch that fails halfway.
-                if (!FrostyRuntime.IsAuricInstalled(gamePath))
+                if (!GameFolder.IsAuricInstalled(gamePath))
                 {
-                    if (!File.Exists(FrostyRuntime.GetAuricSourcePath()))
+                    if (!File.Exists(GameFolder.GetAuricSourcePath()))
                     {
-                        CustomMessageBox.Show(this, FrostyRuntime.AuricFileName + " is missing from the app folder. Reinstall the app to restore it.", "File missing");
+                        CustomMessageBox.Show(this, GameFolder.AuricFileName + " is missing from the app folder. Reinstall the app to restore it.", "File missing");
                         return;
                     }
                     if (!IsRunAsAdmin())

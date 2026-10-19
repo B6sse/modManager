@@ -1,4 +1,4 @@
-using FrostySdk.Interfaces;
+
 using System;
 using System.ComponentModel;
 using System.Windows;
@@ -14,7 +14,7 @@ namespace BassesModManager
     /// writing, "progress:" messages); the launch flow now only ever sets the status line,
     /// and the rest stays for whatever the panel is used for next.
     /// </summary>
-    internal class SmoothProgressLogger : ILogger, INotifyPropertyChanged
+    internal class SmoothProgressLogger : INotifyPropertyChanged
     {
         private readonly Window _window;
         private readonly bool _barOnAnyProgress;

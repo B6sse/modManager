@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using Frosty.Core.Mod;
 
 namespace BassesModManager
 {
@@ -14,17 +13,19 @@ namespace BassesModManager
     /// list, and the localization plugin's text changes (which Auric merges itself). What it
     /// does not do is any other Frosty plugin's private data (shader block depots from the
     /// MeshSet plugin, difficulty weapon tables): such resources are skipped with a log line,
-    /// and the launch goes ahead with a warning naming them. A mod Frosty's reader cannot
-    /// open at all (legacy format, another game, a damaged file) stops the launch, since
-    /// Auric could not read it either.
+    /// and the launch goes ahead with a warning naming them. A mod the reader cannot open at
+    /// all (legacy format, another game, a damaged file) stops the launch, since Auric could
+    /// not read it either.
     /// <para>
-    /// Reading a .fbmod goes through Frosty's reader, which checks the mod's game profile
-    /// and therefore needs the profile selected; the answer is cached per file (path, size,
-    /// write time) so a launch pays for the read once.
+    /// The header is read with <see cref="FbModHeader"/>; the answer is cached per file
+    /// (path, size, write time) so a launch pays for the read once.
     /// </para>
     /// </summary>
     internal static class MemoryLoading
     {
+        /// <summary>The profile name Frosty stores in a mod built for this game; Auric checks the same string.</summary>
+        private const string GameProfile = "starwarsbattlefront";
+
         /// <summary>
         /// Frosty's Fnv1 of "fsuitextdatabase": the localization plugin's handler. Its payload
         /// is text changes, which Auric applies itself; every other handler is skipped.
@@ -110,10 +111,6 @@ namespace BassesModManager
                 }
             }
 
-            // Frosty's reader rejects a mod for another game profile, so the profile has to be
-            // selected first. After the first time this is a lock and a flag.
-            FrostyRuntime.EnsureInitialized();
-
             ModContents contents = Read(path);
 
             lock (cacheLock)
@@ -134,16 +131,14 @@ namespace BassesModManager
             var contents = new ModContents();
             try
             {
-                var mod = new FrostyMod(path);
-                if (!mod.NewFormat)
+                FbModHeader header = FbModHeader.Read(path);
+                if (!string.Equals(header.Profile, GameProfile, StringComparison.OrdinalIgnoreCase))
                 {
-                    // Also what the reader reports for a mod built for another game; neither
-                    // is something Auric's loader reads
-                    contents.Error = "is in the legacy mod format, which Auric does not load";
+                    contents.Error = "is a mod for another game (" + header.Profile + ")";
                     return contents;
                 }
 
-                foreach (BaseModResource resource in mod.Resources)
+                foreach (FbModHeader.Resource resource in header.Resources)
                 {
                     if (resource.HasHandler && (uint)resource.Handler != LocalizationHandler)
                         contents.PluginResources.Add(resource.Name);
