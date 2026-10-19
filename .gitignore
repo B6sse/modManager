@@ -287,14 +287,10 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
-/FrostyModSupport/ThirdParty/bcrypt.lib
-/FrostyModSupport/ThirdParty/bcrypt.exp
 *.exp
 *.iobj
 *.ipdb
 *.lib
-/FrostyEditor/MigrationBackup
-/Plugins/LevelEditorOldPlugin
 
 Plans/
 CLAUDE.md
