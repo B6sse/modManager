@@ -1,7 +1,6 @@
 <UserControl x:Class="BassesModManager.ProgressPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:ctrl="clr-namespace:Frosty.Controls;assembly=FrostyControls"
              xmlns:local="clr-namespace:BassesModManager"
              Width="550">
     <!-- Everything inside the two progress windows: building the cache on first run, and
@@ -28,7 +27,7 @@
             <!-- Read phase: spinner. Write phase: progress bar. SmoothProgressLogger swaps them -->
             <Grid Grid.Row="2" Margin="0,0,0,5">
                 <StackPanel x:Name="SpinnerPanel" Orientation="Horizontal" HorizontalAlignment="Left">
-                    <ctrl:FrostySpinner Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <local:Spinner Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock Text="Loading data..." Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
                 </StackPanel>
                 <ProgressBar x:Name="ProgressBar" Minimum="0" Maximum="100" Value="0"
