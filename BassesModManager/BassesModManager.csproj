@@ -57,9 +57,6 @@
     <ApplicationIcon>Appicon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DotNetZip, Version=1.16.0.0, Culture=neutral, PublicKeyToken=6583c7c814667745, processorArchitecture=MSIL">
-      <HintPath>packages\DotNetZip.1.16.0\lib\net40\DotNetZip.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -224,24 +221,8 @@
   <ItemGroup>
     <Resource Include="Appicon.ico" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\FrostyControls\FrostyControls.csproj">
-      <Project>{51d3305b-48d0-4d4c-9d64-727185420eac}</Project>
-      <Name>FrostyControls</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\FrostyPlugin\FrostyCore.csproj">
-      <Project>{d86d23d9-db93-4d4e-b383-5022f759aba8}</Project>
-      <Name>FrostyCore</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\FrostySdk\FrostySdk.csproj">
-      <Project>{93fb4a0c-df89-4169-80b5-c4e2277ff7a0}</Project>
-      <Name>FrostySdk</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <!-- What is left of Frosty: FrostyCore and FrostySdk for reading .fbmod headers
-       (MemoryLoading), FrostyControls for two controls in the progress panel and the
-       update bar. The mods themselves are applied by Auric, in the game, from the files;
-       Frosty's executor, its plugins, its asset cache and its CryptBase.dll shim are not
-       part of the app any more. -->
+  <!-- No Frosty projects any more: the .fbmod header is read by FbModHeader, the mods
+       are applied by Auric inside the game, and the spinner is Spinner.xaml. The app is
+       plain C# with two NuGet packages. -->
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
