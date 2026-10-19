@@ -6,13 +6,13 @@ namespace BassesModManager
     /// <summary>
     /// The two folders this app keeps outside its own install: one shared by all users
     /// under ProgramData (mods, update downloads), one per user under LocalAppData (the
-    /// launch marker). Named for the asset cache it once held; the cache is gone, the paths
-    /// stayed so existing installs keep finding their files.
+    /// launch marker). The on-disk names predate the app's rename and stay so existing
+    /// installs keep finding their files.
     /// </summary>
-    public static class CachePathHelper
+    public static class AppPaths
     {
         // Shared folder for all users: %ProgramData%\BassesModManager
-        public static string GetCacheBasePath()
+        public static string GetSharedDataPath()
         {
             string programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
             return Path.Combine(programData, "BassesModManager");
@@ -24,7 +24,7 @@ namespace BassesModManager
         /// set, neither of which is possible inside Program Files. The installer grants
         /// Users write access to this folder.
         /// </summary>
-        public static string GetModsPath() => Path.Combine(GetCacheBasePath(), "Mods");
+        public static string GetModsPath() => Path.Combine(GetSharedDataPath(), "Mods");
 
         /// <summary>Per-user folder next to the app's user settings: %LocalAppData%\BassesModManager.</summary>
         public static string GetUserDataPath()

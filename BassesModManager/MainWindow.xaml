@@ -431,7 +431,7 @@
                        VerticalAlignment="Center"/>
 
             <!-- Only ever 0 or 1 entries (this app supports one game), but kept as the same
-                 list-row look/feel Frosty users already know - hover highlight, click to
+                 list-row look and feel - hover highlight, click to
                  select, double-click to continue. -->
             <ListView Grid.Row="1" x:Name="GameList" Foreground="White" Background="Transparent"
                       BorderThickness="0" Padding="0" Margin="0,15,0,0"

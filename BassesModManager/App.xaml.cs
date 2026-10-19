@@ -78,7 +78,7 @@ namespace BassesModManager
 
             // Mods live under ProgramData, not next to the exe: the app runs non-elevated
             // and has to be able to delete rejected files and download the Auric set
-            CachePathHelper.EnsureModsDirectory();
+            AppPaths.EnsureModsDirectory();
 
             // Discord-style update flow (Plans/AUTO_UPDATE_PLAN.md, Spor A): check and
             // download quietly in the background; UpdateNotificationBar offers the

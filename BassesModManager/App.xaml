@@ -30,39 +30,7 @@
                                    c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z
                                    M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
 
-            <!-- Progress bar for the cache install and launch windows. Lives here rather
-                 than in either window so the two cannot drift apart.
-                 The default WPF template has no way to round its corners, hence the
-                 replacement: an outer Border for the track and PART_Indicator for the
-                 fill, which the ProgressBar itself sizes. Keep CornerRadius at half the
-                 Height for fully rounded ends. -->
-            <Style x:Key="PurpleProgressBarStyle" TargetType="ProgressBar">
-                <Setter Property="Height" Value="10"/>
-                <Setter Property="VerticalAlignment" Value="Center"/>
-                <Setter Property="Foreground" Value="#8000FF"/>
-                <Setter Property="Background" Value="#333"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="ProgressBar">
-                            <Border Background="{TemplateBinding Background}"
-                                    CornerRadius="5"
-                                    ClipToBounds="True">
-                                <Grid>
-                                    <!-- PART_Track spans the full width and is what the
-                                         indicator's width is measured against -->
-                                    <Rectangle x:Name="PART_Track"/>
-                                    <Border x:Name="PART_Indicator"
-                                            HorizontalAlignment="Left"
-                                            Background="{TemplateBinding Foreground}"
-                                            CornerRadius="5"/>
-                                </Grid>
-                            </Border>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-
-            <!-- Volume slider. Same shapes and colours as the progress bar: a dark rounded
+            <!-- Volume slider: a dark rounded
                  track with a purple filled portion, plus a round purple knob.
                  Snapped to 25% steps rather than continuous - the whole range is only
                  0 to 0.4 on MediaPlayer's scale, so finer resolution would be resolution

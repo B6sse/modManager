@@ -184,7 +184,7 @@ namespace BassesModManager
             // writable (it may have been created by an elevated instance)
             string[] candidates =
             {
-                Path.Combine(CachePathHelper.GetCacheBasePath(), "Updates"),
+                Path.Combine(AppPaths.GetSharedDataPath(), "Updates"),
                 Path.Combine(Path.GetTempPath(), "BassesModManager", "Updates")
             };
 

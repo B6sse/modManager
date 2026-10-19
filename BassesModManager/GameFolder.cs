@@ -52,7 +52,7 @@ namespace BassesModManager
         // Auric, the in-game half. version.dll is a static import of the game itself, not a
         // KnownDLL, so the game loads it from its own folder at process start and Auric is in
         // from the first instruction; nothing is injected afterwards. It decides whether to
-        // run from the launch marker this app writes (CachePathHelper.GetLaunchMarkerPath);
+        // run from the launch marker this app writes (AppPaths.GetLaunchMarkerPath);
         // a plain start from the EA app leaves it passive. It is also what lets the engine
         // accept data that is not EA's (it answers the toc signature check itself), which is
         // what Frosty's CryptBase.dll shim used to do. The file is placed and hash-checked

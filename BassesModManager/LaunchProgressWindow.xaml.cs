@@ -54,7 +54,7 @@ namespace BassesModManager
             Close();
         }
 
-        private void PrepareAndLaunch(SmoothProgressLogger logger)
+        private void PrepareAndLaunch(StatusLogger logger)
         {
             // Auric goes in first: it is the game-folder DLL that reads the marker and loads
             // the mods, so without the current build nothing below means anything

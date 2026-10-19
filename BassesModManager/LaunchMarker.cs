@@ -14,13 +14,13 @@ namespace BassesModManager
     /// </summary>
     internal static class LaunchMarker
     {
-        public static string Path => CachePathHelper.GetLaunchMarkerPath();
+        public static string Path => AppPaths.GetLaunchMarkerPath();
 
         /// <summary>
         /// Writes the marker for one launch. <paramref name="modFileNames"/> is the apply
         /// order: a later mod overrides an earlier one.
         /// </summary>
-        public static void Write(string modsDirectory, string[] modFileNames, SmoothProgressLogger logger)
+        public static void Write(string modsDirectory, string[] modFileNames, StatusLogger logger)
         {
             var marker = new JObject
             {

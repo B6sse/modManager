@@ -41,13 +41,10 @@ namespace BassesModManager
         public event EventHandler Cancelled;
 
         /// <summary>
-        /// Hands the panel's own status line, bar and spinner to the logger the flow
-        /// reports through, so the parts stay private to the panel.
+        /// Hands the panel's own status line to the logger the flow reports through, so
+        /// the part stays private to the panel.
         /// </summary>
-        internal SmoothProgressLogger CreateLogger(Window window, bool barOnAnyProgress = false)
-        {
-            return new SmoothProgressLogger(window, ProgressBar, StatusText, SpinnerPanel, barOnAnyProgress);
-        }
+        internal StatusLogger CreateLogger(Window window) => new StatusLogger(window, StatusText);
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {

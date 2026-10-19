@@ -295,7 +295,7 @@ namespace BassesModManager
             gameEntries = new ObservableCollection<GameEntry>();
             GameList.ItemsSource = gameEntries;
 
-            modsDirectory = CachePathHelper.GetModsPath();
+            modsDirectory = AppPaths.GetModsPath();
 
             PopulateFromCatalog();
 
@@ -1079,7 +1079,7 @@ namespace BassesModManager
             // the game start) on a background thread. It stays down afterwards on success:
             // the game is what the user is now looking at.
             var launchWindow = new LaunchProgressWindow(gamePath, modsDirectory, modFileNames, plan);
-            if (RunWindowMinimized(launchWindow, restoreOnSuccess: false))
+            if (RunWindowMinimized(launchWindow))
             {
                 OnGameLaunched(gamePath);
             }
@@ -1109,18 +1109,16 @@ namespace BassesModManager
         /// it is on screen means the dialog holds the foreground itself when this window
         /// goes down, and nothing is visible in between either.
         /// </para>
+        /// Stays down when the flow worked, since being out of the way is the point of a
+        /// launch; a flow that failed brings the window back, so the user can see what to
+        /// do about it.
         /// </summary>
-        /// <param name="restoreOnSuccess">
-        /// Whether to come back up when the flow worked. False for the launch, where being
-        /// out of the way is the point; a flow that failed always brings the window back,
-        /// since the user has to be able to see what to do about it.
-        /// </param>
-        private bool RunWindowMinimized(Window dialog, bool restoreOnSuccess)
+        private bool RunWindowMinimized(Window dialog)
         {
             dialog.ContentRendered += (s, e) => WindowState = WindowState.Minimized;
 
             bool succeeded = dialog.ShowDialog() == true;
-            if (!succeeded || restoreOnSuccess)
+            if (!succeeded)
             {
                 WindowState = WindowState.Normal;
                 Activate();
@@ -1129,9 +1127,9 @@ namespace BassesModManager
             return succeeded;
         }
 
-        // The app never starts the game itself - Frosty does, through Steam or the game's
-        // own exe - so there is no process handle to wait on when the launch returns, and
-        // with a launcher in the way the process can take seconds to appear. It therefore
+        // The process the app starts is not the game that runs: the exe hands itself to
+        // the EA app, which starts the real one, so there is no process handle to wait on
+        // when the launch returns, and the real process can take seconds to appear. It therefore
         // has to be found by looking, but only until it turns up: from that point Windows
         // reports the exit through Process.Exited, so no more looking is needed.
         //
