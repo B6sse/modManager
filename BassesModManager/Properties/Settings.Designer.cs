@@ -111,18 +111,6 @@ namespace BassesModManager.Properties {
             }
         }
 
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool AuricMode {
-            get {
-                return ((bool)(this["AuricMode"]));
-            }
-            set {
-                this["AuricMode"] = value;
-            }
-        }
-
         /// <summary>
         /// Keys of the mods that are switched on, semicolon separated. One list for the
         /// whole app: a mod's on/off state is its own, and the mode only decides which

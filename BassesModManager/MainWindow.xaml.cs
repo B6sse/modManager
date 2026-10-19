@@ -22,20 +22,10 @@ namespace BassesModManager
         /// <summary>Every catalogued mod, in catalog order, which is also apply order.</summary>
         private List<ModItem> allMods;
 
-        /// <summary>The subset on offer in the current mode; what the list actually shows.</summary>
+        /// <summary>What the list shows: every catalogued mod the disk could back up.</summary>
         private ObservableCollection<ModItem> visibleMods;
 
         private string modsDirectory;
-
-        /// <summary>Which of the window's two modes a mod is offered in.</summary>
-        [Flags]
-        private enum ModModes
-        {
-            EaServers = 1,
-            Auric = 2,
-            Both = EaServers | Auric
-        }
-
         /// <summary>One mod file. This is the unit of approval: a name and the contents it must have.</summary>
         private sealed class CatalogFile
         {
@@ -70,7 +60,6 @@ namespace BassesModManager
             public string Key { get; set; }
             public string DisplayName { get; set; }
             public string Description { get; set; }
-            public ModModes Modes { get; set; }
 
             /// <summary>Set instead of a plain on/off when the mod comes in versions.</summary>
             public CatalogVariant[] Variants { get; set; }
@@ -122,14 +111,13 @@ namespace BassesModManager
         }
 
         private static CatalogEntry SingleFile(string fileName, string displayName, string description,
-            string sha256, ModModes modes)
+            string sha256)
         {
             return new CatalogEntry
             {
                 Key = fileName,
                 DisplayName = displayName,
                 Description = description,
-                Modes = modes,
                 Files = new[] { new CatalogFile { FileName = fileName, Sha256 = sha256 } }
             };
         }
@@ -161,8 +149,8 @@ namespace BassesModManager
         /// </para>
         /// Order matters twice over: it is the order mods are shown in, and within an entry
         /// the order its files are applied in. Frosty applies a mod list front to back and
-        /// lets later entries win. Adding a mod to a mode is an entry in this list and
-        /// nothing else.
+        /// lets later entries win. Adding a mod is an entry in this list and nothing
+        /// else.
         /// </summary>
         private static readonly CatalogEntry[] modCatalog =
         {
@@ -183,7 +171,6 @@ namespace BassesModManager
                 Key = "axon",
                 DisplayName = "Axon",
                 Description = "Full mod set for Kyber private servers",
-                Modes = ModModes.Auric,
                 Files = new[]
                 {
                     new CatalogFile
@@ -217,7 +204,6 @@ namespace BassesModManager
                 Key = "crosshair",
                 DisplayName = "Crosshair - Added EE3 Dot",
                 Description = "Adds a dot to the EE3 crosshair. Choose colour.",
-                Modes = ModModes.Both,
                 Variants = new[]
                 {
                     // First so it lines up with the plain on/off switch used by every other
@@ -248,20 +234,16 @@ namespace BassesModManager
             // the mods actually do.
             SingleFile("Improved_Scoreboard.fbmod", "Improved Scoreboard",
                 "Makes the scoreboard background black to improve readability",
-                "4507eb7297053ffb38a65228158189de3260e411e603401b0c1ecb2542b2af76",
-                ModModes.Both),
+                "4507eb7297053ffb38a65228158189de3260e411e603401b0c1ecb2542b2af76"),
             SingleFile("Improved-Game-Startup.fbmod", "Faster Game Startup",
                 "Skips all loading screens on launch",
-                "b794e7ede7410f9b898bcc3cd31f178d187ad37b6fe80a294772a554c14920e3",
-                ModModes.Both),
+                "b794e7ede7410f9b898bcc3cd31f178d187ad37b6fe80a294772a554c14920e3"),
             SingleFile("Improved-Low-Health-Visibility.fbmod", "Improved Low Health Visibility",
                 "Removes the red background when your health is low",
-                "507dd2361913e72e53b3cda3bd27746df72397a146937e9664c2ce9a3564fe14",
-                ModModes.Both),
+                "507dd2361913e72e53b3cda3bd27746df72397a146937e9664c2ce9a3564fe14"),
             SingleFile("Improved-Pause-Screen-Effects.fbmod", "Improved Pause Screen",
                 "Removes the blurry game background while the game is paused",
-                "d7353ae4aa18c92819dbb059cfce7abfef584a620353b2a3c196149b3a47e824",
-                ModModes.Both)
+                "d7353ae4aa18c92819dbb059cfce7abfef584a620353b2a3c196149b3a47e824")
         };
 
 
@@ -298,12 +280,8 @@ namespace BassesModManager
             modsDirectory = AppPaths.GetModsPath();
 
             PopulateFromCatalog();
-
-            // Restore the mode the app was last left in. Assigning IsOn only raises Toggled
-            // when the value actually changes, so lay the window out explicitly instead of
-            // relying on the event to fire.
-            ModeToggle.IsOn = !Properties.Settings.Default.AuricMode;
-            ApplyMode();
+            RefreshVisibleMods();
+            RefreshLaunchButton();
 
             // The mod list is built either way; the game screen is only put in front of it,
             // so there is nothing left to construct on the way through.
@@ -451,25 +429,16 @@ namespace BassesModManager
         }
 
         /// <summary>
-        /// Rebuilds the visible list for the active mode. The ModItem objects are shared
-        /// between modes rather than rebuilt, so a mod switched on in one mode is still on
-        /// when it appears in the other - the mode decides what is on offer, not what is
-        /// selected.
+        /// Rebuilds the list from <see cref="allMods"/>, which verification prunes to what
+        /// the disk can back up. The ModItem objects are kept rather than rebuilt, so a mod
+        /// switched on stays on across a refresh.
         /// </summary>
         private void RefreshVisibleMods()
         {
-            ModModes mode = IsAuricMode ? ModModes.Auric : ModModes.EaServers;
-
             visibleMods.Clear();
             foreach (ModItem mod in allMods)
-            {
-                if ((catalogByKey[mod.Key].Modes & mode) != 0)
-                    visibleMods.Add(mod);
-            }
+                visibleMods.Add(mod);
         }
-
-        /// <summary>Left half of the switch is NORMAL, right half is AURIC.</summary>
-        private bool IsAuricMode => !ModeToggle.IsOn;
 
         // Buttons get their sounds from the app-wide PurpleButtonStyle; these handlers are
         // for the controls that aren't buttons
@@ -545,24 +514,6 @@ namespace BassesModManager
             };
             animation.Completed += (s, args) => modListScrollTarget = double.NaN;
             ModListScrollViewer.BeginAnimation(SmoothScrollBehavior.VerticalOffsetProperty, animation);
-        }
-
-        private void ModeToggle_Toggled(object sender, EventArgs e)
-        {
-            Properties.Settings.Default.AuricMode = IsAuricMode;
-            Properties.Settings.Default.Save();
-            ApplyMode();
-        }
-
-        /// <summary>
-        /// Swaps the list over to the active mode's mods. Selections survive the switch:
-        /// the hidden mode's mods keep their state, and only what is visible can reach a
-        /// launch.
-        /// </summary>
-        private void ApplyMode()
-        {
-            RefreshVisibleMods();
-            RefreshLaunchButton();
         }
 
         /// <summary>
@@ -1370,17 +1321,15 @@ namespace BassesModManager
         }
 
         /// <summary>
-        /// The mods to apply, in apply order. Two things are filtered out here and this is
-        /// the only place either can be: the inactive mode's mods, so a selection made on
-        /// the other side cannot leak into the launch, and anything not in
-        /// <see cref="verifiedMods"/>, so only files confirmed against the catalog are ever
-        /// handed to the game. That set is empty until verification finishes, which makes
-        /// launching before then produce nothing to launch.
+        /// The mods to apply, in apply order. Anything not in <see cref="verifiedMods"/> is
+        /// filtered out here and nowhere else, so only files confirmed against the catalog
+        /// are ever handed to the game. That set is empty until verification finishes,
+        /// which makes launching before then produce nothing to launch.
         /// </summary>
         private List<ModItem> GetSelectedMods()
         {
-            // visibleMods is the active mode's mods in catalog order, and Where preserves
-            // it - which is what puts the Axon set ahead of everything else in Auric mode
+            // visibleMods is in catalog order, and Where preserves it - which is what puts
+            // the Axon set ahead of everything else
             return visibleMods.Where(m => m.IsEnabled && IsFullyVerified(m)).ToList();
         }
 

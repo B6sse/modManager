@@ -140,20 +140,13 @@
             <RowDefinition Height="Auto"/>  <!-- 2: Launch button -->
         </Grid.RowDefinitions>
 
-        <!-- Top bar. All three sit in the same cell and are placed by their alignment
-             rather than by columns, so the switch stays centred on the window itself
-             instead of on whatever space the heading leaves over. -->
+        <!-- Top bar: heading on the left, settings on the right, placed by alignment in
+             the same cell. -->
         <Grid Grid.Row="0">
             <TextBlock Text="SELECT MODS"
                        Style="{StaticResource HeadingTextStyle}"
                        FontSize="22"
                        HorizontalAlignment="Left" VerticalAlignment="Center"/>
-
-            <local:SettingToggle x:Name="ModeToggle"
-                                 OnLabel="EA SERVERS" OffLabel="AURIC"
-                                 HorizontalAlignment="Center" VerticalAlignment="Center"
-                                 Toggled="ModeToggle_Toggled"
-                                 ToolTip="Switch between mods for EA Servers and Auric (private servers)"/>
 
             <Button x:Name="SettingsButton"
                     Padding="8,0" Height="34"
@@ -171,7 +164,7 @@
             </Button>
         </Grid>
 
-        <!-- One list for both modes; ApplyMode decides which mods are in it. Rows are
+        <!-- The mod list, every catalogued mod verification could back up. Rows are
              uniform: icon, name and description, then either a download offer or the
              control. IsSharedSizeScope keeps the text column the same width down the whole
              list, so the controls line up in a column without being pushed out to the far
