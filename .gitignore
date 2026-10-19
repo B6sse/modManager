@@ -294,3 +294,8 @@ __pycache__/
 
 Plans/
 CLAUDE.md
+# Local Claude Code skills and settings
+.claude/
+
+# Installer output from iscc (CI uploads it as an artifact instead)
+Output/
