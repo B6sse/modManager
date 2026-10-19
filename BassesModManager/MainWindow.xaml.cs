@@ -274,8 +274,8 @@ namespace BassesModManager
             visibleMods = new ObservableCollection<ModItem>();
             ModListControl.ItemsSource = visibleMods;
 
-            gameEntries = new ObservableCollection<GameEntry>();
-            GameList.ItemsSource = gameEntries;
+            candidates = new ObservableCollection<GameCandidate>();
+            CandidateList.ItemsSource = candidates;
 
             modsDirectory = AppPaths.GetModsPath();
 
@@ -287,7 +287,7 @@ namespace BassesModManager
             // so there is nothing left to construct on the way through.
             if (NeedsGameSetup())
             {
-                RefreshGameList();
+                RefreshGameSetup();
                 ShowView(View.GameSelect);
             }
             else
@@ -319,23 +319,10 @@ namespace BassesModManager
             // it was written for
             DeleteLaunchMarker();
 
+            // The first-run screen stays until the user presses CONTINUE; everything else
+            // goes straight to the mod list
             if (currentView != View.GameSelect)
-            {
                 EnterModsView();
-                return;
-            }
-
-            // A saved, valid game with only its cache left to build has nothing to ask, so
-            // go on by itself rather than showing a screen with one choice on it. Queued
-            // rather than run here so the window is painted first: the cache install
-            // minimizes this window, and minimizing one that has not been shown yet does
-            // not take.
-            string savedPath = Properties.Settings.Default.GamePath;
-            if (GameFolder.IsValidBattlefrontInstall(savedPath))
-            {
-                Dispatcher.BeginInvoke(new Action(() => ProceedWithSelection(savedPath)),
-                    DispatcherPriority.Background);
-            }
         }
 
         protected override void OnClosed(EventArgs e)
@@ -699,66 +686,94 @@ namespace BassesModManager
 
         #region -- Game folder view --
 
-        private ObservableCollection<GameEntry> gameEntries;
+        /// <summary>The copies of the game on offer, as the rows on the first-run screen.</summary>
+        private ObservableCollection<GameCandidate> candidates;
 
-        /// <summary>Whether the configured path really is a Battlefront install, so SELECT means something.</summary>
-        private bool gameValid;
+        /// <summary>The row CONTINUE will save; null while there is nothing to choose from.</summary>
+        private GameCandidate chosenCandidate;
 
         /// <summary>True once mod verification has been started, which happens at most once.</summary>
         private bool verificationStarted;
 
-        private void RefreshGameList()
+        /// <summary>
+        /// Looks for the game on this PC and lays the screen out for what it found: the
+        /// best source first and already chosen, so the usual case is one click on CONTINUE.
+        /// </summary>
+        private void RefreshGameSetup()
         {
-            gameEntries.Clear();
+            candidates.Clear();
+            chosenCandidate = null;
 
-            string path = Properties.Settings.Default.GamePath;
-            gameValid = GameFolder.IsValidBattlefrontInstall(path);
-            if (gameValid)
-                gameEntries.Add(new GameEntry { Path = path, BannerPath = "Assets/Images/swbf.png" });
+            foreach (GameCandidate candidate in GameFolder.FindInstalls())
+                candidates.Add(candidate);
 
-            // SELECT wants an actual click on the row first, even when a valid game is
-            // already configured - re-armed on every refresh rather than tied to
-            // GameList.SelectedItem, which with only one possible entry carries no
-            // information and previously drove a permanently purple row.
-            SelectButton.IsEnabled = false;
-            LocateButton.Content = gameValid ? "CHANGE GAME PATH" : "LOCATE BATTLEFRONT";
+            if (candidates.Count > 0)
+                Choose(candidates[0]);
 
-            EmptyStateText.Visibility = gameValid ? Visibility.Collapsed : Visibility.Visible;
-            DoubleClickHintText.Visibility = gameValid ? Visibility.Visible : Visibility.Collapsed;
+            LayOutGameSetup();
         }
 
-        private void GameList_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        private void Choose(GameCandidate candidate)
         {
-            Sounds.PlayClick();
-            SelectButton.IsEnabled = gameValid;
+            foreach (GameCandidate other in candidates)
+                other.IsChosen = other == candidate;
+            chosenCandidate = candidate;
         }
 
-        private void GameList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        /// <summary>Texts and buttons for the two states: something found, or nothing.</summary>
+        private void LayOutGameSetup()
         {
-            if (gameEntries.Count > 0)
-                ProceedWithSelection(gameEntries[0].Path);
+            bool found = candidates.Count > 0;
+
+            SetupHeading.Text = !found ? "Where is STAR WARS Battlefront?"
+                : candidates.Count == 1 ? "We found STAR WARS Battlefront"
+                : "We found " + candidates.Count + " copies of STAR WARS Battlefront";
+            SetupHint.Text = found
+                ? "Mods are loaded into the copy below. Press CONTINUE, or pick another one."
+                : "The game was not found on this PC. Choose the folder it is installed in, the one with starwarsbattlefront.exe, and Axon takes it from there.";
+
+            CandidateList.Visibility = found ? Visibility.Visible : Visibility.Collapsed;
+            ContinueButton.Visibility = found ? Visibility.Visible : Visibility.Collapsed;
+            ChangeFolderLink.Visibility = found ? Visibility.Visible : Visibility.Collapsed;
+            ChooseFolderButton.Visibility = found ? Visibility.Collapsed : Visibility.Visible;
         }
 
-        private void SelectButton_Click(object sender, RoutedEventArgs e)
+        private void Candidate_Click(object sender, RoutedEventArgs e)
         {
-            if (gameEntries.Count > 0)
-                ProceedWithSelection(gameEntries[0].Path);
+            if ((sender as Button)?.Tag is GameCandidate candidate)
+            {
+                Sounds.PlayClick();
+                Choose(candidate);
+            }
         }
 
-        private void LocateButton_Click(object sender, RoutedEventArgs e)
+        private void ContinueButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (chosenCandidate == null)
+                return;
+
+            SaveGamePath(chosenCandidate.Path);
+            EnterModsView();
+        }
+
+        /// <summary>
+        /// The manual way in, for a copy the search did not find. A valid pick goes to the
+        /// top of the list as the chosen row, so CONTINUE is still the one confirming step.
+        /// </summary>
+        private void ChooseFolderButton_Click(object sender, RoutedEventArgs e)
         {
             string gamePath = PromptForGameFolder();
             if (gamePath == null)
                 return;
 
-            SaveGamePath(gamePath);
-            RefreshGameList();
-        }
-
-        /// <summary>Takes the game folder as settled and moves on to the mod list.</summary>
-        private void ProceedWithSelection(string gamePath)
-        {
-            EnterModsView();
+            GameCandidate existing = candidates.FirstOrDefault(c => string.Equals(c.Path, gamePath, StringComparison.OrdinalIgnoreCase));
+            if (existing == null)
+            {
+                existing = new GameCandidate(gamePath, "Chosen by you");
+                candidates.Insert(0, existing);
+            }
+            Choose(existing);
+            LayOutGameSetup();
         }
 
         /// <summary>

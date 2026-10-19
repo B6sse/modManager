@@ -126,7 +126,7 @@
     <Compile Include="FbModHeader.cs" />
     <Compile Include="LaunchMarker.cs" />
     <Compile Include="MemoryLoading.cs" />
-    <Compile Include="GameEntry.cs" />
+    <Compile Include="GameCandidate.cs" />
     <Compile Include="LaunchProgressWindow.xaml.cs">
       <DependentUpon>LaunchProgressWindow.xaml</DependentUpon>
     </Compile>

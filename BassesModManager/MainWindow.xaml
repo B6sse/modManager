@@ -18,6 +18,58 @@
                 <Setter Property="Background" Value="#222"/>
                 <Setter Property="FontSize" Value="15"/>
             </Style>
+
+            <!-- First-run screen: one row per copy of the game found. A dark rounded row
+                 that lights its border purple on hover and when it is the chosen one. -->
+            <Style x:Key="CandidateRowStyle" TargetType="Button">
+                <Setter Property="OverridesDefaultStyle" Value="True"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Margin" Value="0,0,0,8"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="row" Background="#1A1A1A" BorderBrush="#2A2A2A" BorderThickness="2"
+                                    CornerRadius="6" Padding="14,10">
+                                <ContentPresenter/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="row" Property="BorderBrush" Value="#8000FF"/>
+                                </Trigger>
+                                <DataTrigger Binding="{Binding IsChosen}" Value="True">
+                                    <Setter TargetName="row" Property="BorderBrush" Value="#8000FF"/>
+                                    <Setter TargetName="row" Property="Background" Value="#20142E"/>
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
+            </Style>
+
+            <!-- The quiet second choice under a primary button: plain grey text that turns
+                 white on hover, no box. -->
+            <Style x:Key="LinkButtonStyle" TargetType="Button">
+                <Setter Property="OverridesDefaultStyle" Value="True"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Foreground" Value="#888"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}" TextDecorations="Underline"/>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Foreground" Value="White"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
             <!-- Settings view: one row is name + explanation on the left, control on the right -->
             <Style x:Key="SettingNameStyle" TargetType="TextBlock">
                 <Setter Property="Foreground" Value="White"/>
@@ -404,105 +456,66 @@
             </StackPanel>
         </Grid>
 
-        <!-- Game folder view. Shown at startup only, and only while no valid game folder
-             is configured. Once past it there is
-             nothing left to ask, so there is no way back into it - changing an
-             already-working path happens on the settings page instead. -->
+        <!-- First-run screen. Shown only while no valid game folder is saved; once past
+             it there is no way back (the settings page changes a working path). The app
+             looks for the game itself, shows what it found as rows, and one click on
+             CONTINUE is the whole set-up. A card in the middle of the window rather than
+             a list with buttons in the corner. -->
         <Grid Grid.Row="0" x:Name="GameSelectView" Visibility="Collapsed">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>  <!-- 0: heading -->
-                <RowDefinition Height="*"/>     <!-- 1: the game, or the empty state -->
-                <RowDefinition Height="Auto"/>  <!-- 2: buttons -->
-                <RowDefinition Height="Auto"/>  <!-- 3: double-click hint -->
-            </Grid.RowDefinitions>
+            <Border MaxWidth="600" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="#111" BorderBrush="#2A2A2A" BorderThickness="1" CornerRadius="10" Padding="36,30">
+                <StackPanel>
+                    <Border Height="110" CornerRadius="6" ClipToBounds="True" Margin="0,0,0,22">
+                        <Image Source="Assets/Images/swbf.png" Stretch="UniformToFill"/>
+                    </Border>
 
-            <TextBlock Grid.Row="0"
-                       Text="STAR WARS BATTLEFRONT GAME PATH"
-                       Style="{StaticResource HeadingTextStyle}"
-                       FontSize="22"
-                       HorizontalAlignment="Left"
-                       VerticalAlignment="Center"/>
+                    <TextBlock x:Name="SetupHeading"
+                               Style="{StaticResource HeadingTextStyle}" FontSize="22"
+                               HorizontalAlignment="Center" TextAlignment="Center"/>
+                    <TextBlock x:Name="SetupHint"
+                               Style="{StaticResource SettingHintStyle}" FontSize="13"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               Margin="0,8,0,20" MaxWidth="460"/>
 
-            <!-- Only ever 0 or 1 entries (this app supports one game), but kept as the same
-                 list-row look and feel - hover highlight, click to
-                 select, double-click to continue. -->
-            <ListView Grid.Row="1" x:Name="GameList" Foreground="White" Background="Transparent"
-                      BorderThickness="0" Padding="0" Margin="0,15,0,0"
-                      MouseDoubleClick="GameList_MouseDoubleClick">
-                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem">
-                        <Setter Property="Cursor" Value="Hand"/>
-                        <Setter Property="Padding" Value="0"/>
-                        <Setter Property="Margin" Value="0"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="ListViewItem">
-                                    <Border x:Name="itemBorder" BorderBrush="Transparent" BorderThickness="2" CornerRadius="6" Padding="14,12" Margin="0"
-                                            HorizontalAlignment="Stretch" Background="Transparent">
-                                        <ContentPresenter HorizontalAlignment="Left"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="itemBorder" Property="BorderBrush" Value="#8000FF"/>
-                                            <Setter TargetName="itemBorder" Property="Background" Value="#8000FF"/>
-                                        </Trigger>
-                                        <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="itemBorder" Property="BorderBrush" Value="#8000FF"/>
-                                            <Setter TargetName="itemBorder" Property="Background" Value="#8000FF"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
-                        <EventSetter Event="PreviewMouseDown" Handler="GameList_PreviewMouseDown"/>
-                    </Style>
-                </ListView.ItemContainerStyle>
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="60" Height="60" CornerRadius="5" Margin="0,0,16,0" ClipToBounds="True">
-                                <Image Source="{Binding BannerPath, Converter={StaticResource StringToImageSourceConverter}}"
-                                       Stretch="UniformToFill" Width="60" Height="60"/>
-                            </Border>
-                            <TextBlock Text="{Binding Path}"
-                                       Style="{StaticResource BodyTextStyle}"
-                                       FontSize="16"
-                                       VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+                    <!-- One row per copy found; a click makes it the chosen one -->
+                    <ItemsControl x:Name="CandidateList" Margin="0,0,0,14">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource CandidateRowStyle}" Tag="{Binding}" Click="Candidate_Click">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="26"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="&#x2713;" Foreground="#8000FF" FontSize="16" FontWeight="Bold"
+                                                   VerticalAlignment="Center"
+                                                   Visibility="{Binding IsChosen, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{Binding Path}" Foreground="White" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Source}" Foreground="#888" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
-            <!-- Shown instead of the list whenever no valid Battlefront install is
-                 configured - re-evaluated on every RefreshGameList() call, so it comes
-                 back if the saved path stops being valid. -->
-            <TextBlock x:Name="EmptyStateText" Grid.Row="1"
-                       Text="Click LOCATE BATTLEFRONT below and select your Star Wars Battlefront game executable to get started."
-                       Foreground="#888" FontSize="15" TextWrapping="Wrap"
-                       HorizontalAlignment="Left" VerticalAlignment="Top"
-                       Margin="0,15,0,0"
-                       Visibility="Collapsed"/>
-
-            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
-                <Button x:Name="LocateButton" Content="LOCATE BATTLEFRONT" Margin="0,0,12,0"
-                        Style="{StaticResource PurpleButtonStyle}"
-                        Click="LocateButton_Click"/>
-                <Button x:Name="SelectButton" Content="SELECT"
-                        MinWidth="90"
-                        Style="{StaticResource PurpleButtonStyle}"
-                        IsEnabled="False"
-                        Click="SelectButton_Click"/>
-            </StackPanel>
-
-            <!-- Only relevant once there's actually a row to double-click -->
-            <TextBlock x:Name="DoubleClickHintText" Grid.Row="3"
-                       Text="Tip: double-click the game to jump straight to mod selection"
-                       Foreground="#888"
-                       FontSize="12"
-                       HorizontalAlignment="Left"
-                       Margin="0,8,0,0"
-                       Visibility="Collapsed"/>
+                    <!-- Exactly one primary button at a time: CONTINUE when there is a
+                         folder to continue with, CHOOSE FOLDER when there is not -->
+                    <Button x:Name="ContinueButton" Content="CONTINUE"
+                            Style="{StaticResource PurpleButtonStyle}"
+                            HorizontalAlignment="Center" MinWidth="200" Height="40"
+                            Click="ContinueButton_Click"/>
+                    <Button x:Name="ChooseFolderButton" Content="CHOOSE FOLDER"
+                            Style="{StaticResource PurpleButtonStyle}"
+                            HorizontalAlignment="Center" MinWidth="200" Height="40"
+                            Click="ChooseFolderButton_Click"/>
+                    <Button x:Name="ChangeFolderLink" Content="Use a different folder"
+                            Style="{StaticResource LinkButtonStyle}"
+                            HorizontalAlignment="Center" Margin="0,14,0,0"
+                            Click="ChooseFolderButton_Click"/>
+                </StackPanel>
+            </Border>
         </Grid>
 
         <!-- Version label -->
