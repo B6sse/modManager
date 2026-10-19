@@ -29,18 +29,27 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="row" Background="#1A1A1A" BorderBrush="#2A2A2A" BorderThickness="2"
-                                    CornerRadius="6" Padding="14,10">
+                            <!-- Feedback on the press itself, not on release: the row gives
+                                 a little under the pointer -->
+                            <Border x:Name="row" Background="#141414" BorderBrush="#262626" BorderThickness="1"
+                                    CornerRadius="8" Padding="16,12" RenderTransformOrigin="0.5,0.5">
                                 <ContentPresenter/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="row" Property="BorderBrush" Value="#8000FF"/>
+                                    <Setter TargetName="row" Property="BorderBrush" Value="#555"/>
+                                    <Setter TargetName="row" Property="Background" Value="#1A1A1A"/>
                                 </Trigger>
                                 <DataTrigger Binding="{Binding IsChosen}" Value="True">
                                     <Setter TargetName="row" Property="BorderBrush" Value="#8000FF"/>
-                                    <Setter TargetName="row" Property="Background" Value="#20142E"/>
                                 </DataTrigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="row" Property="RenderTransform">
+                                        <Setter.Value>
+                                            <ScaleTransform ScaleX="0.985" ScaleY="0.985"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
@@ -462,60 +471,63 @@
              CONTINUE is the whole set-up. A card in the middle of the window rather than
              a list with buttons in the corner. -->
         <Grid Grid.Row="0" x:Name="GameSelectView" Visibility="Collapsed">
-            <Border MaxWidth="600" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Background="#111" BorderBrush="#2A2A2A" BorderThickness="1" CornerRadius="10" Padding="36,30">
-                <StackPanel>
-                    <Border Height="110" CornerRadius="6" ClipToBounds="True" Margin="0,0,0,22">
-                        <Image Source="Assets/Images/swbf.png" Stretch="UniformToFill"/>
-                    </Border>
+            <!-- One column on the plain window background, nothing boxed in. Spacing on an
+                 8 px scale (8/16/24/32), one primary action, the rest quiet. -->
+            <StackPanel Width="520" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <!-- The game's cover art (a stormtrooper visor with the battle in it), shown
+                     whole: a small square, never a cropped strip -->
+                <Border Width="96" Height="96" CornerRadius="12" ClipToBounds="True" HorizontalAlignment="Center" Margin="0,0,0,24">
+                    <Image Source="Assets/Images/swbf.png" Stretch="UniformToFill"/>
+                </Border>
 
-                    <TextBlock x:Name="SetupHeading"
-                               Style="{StaticResource HeadingTextStyle}" FontSize="22"
-                               HorizontalAlignment="Center" TextAlignment="Center"/>
-                    <TextBlock x:Name="SetupHint"
-                               Style="{StaticResource SettingHintStyle}" FontSize="13"
-                               HorizontalAlignment="Center" TextAlignment="Center"
-                               Margin="0,8,0,20" MaxWidth="460"/>
+                <TextBlock x:Name="SetupHeading"
+                           Foreground="White" FontSize="26" FontWeight="SemiBold"
+                           LineHeight="30" LineStackingStrategy="BlockLineHeight"
+                           HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+                <TextBlock x:Name="SetupHint"
+                           Foreground="#9A9A9A" FontSize="14"
+                           LineHeight="20" LineStackingStrategy="BlockLineHeight"
+                           HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                           MaxWidth="440" Margin="0,8,0,32"/>
 
-                    <!-- One row per copy found; a click makes it the chosen one -->
-                    <ItemsControl x:Name="CandidateList" Margin="0,0,0,14">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Style="{StaticResource CandidateRowStyle}" Tag="{Binding}" Click="Candidate_Click">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="26"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="&#x2713;" Foreground="#8000FF" FontSize="16" FontWeight="Bold"
-                                                   VerticalAlignment="Center"
-                                                   Visibility="{Binding IsChosen, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock Text="{Binding Path}" Foreground="White" FontSize="14" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="{Binding Source}" Foreground="#888" FontSize="12" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                <!-- One row per copy found; a click makes it the chosen one -->
+                <ItemsControl x:Name="CandidateList" Margin="0,0,0,24">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource CandidateRowStyle}" Tag="{Binding}" Click="Candidate_Click">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Path}" Foreground="White" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Source}" Foreground="#9A9A9A" FontSize="12" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="&#x2713;" Foreground="#8000FF" FontSize="18" FontWeight="Bold"
+                                               VerticalAlignment="Center" Margin="16,0,0,0"
+                                               Visibility="{Binding IsChosen, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
-                    <!-- Exactly one primary button at a time: CONTINUE when there is a
-                         folder to continue with, CHOOSE FOLDER when there is not -->
-                    <Button x:Name="ContinueButton" Content="CONTINUE"
-                            Style="{StaticResource PurpleButtonStyle}"
-                            HorizontalAlignment="Center" MinWidth="200" Height="40"
-                            Click="ContinueButton_Click"/>
-                    <Button x:Name="ChooseFolderButton" Content="CHOOSE FOLDER"
-                            Style="{StaticResource PurpleButtonStyle}"
-                            HorizontalAlignment="Center" MinWidth="200" Height="40"
-                            Click="ChooseFolderButton_Click"/>
-                    <Button x:Name="ChangeFolderLink" Content="Use a different folder"
-                            Style="{StaticResource LinkButtonStyle}"
-                            HorizontalAlignment="Center" Margin="0,14,0,0"
-                            Click="ChooseFolderButton_Click"/>
-                </StackPanel>
-            </Border>
+                <!-- Exactly one primary button at a time: CONTINUE when there is a folder
+                     to continue with, CHOOSE FOLDER when there is not -->
+                <Button x:Name="ContinueButton" Content="CONTINUE"
+                        Style="{StaticResource PurpleButtonStyle}"
+                        HorizontalAlignment="Center" Width="240" Height="44"
+                        Click="ContinueButton_Click"/>
+                <Button x:Name="ChooseFolderButton" Content="CHOOSE FOLDER"
+                        Style="{StaticResource PurpleButtonStyle}"
+                        HorizontalAlignment="Center" Width="240" Height="44"
+                        Click="ChooseFolderButton_Click"/>
+                <Button x:Name="ChangeFolderLink" Content="Use a different folder"
+                        Style="{StaticResource LinkButtonStyle}"
+                        HorizontalAlignment="Center" Margin="0,16,0,0"
+                        Click="ChooseFolderButton_Click"/>
+            </StackPanel>
         </Grid>
 
         <!-- Version label -->
