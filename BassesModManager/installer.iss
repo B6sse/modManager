@@ -49,8 +49,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#PayloadPath}\BassesModManager.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PayloadPath}\BassesModManager.exe.config"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PayloadPath}\*.dll"; DestDir: "{app}"; Flags: ignoreversion
-; No ThirdParty, Profiles or Plugins any more: the mods are applied by Auric inside the
-; game, so Frosty's executor, its shim, its SDK files and its plugins are not shipped.
+; No ThirdParty, Profiles or Plugins: the mods are applied by Auric inside the game, so
+; nothing of Frosty is shipped; the app is the exe, its config, Newtonsoft.Json and Auric.
 ; Mods – only the small approved ones. The Auric set is several hundred MB and is NOT
 ; bundled: it would be re-downloaded by every auto-update even for a code-only change, so
 ; the app fetches it on demand instead. Mods live under ProgramData rather than {app} so
@@ -115,7 +115,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 ; Prereqs: .NET 4.8 is bundled in Prereqs\.NET_Framework_4.8_setup.exe and installed automatically if missing.
 ; VC++ 2015-2022 Redist (x64) is bundled in Prereqs\vc_redist.x64.exe and installed automatically if missing
-; (required by FrostyHash.dll, the one native Frosty DLL left, and by Auric's version.dll).
+; (required by Auric's version.dll, which the app places in the game folder).
 [Code]
 function IsDotNet48Installed: Boolean;
 var

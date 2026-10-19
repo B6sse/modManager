@@ -1,6 +1,6 @@
 # Axon
 
-A simplified version of Frosty Mod Manager that allows users to select from pre-installed, legal mods for competitive play in Star Wars Battlefront 2015.
+A mod manager that lets players pick from pre-installed, approved mods for competitive play in Star Wars Battlefront 2015 and loads them in memory through Auric.
 
 ## Releases
 
@@ -28,6 +28,6 @@ See [Releases](https://github.com/B6sse/modManager/releases) on GitHub for insta
 
 ## Note
 
-This is a simplified version of Frosty Mod Manager that only allows selection of pre-installed mods. The mod import and removal functionality has been intentionally removed to make sure only approved mods are used. 
+The app only allows selection of pre-installed mods. The mod import and removal functionality has been intentionally removed to make sure only approved mods are used. 
 
 The installer automatically installs .NET Framework 4.8 and the Visual C++ Redistributable 2015-2022 (x64) if they are missing, so no manual prerequisite steps should be needed. If the app still does not start, run `vc_redist.x64.exe` and `.NET_Framework_4.8_setup.exe` manually (bundled with the installer in the `Prereqs` folder of the source repository).

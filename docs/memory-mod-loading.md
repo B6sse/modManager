@@ -9,7 +9,7 @@ plan and test log is `docs\memory-mod-loading-plan.md` there (section 0 is the h
 Frosty's executor, the `ModData` folders, the symlinks, `-dataPath` and Frosty's
 `CryptBase.dll` shim are gone. A launch is three steps, all in `LaunchProgressWindow`:
 
-1. **Auric into the game folder.** `FrostyRuntime.InstallAuric` copies
+1. **Auric into the game folder.** `GameFolder.InstallAuric` copies
    `BassesModManager\Auric\version.dll` to `<game>\version.dll` when the hash differs.
    `version.dll` is a static import of the game and not a KnownDLL, so the game loads it
    from its own folder at process start; Auric is in from the first instruction, nothing
@@ -29,24 +29,25 @@ Frosty's executor, the `ModData` folders, the symlinks, `-dataPath` and Frosty's
    not match or whose profile is not `starwarsbattlefront`. Axon deletes the file when the
    game exits, on a failed launch, at app start and at app exit, so a plain start from the
    EA app stays vanilla.
-3. **The game, plainly.** `FrostyRuntime.StartGame` starts `starwarsbattlefront.exe` with
+3. **The game, plainly.** `GameFolder.StartGame` starts `starwarsbattlefront.exe` with
    no arguments (the EA app takes over), or `steam://run/<appid>` on a Steam install.
    Auric reads the marker at its S1 stage, parses each `.fbmod` itself and lays the mods
    over the game's files in memory through the engine's own virtual file system.
 
-Before the progress window opens, `MemoryLoading.Plan` reads each selected `.fbmod` with
-Frosty's reader (`FrostyMod`, which needs the game profile selected in `ProfilesLibrary`;
-`FrostyRuntime.EnsureInitialized` does only that, no plugins, SDK files or Frosty config
-involved). The answer is cached per file (path, size, write time) and warmed on the
-verification thread at start-up. A mod the reader cannot open (legacy format, another
+Before the progress window opens, `MemoryLoading.Plan` reads each selected `.fbmod`'s
+header with `FbModHeader` (profile, resource types, handlers, added bundles) and checks
+that the profile is `starwarsbattlefront`. The answer is cached per file (path, size,
+write time) and warmed on the verification thread at start-up. A mod the reader cannot open (legacy format, another
 game, a damaged file) stops the launch with a message; resources that only a Frosty
 plugin could apply (see below) raise a one-time dialog naming them, and the launch goes
 ahead. An empty selection starts the game unmodded through the same path.
 
-What is left of Frosty in the app: `FrostyCore` and `FrostySdk` for reading `.fbmod`
-headers, `FrostyControls` for two controls in the progress panel and the update bar,
-`FrostyHash` as their native dependency. `FrostyModSupport`, the plugins, the asset cache
-(`CacheInstallWindow`) and `ThirdParty\*` are no longer built or shipped.
+Nothing of Frosty is left in the app since 2026-10-18: the `.fbmod` header is read by
+Axon's own `FbModHeader` (format versions 1 to 5, checked identical to Frosty's reader on
+every catalog mod), the spinner is `Spinner.xaml`, and the Frosty Toolsuite sources were
+removed from the repository (history keeps them; the tag `disk-loading-last` and the
+branch `frosty-disk-loading` hold the last version with the disk path). The solution is
+one C# project with Newtonsoft.Json; no C++ toolset, no `PlatformToolset` flag.
 
 ## What Auric supports, and what it does not
 
