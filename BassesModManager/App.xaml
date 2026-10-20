@@ -103,11 +103,11 @@
             <!-- Button style (base; windows add EventSetter for hover sound) -->
             <Style x:Key="PurpleButtonStyleBase" TargetType="Button">
                 <Setter Property="OverridesDefaultStyle" Value="True"/>
-                <!-- Auric's palette: a very dark grey at rest (#909CA2 at 20 % over black),
-                     gold when hovered or pressed, the same gold as the logo's frame -->
-                <Setter Property="Background" Value="#33909CA2"/>
+                <!-- Auric's gold (the logo's frame) at rest, inverted to white on hover,
+                     the way the purple used to behave -->
+                <Setter Property="Background" Value="#F2AD0A"/>
                 <Setter Property="Foreground" Value="White"/>
-                <Setter Property="BorderBrush" Value="#788287"/>
+                <Setter Property="BorderBrush" Value="#F2AD0A"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="FontWeight" Value="Bold"/>
                 <Setter Property="Padding" Value="16,10"/>
@@ -127,9 +127,9 @@
                 </Setter>
                 <Style.Triggers>
                     <Trigger Property="IsMouseOver" Value="True">
-                        <Setter Property="Background" Value="#F2AD0A"/>
-                        <Setter Property="Foreground" Value="White"/>
-                        <Setter Property="BorderBrush" Value="#F2AD0A"/>
+                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Foreground" Value="#F2AD0A"/>
+                        <Setter Property="BorderBrush" Value="White"/>
                     </Trigger>
                     <Trigger Property="IsEnabled" Value="False">
                         <Setter Property="Background" Value="#33909CA2"/>
