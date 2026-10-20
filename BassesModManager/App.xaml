@@ -127,19 +127,15 @@
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
+                                <!-- Hover is a whisper: one step lighter, nothing else. The
+                                     real feedback is the press (darker, pressed in). -->
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="face" Property="Background" Value="#FFC23A"/>
-                                    <Setter TargetName="face" Property="BorderBrush" Value="#FFD36B"/>
-                                    <Setter TargetName="face" Property="Effect">
-                                        <Setter.Value>
-                                            <DropShadowEffect Color="#F2AD0A" BlurRadius="18" ShadowDepth="0" Opacity="0.55"/>
-                                        </Setter.Value>
-                                    </Setter>
+                                    <Setter TargetName="face" Property="Background" Value="#F7BB2E"/>
+                                    <Setter TargetName="face" Property="BorderBrush" Value="#F7BB2E"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="face" Property="Background" Value="#D9980A"/>
                                     <Setter TargetName="face" Property="BorderBrush" Value="#D9980A"/>
-                                    <Setter TargetName="face" Property="Effect" Value="{x:Null}"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter TargetName="face" Property="Background" Value="#33909CA2"/>
