@@ -474,22 +474,50 @@
         <Grid Grid.Row="0" x:Name="GameSelectView" Visibility="Collapsed">
             <!-- One column on the plain window background, nothing boxed in. Spacing on an
                  8 px scale (8/16/24/32), one primary action, the rest quiet. -->
-            <StackPanel Width="520" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel Width="520" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        RenderTransformOrigin="0.5,0.5">
+                <!-- The column settles into place once: a short fade with a few pixels of
+                     rise, eased out, no bounce. One-off entrance, never on interaction. -->
+                <StackPanel.RenderTransform>
+                    <TranslateTransform x:Name="SetupRise" Y="12"/>
+                </StackPanel.RenderTransform>
+                <StackPanel.Triggers>
+                    <EventTrigger RoutedEvent="Loaded">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.35">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetName="SetupRise" Storyboard.TargetProperty="Y" From="12" To="0" Duration="0:0:0.35">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </StackPanel.Triggers>
+
                 <!-- The game's cover art (a stormtrooper visor with the battle in it), shown
-                     whole: a small square, never a cropped strip -->
-                <Border Width="96" Height="96" CornerRadius="6" ClipToBounds="True" HorizontalAlignment="Center" Margin="0,0,0,24">
+                     whole: a small square with a hairline edge, never a cropped strip -->
+                <Border Width="96" Height="96" CornerRadius="6" ClipToBounds="True" HorizontalAlignment="Center" Margin="0,0,0,28"
+                        BorderBrush="#788287" BorderThickness="1">
                     <Image Source="Assets/Images/swbf.png" Stretch="UniformToFill"/>
                 </Border>
 
+                <!-- Display size, tight leading; the hint one step down in size and weight
+                     with looser leading, so the eye lands on the heading first -->
                 <TextBlock x:Name="SetupHeading"
-                           Foreground="White" FontSize="26" FontWeight="SemiBold"
-                           LineHeight="30" LineStackingStrategy="BlockLineHeight"
+                           Foreground="White" FontSize="28" FontWeight="SemiBold"
+                           LineHeight="32" LineStackingStrategy="BlockLineHeight"
                            HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
                 <TextBlock x:Name="SetupHint"
                            Foreground="#999999" FontSize="14"
-                           LineHeight="20" LineStackingStrategy="BlockLineHeight"
+                           LineHeight="21" LineStackingStrategy="BlockLineHeight"
                            HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
-                           MaxWidth="440" Margin="0,8,0,32"/>
+                           MaxWidth="420" Margin="0,8,0,32"/>
 
                 <!-- One row per copy found; a click makes it the chosen one -->
                 <ItemsControl x:Name="CandidateList" Margin="0,0,0,24">
@@ -503,7 +531,8 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Path}" Foreground="White" FontSize="14" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding Source}" Foreground="#999999" FontSize="12" Margin="0,3,0,0"/>
+                                        <TextBlock Text="{Binding Source}" Foreground="#999999" FontSize="12" Margin="0,3,0,0"
+                                                   Typography.Capitals="AllSmallCaps"/>
                                     </StackPanel>
                                     <TextBlock Grid.Column="1" Text="&#x2713;" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold"
                                                VerticalAlignment="Center" Margin="16,0,0,0"

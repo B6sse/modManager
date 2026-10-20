@@ -103,8 +103,10 @@
             <!-- Button style (base; windows add EventSetter for hover sound) -->
             <Style x:Key="PurpleButtonStyleBase" TargetType="Button">
                 <Setter Property="OverridesDefaultStyle" Value="True"/>
-                <!-- Auric's gold (the logo's frame) at rest, inverted to white on hover,
-                     the way the purple used to behave -->
+                <!-- Auric's gold (the logo's frame). The states keep the colour and change
+                     its light, the way game menus do: a little brighter with a soft glow
+                     under the pointer, a little darker and pressed in while the button is
+                     held. Feedback on the press itself, not on release. -->
                 <Setter Property="Background" Value="#F2AD0A"/>
                 <Setter Property="Foreground" Value="White"/>
                 <Setter Property="BorderBrush" Value="#F2AD0A"/>
@@ -112,29 +114,51 @@
                 <Setter Property="FontWeight" Value="Bold"/>
                 <Setter Property="Padding" Value="16,10"/>
                 <Setter Property="FontSize" Value="14"/>
+                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}"
+                            <Border x:Name="face"
+                                    Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     Padding="{TemplateBinding Padding}"
                                     CornerRadius="3.5">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="face" Property="Background" Value="#FFC23A"/>
+                                    <Setter TargetName="face" Property="BorderBrush" Value="#FFD36B"/>
+                                    <Setter TargetName="face" Property="Effect">
+                                        <Setter.Value>
+                                            <DropShadowEffect Color="#F2AD0A" BlurRadius="18" ShadowDepth="0" Opacity="0.55"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="face" Property="Background" Value="#D9980A"/>
+                                    <Setter TargetName="face" Property="BorderBrush" Value="#D9980A"/>
+                                    <Setter TargetName="face" Property="Effect" Value="{x:Null}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="face" Property="Background" Value="#33909CA2"/>
+                                    <Setter TargetName="face" Property="BorderBrush" Value="#788287"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
                 <Style.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True">
-                        <Setter Property="Background" Value="White"/>
-                        <Setter Property="Foreground" Value="#F2AD0A"/>
-                        <Setter Property="BorderBrush" Value="White"/>
+                    <Trigger Property="IsPressed" Value="True">
+                        <Setter Property="RenderTransform">
+                            <Setter.Value>
+                                <ScaleTransform ScaleX="0.97" ScaleY="0.97"/>
+                            </Setter.Value>
+                        </Setter>
                     </Trigger>
                     <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Background" Value="#33909CA2"/>
                         <Setter Property="Foreground" Value="#999999"/>
-                        <Setter Property="BorderBrush" Value="#788287"/>
                     </Trigger>
                 </Style.Triggers>
             </Style>

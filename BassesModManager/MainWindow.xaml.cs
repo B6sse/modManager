@@ -729,8 +729,8 @@ namespace BassesModManager
                 : candidates.Count == 1 ? "We found STAR WARS Battlefront"
                 : "We found " + candidates.Count + " copies of STAR WARS Battlefront";
             SetupHint.Text = found
-                ? "Mods are loaded into the copy below. Press CONTINUE, or pick another one."
-                : "The game was not found on this PC. Choose the folder it is installed in, the one with starwarsbattlefront.exe, and Axon takes it from there.";
+                ? "Mods load into this copy of the game."
+                : "The game was not found on this PC. Choose the folder it is installed in, the one with starwarsbattlefront.exe.";
 
             CandidateList.Visibility = found ? Visibility.Visible : Visibility.Collapsed;
             ContinueButton.Visibility = found ? Visibility.Visible : Visibility.Collapsed;
