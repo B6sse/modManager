@@ -6,7 +6,7 @@
     <!-- Everything inside the launch progress window: banner, the status line the flow
          writes to, a spinner, the hint under it, and a cancel button for flows that can
          be called off. Only the width is fixed; the height follows the content. -->
-    <Border Background="Black" BorderBrush="#8000FF" BorderThickness="2" CornerRadius="8">
+    <Border Background="Black" BorderBrush="#788287" BorderThickness="1" CornerRadius="6">
         <Grid>
         <Grid Margin="20">
             <Grid.RowDefinitions>
@@ -24,7 +24,7 @@
             <local:Spinner Grid.Row="2" Width="20" Height="20" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,0,5"/>
 
             <TextBlock Grid.Row="3" x:Name="HintTextBlock"
-                       Foreground="#888" FontSize="12" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                       Foreground="#999999" FontSize="12" Margin="0,10,0,0" TextWrapping="Wrap"/>
 
             <!-- Collapsed rather than hidden, so the row it sits in takes no height at
                  all for the window that has no use for it -->

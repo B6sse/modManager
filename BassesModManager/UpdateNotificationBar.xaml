@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:BassesModManager"
              Visibility="Collapsed">
-    <Border Background="#151515" BorderBrush="#8000FF" BorderThickness="2" CornerRadius="6" Padding="12,8">
+    <Border Background="#000000" BorderBrush="#788287" BorderThickness="1" CornerRadius="6" Padding="12,8">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>

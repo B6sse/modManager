@@ -15,7 +15,8 @@
             <!-- Tooltip style -->
             <Style TargetType="ToolTip">
                 <Setter Property="Foreground" Value="White"/>
-                <Setter Property="Background" Value="#222"/>
+                <Setter Property="Background" Value="#000000"/>
+                <Setter Property="BorderBrush" Value="#788287"/>
                 <Setter Property="FontSize" Value="15"/>
             </Style>
 
@@ -31,17 +32,17 @@
                         <ControlTemplate TargetType="Button">
                             <!-- Feedback on the press itself, not on release: the row gives
                                  a little under the pointer -->
-                            <Border x:Name="row" Background="#141414" BorderBrush="#262626" BorderThickness="1"
-                                    CornerRadius="8" Padding="16,12" RenderTransformOrigin="0.5,0.5">
+                            <Border x:Name="row" Background="#000000" BorderBrush="#788287" BorderThickness="1"
+                                    CornerRadius="6" Padding="16,12" RenderTransformOrigin="0.5,0.5">
                                 <ContentPresenter/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="row" Property="BorderBrush" Value="#555"/>
-                                    <Setter TargetName="row" Property="Background" Value="#1A1A1A"/>
+                                    <Setter TargetName="row" Property="BorderBrush" Value="#F2AD0A"/>
+                                    <Setter TargetName="row" Property="Background" Value="#33909CA2"/>
                                 </Trigger>
                                 <DataTrigger Binding="{Binding IsChosen}" Value="True">
-                                    <Setter TargetName="row" Property="BorderBrush" Value="#8000FF"/>
+                                    <Setter TargetName="row" Property="BorderBrush" Value="#F2AD0A"/>
                                 </DataTrigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="row" Property="RenderTransform">
@@ -62,7 +63,7 @@
             <Style x:Key="LinkButtonStyle" TargetType="Button">
                 <Setter Property="OverridesDefaultStyle" Value="True"/>
                 <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="Foreground" Value="#888"/>
+                <Setter Property="Foreground" Value="#999999"/>
                 <Setter Property="FontSize" Value="13"/>
                 <Setter Property="Template">
                     <Setter.Value>
@@ -95,10 +96,10 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="fill" CornerRadius="5" Margin="3" Background="Transparent">
+                            <Border x:Name="fill" CornerRadius="3.5" Margin="3" Background="Transparent">
                                 <TextBlock x:Name="label"
                                            Text="{Binding Label}"
-                                           Foreground="#888888" FontWeight="Bold" FontSize="13"
+                                           Foreground="#999999" FontWeight="Bold" FontSize="13"
                                            Padding="12,0"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
@@ -107,11 +108,11 @@
                                     <Setter TargetName="label" Property="Foreground" Value="White"/>
                                 </Trigger>
                                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                    <Setter TargetName="fill" Property="Background" Value="#8000FF"/>
+                                    <Setter TargetName="fill" Property="Background" Value="#F2AD0A"/>
                                     <Setter TargetName="label" Property="Foreground" Value="White"/>
                                 </DataTrigger>
                                 <Trigger Property="IsEnabled" Value="False">
-                                    <Setter TargetName="label" Property="Foreground" Value="#555555"/>
+                                    <Setter TargetName="label" Property="Foreground" Value="#999999"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -120,7 +121,7 @@
                 <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
             </Style>
             <Style x:Key="SettingHintStyle" TargetType="TextBlock">
-                <Setter Property="Foreground" Value="#888"/>
+                <Setter Property="Foreground" Value="#999999"/>
                 <Setter Property="FontSize" Value="12"/>
                 <Setter Property="TextWrapping" Value="Wrap"/>
                 <Setter Property="Margin" Value="0,3,0,0"/>
@@ -145,13 +146,13 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Thumb">
-                            <Border x:Name="thumbFill" Background="#8000FF" CornerRadius="4" Margin="4,0"/>
+                            <Border x:Name="thumbFill" Background="#D9D9D9" CornerRadius="4" Margin="4,0"/>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="thumbFill" Property="Background" Value="#9B33FF"/>
+                                    <Setter TargetName="thumbFill" Property="Background" Value="#F2AD0A"/>
                                 </Trigger>
                                 <Trigger Property="IsDragging" Value="True">
-                                    <Setter TargetName="thumbFill" Property="Background" Value="#6600CC"/>
+                                    <Setter TargetName="thumbFill" Property="Background" Value="#F2AD0A"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -165,7 +166,7 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="ScrollBar">
                             <Grid>
-                                <Border Margin="4,0" CornerRadius="4" Background="#1A1A1A"/>
+                                <Border Margin="4,0" CornerRadius="4" Background="Transparent"/>
                                 <Track x:Name="PART_Track" IsDirectionReversed="True">
                                     <Track.DecreaseRepeatButton>
                                         <RepeatButton Style="{StaticResource ScrollBarPageButtonStyle}" Command="ScrollBar.PageUpCommand"/>
@@ -290,13 +291,13 @@
                                  switch right for free, since they're Auto columns after it. -->
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,20,0" MaxWidth="440">
                                 <TextBlock Text="{Binding Name}" Foreground="White" FontSize="13" FontWeight="Bold"/>
-                                <TextBlock Text="{Binding Description}" Foreground="#888" FontSize="12"
+                                <TextBlock Text="{Binding Description}" Foreground="#999999" FontSize="12"
                                            TextWrapping="Wrap" Margin="0,2,0,0"/>
                             </StackPanel>
 
                             <TextBlock Grid.Column="2"
                                        Text="{Binding StatusText}"
-                                       Foreground="#888" FontSize="11"
+                                       Foreground="#999999" FontSize="11"
                                        VerticalAlignment="Center"
                                        Margin="0,0,10,0"/>
 
@@ -333,7 +334,7 @@
                                  invisible - and the alternative was two purples of visibly
                                  different height in the same column. -->
                             <Border Grid.Column="3"
-                                    CornerRadius="5" Height="34" Background="#2A2A2A"
+                                    CornerRadius="3.5" Height="34" Background="#33909CA2"
                                     VerticalAlignment="Center"
                                     Visibility="{Binding ShowVariants, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <ItemsControl ItemsSource="{Binding Variants}"
@@ -476,7 +477,7 @@
             <StackPanel Width="520" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <!-- The game's cover art (a stormtrooper visor with the battle in it), shown
                      whole: a small square, never a cropped strip -->
-                <Border Width="96" Height="96" CornerRadius="12" ClipToBounds="True" HorizontalAlignment="Center" Margin="0,0,0,24">
+                <Border Width="96" Height="96" CornerRadius="6" ClipToBounds="True" HorizontalAlignment="Center" Margin="0,0,0,24">
                     <Image Source="Assets/Images/swbf.png" Stretch="UniformToFill"/>
                 </Border>
 
@@ -485,7 +486,7 @@
                            LineHeight="30" LineStackingStrategy="BlockLineHeight"
                            HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
                 <TextBlock x:Name="SetupHint"
-                           Foreground="#9A9A9A" FontSize="14"
+                           Foreground="#999999" FontSize="14"
                            LineHeight="20" LineStackingStrategy="BlockLineHeight"
                            HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
                            MaxWidth="440" Margin="0,8,0,32"/>
@@ -502,9 +503,9 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Path}" Foreground="White" FontSize="14" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding Source}" Foreground="#9A9A9A" FontSize="12" Margin="0,3,0,0"/>
+                                        <TextBlock Text="{Binding Source}" Foreground="#999999" FontSize="12" Margin="0,3,0,0"/>
                                     </StackPanel>
-                                    <TextBlock Grid.Column="1" Text="&#x2713;" Foreground="#8000FF" FontSize="18" FontWeight="Bold"
+                                    <TextBlock Grid.Column="1" Text="&#x2713;" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold"
                                                VerticalAlignment="Center" Margin="16,0,0,0"
                                                Visibility="{Binding IsChosen, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                 </Grid>

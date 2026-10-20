@@ -11,22 +11,22 @@
                  shared edge for two different CornerRadius values to disagree about
                  and leave a gap. Hover only ever changes a flat Background color, no
                  border geometry involved at all. -->
-            <Border x:Name="track" CornerRadius="5" Height="34" Background="#2A2A2A">
+            <Border x:Name="track" CornerRadius="3.5" Height="34" Background="#33909CA2">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <Border x:Name="thumb" Grid.Column="0" CornerRadius="5" Margin="3" Background="#8000FF"/>
+                    <Border x:Name="thumb" Grid.Column="0" CornerRadius="3.5" Margin="3" Background="#F2AD0A"/>
                     <!-- Labels come from the control's OnLabel/OffLabel properties so the
                          same switch can read ON/OFF on the settings page and NORMAL/AURIC
                          on the main window. They live in the template's own namescope, so
                          a binding is the only way to reach them - the x:Name'd TextBlocks
                          are not fields on the code-behind. -->
-                    <TextBlock x:Name="onLabel" Grid.Column="0" Foreground="#888888" FontWeight="Bold" FontSize="13"
+                    <TextBlock x:Name="onLabel" Grid.Column="0" Foreground="#999999" FontWeight="Bold" FontSize="13"
                                Text="{Binding OnLabel, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                Padding="18,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="offLabel" Grid.Column="1" Foreground="#888888" FontWeight="Bold" FontSize="13"
+                    <TextBlock x:Name="offLabel" Grid.Column="1" Foreground="#999999" FontWeight="Bold" FontSize="13"
                                Text="{Binding OffLabel, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                Padding="18,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Grid>
@@ -35,19 +35,19 @@
                 <Trigger Property="IsChecked" Value="True">
                     <Setter TargetName="thumb" Property="Grid.Column" Value="0"/>
                     <Setter TargetName="onLabel" Property="Foreground" Value="White"/>
-                    <Setter TargetName="offLabel" Property="Foreground" Value="#888888"/>
+                    <Setter TargetName="offLabel" Property="Foreground" Value="#999999"/>
                 </Trigger>
                 <Trigger Property="IsChecked" Value="False">
                     <Setter TargetName="thumb" Property="Grid.Column" Value="1"/>
-                    <Setter TargetName="onLabel" Property="Foreground" Value="#888888"/>
+                    <Setter TargetName="onLabel" Property="Foreground" Value="#999999"/>
                     <Setter TargetName="offLabel" Property="Foreground" Value="White"/>
                 </Trigger>
                 <!-- Whole-control hover: track background brightens slightly - no
                      border, so nothing that can misalign. Kept close to the resting
-                     #2A2A2A; brighter than this reads as the switch being active
+                     resting grey; brighter than this reads as the switch being active
                      rather than merely hovered. -->
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter TargetName="track" Property="Background" Value="#383838"/>
+                    <Setter TargetName="track" Property="Background" Value="#4D909CA2"/>
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -67,20 +67,20 @@
             <!-- Every measurement comes from CompactHeight, so the shape keeps its
                  proportions at whatever height the caller asks for. The knob's side to side
                  movement is the one part not handled here - see PlaceKnob. -->
-            <Border x:Name="track" CornerRadius="5"
+            <Border x:Name="track" CornerRadius="3.5"
                     Width="{Binding CompactWidth, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                     Height="{Binding CompactHeight, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                    Background="#2A2A2A"
+                    Background="#33909CA2"
                     HorizontalAlignment="Left" VerticalAlignment="Center">
-                <Border x:Name="knob" CornerRadius="5" Margin="3"
+                <Border x:Name="knob" CornerRadius="3.5" Margin="3"
                         Width="{Binding KnobSize, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                         Height="{Binding KnobSize, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                        Background="#888888"
+                        Background="#999999"
                         HorizontalAlignment="Left" VerticalAlignment="Center"/>
             </Border>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsChecked" Value="True">
-                    <Setter TargetName="track" Property="Background" Value="#8000FF"/>
+                    <Setter TargetName="track" Property="Background" Value="#F2AD0A"/>
                     <Setter TargetName="knob" Property="Background" Value="White"/>
                 </Trigger>
                 <!-- Hover has to know which state it is brightening, so these come after
@@ -91,14 +91,14 @@
                         <Condition Property="IsChecked" Value="False"/>
                         <Condition Property="IsMouseOver" Value="True"/>
                     </MultiTrigger.Conditions>
-                    <Setter TargetName="track" Property="Background" Value="#383838"/>
+                    <Setter TargetName="track" Property="Background" Value="#4D909CA2"/>
                 </MultiTrigger>
                 <MultiTrigger>
                     <MultiTrigger.Conditions>
                         <Condition Property="IsChecked" Value="True"/>
                         <Condition Property="IsMouseOver" Value="True"/>
                     </MultiTrigger.Conditions>
-                    <Setter TargetName="track" Property="Background" Value="#9B33FF"/>
+                    <Setter TargetName="track" Property="Background" Value="#F2AD0A"/>
                 </MultiTrigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>

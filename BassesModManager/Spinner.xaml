@@ -24,7 +24,7 @@
             </Canvas.Triggers>
             <!-- Arc from the top, clockwise, three quarters round; stroke width 5 on a 30
                  unit diameter leaves room for the round caps inside the 40 unit canvas -->
-            <Path Stroke="#F7F7F7" StrokeThickness="5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+            <Path Stroke="#FFFFFF" StrokeThickness="5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                   Data="M 20,5 A 15,15 0 1 1 5,20"/>
         </Canvas>
     </Viewbox>

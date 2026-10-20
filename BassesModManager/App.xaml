@@ -50,7 +50,7 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="Slider">
                             <Grid VerticalAlignment="Center">
-                                <Border Height="6" CornerRadius="3" Background="#333" VerticalAlignment="Center"/>
+                                <Border Height="6" CornerRadius="3" Background="#33909CA2" VerticalAlignment="Center"/>
                                 <Track x:Name="PART_Track">
                                     <!-- The filled part to the left of the knob -->
                                     <Track.DecreaseRepeatButton>
@@ -58,7 +58,7 @@
                                                       Focusable="False" IsTabStop="False" OverridesDefaultStyle="True">
                                             <RepeatButton.Template>
                                                 <ControlTemplate TargetType="RepeatButton">
-                                                    <Border Height="6" CornerRadius="3" Background="#8000FF" VerticalAlignment="Center"/>
+                                                    <Border Height="6" CornerRadius="3" Background="#F2AD0A" VerticalAlignment="Center"/>
                                                 </ControlTemplate>
                                             </RepeatButton.Template>
                                         </RepeatButton>
@@ -79,14 +79,14 @@
                                                MouseEnter="SliderThumb_PlayHoverSound">
                                             <Thumb.Template>
                                                 <ControlTemplate TargetType="Thumb">
-                                                    <Ellipse x:Name="knob" Fill="#8000FF"/>
+                                                    <Ellipse x:Name="knob" Fill="#FFFFFF"/>
                                                     <ControlTemplate.Triggers>
-                                                        <!-- Same inversion the buttons use on hover -->
+                                                        <!-- White grab at rest, gold while hovered or dragged, like the buttons -->
                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="knob" Property="Fill" Value="White"/>
+                                                            <Setter TargetName="knob" Property="Fill" Value="#F2AD0A"/>
                                                         </Trigger>
                                                         <Trigger Property="IsDragging" Value="True">
-                                                            <Setter TargetName="knob" Property="Fill" Value="White"/>
+                                                            <Setter TargetName="knob" Property="Fill" Value="#F2AD0A"/>
                                                         </Trigger>
                                                     </ControlTemplate.Triggers>
                                                 </ControlTemplate>
@@ -103,9 +103,11 @@
             <!-- Button style (base; windows add EventSetter for hover sound) -->
             <Style x:Key="PurpleButtonStyleBase" TargetType="Button">
                 <Setter Property="OverridesDefaultStyle" Value="True"/>
-                <Setter Property="Background" Value="#8000FF"/>
+                <!-- Auric's palette: a very dark grey at rest (#909CA2 at 20 % over black),
+                     gold when hovered or pressed, the same gold as the logo's frame -->
+                <Setter Property="Background" Value="#33909CA2"/>
                 <Setter Property="Foreground" Value="White"/>
-                <Setter Property="BorderBrush" Value="#8000FF"/>
+                <Setter Property="BorderBrush" Value="#788287"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="FontWeight" Value="Bold"/>
                 <Setter Property="Padding" Value="16,10"/>
@@ -117,7 +119,7 @@
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     Padding="{TemplateBinding Padding}"
-                                    CornerRadius="5">
+                                    CornerRadius="3.5">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                         </ControlTemplate>
@@ -125,14 +127,14 @@
                 </Setter>
                 <Style.Triggers>
                     <Trigger Property="IsMouseOver" Value="True">
-                        <Setter Property="Background" Value="White"/>
-                        <Setter Property="Foreground" Value="#8000FF"/>
-                        <Setter Property="BorderBrush" Value="White"/>
+                        <Setter Property="Background" Value="#F2AD0A"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderBrush" Value="#F2AD0A"/>
                     </Trigger>
                     <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Background" Value="#333"/>
-                        <Setter Property="Foreground" Value="#666"/>
-                        <Setter Property="BorderBrush" Value="#444"/>
+                        <Setter Property="Background" Value="#33909CA2"/>
+                        <Setter Property="Foreground" Value="#999999"/>
+                        <Setter Property="BorderBrush" Value="#788287"/>
                     </Trigger>
                 </Style.Triggers>
             </Style>
