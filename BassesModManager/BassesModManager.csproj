@@ -62,6 +62,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -108,10 +109,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="CustomCursorOverlay.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -142,9 +139,6 @@
     <Compile Include="SettingToggle.xaml.cs">
       <DependentUpon>SettingToggle.xaml</DependentUpon>
     </Compile>
-    <Compile Include="CustomCursorOverlay.xaml.cs">
-      <DependentUpon>CustomCursorOverlay.xaml</DependentUpon>
-    </Compile>
     <Compile Include="CustomCursor.cs" />
     <Compile Include="UpdateService.cs" />
     <Compile Include="MainWindow.xaml.cs">
@@ -152,10 +146,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Converters\BooleanToVisibilityConverter.cs" />
-    <Compile Include="Converters\StringToImageSourceConverter.cs" />
     <Compile Include="ModDownloader.cs" />
     <Compile Include="Sounds.cs" />
-    <Compile Include="SmoothScrollBehavior.cs" />
   </ItemGroup>
   <ItemGroup>
     <!-- Auric, the in-game half. A copy of Kyber.dll from the Auric repo's public build

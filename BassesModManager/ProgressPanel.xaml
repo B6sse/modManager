@@ -34,7 +34,6 @@
                     Style="{StaticResource PurpleButtonStyle}"
                     Click="CancelButton_Click"/>
         </Grid>
-        <local:CustomCursorOverlay/>
         </Grid>
     </Border>
 </UserControl>

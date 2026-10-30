@@ -29,6 +29,5 @@
                     Style="{StaticResource PurpleButtonStyle}"/>
         </StackPanel>
     </StackPanel>
-    <local:CustomCursorOverlay/>
     </Grid>
 </Window>

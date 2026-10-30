@@ -69,12 +69,12 @@ namespace BassesModManager
             // Load the UI sounds once up front so the first hover isn't delayed
             Sounds.Preload();
 
-            // Custom cursor: hide the real OS cursor app-wide and let each window's
-            // CustomCursorOverlay draw Assets/Images/cursor.png in its place. Overriding
-            // here (rather than per-window) beats any per-control Cursor="Hand" setter,
-            // so the same image shows everywhere regardless of what's being hovered.
-            CustomCursor.Preload();
-            Mouse.OverrideCursor = Cursors.None;
+            // Custom cursor: Assets/Images/cursor.png as a real Windows cursor, drawn by
+            // the OS on the cursor layer so it never lags behind the app's frames (the old
+            // Image-following-the-mouse overlay did, badly over a VM or a stream).
+            // Overriding here (rather than per-window) beats any per-control Cursor="Hand"
+            // setter, so the same arrow shows everywhere regardless of what's being hovered.
+            Mouse.OverrideCursor = CustomCursor.Load();
 
             // Mods live under ProgramData, not next to the exe: the app runs non-elevated
             // and has to be able to delete rejected files and download the Auric set
