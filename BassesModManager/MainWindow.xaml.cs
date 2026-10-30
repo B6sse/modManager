@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -50,7 +51,6 @@ namespace BassesModManager
         private sealed class CatalogVariant
         {
             public string Label { get; set; }
-            public string ImagePath { get; set; }
             public CatalogFile File { get; set; }
         }
 
@@ -214,17 +214,17 @@ namespace BassesModManager
                     new CatalogVariant { Label = "OFF" },
                     new CatalogVariant
                     {
-                        Label = "WHITE", ImagePath = "Assets/Images/white_dot.png",
+                        Label = "WHITE",
                         File = new CatalogFile { FileName = "White Dot.fbmod", Sha256 = "88bc98b8604f993e058ff848ba267b1e72530a3938037f9dc4b58d6471aa337a" }
                     },
                     new CatalogVariant
                     {
-                        Label = "RED", ImagePath = "Assets/Images/red_dot.png",
+                        Label = "RED",
                         File = new CatalogFile { FileName = "Red Dot.fbmod", Sha256 = "c8748886884ae0f3f2a372fc130bf9bb3794dc2ca908a16ad8a6d2d01d16d719" }
                     },
                     new CatalogVariant
                     {
-                        Label = "GREEN", ImagePath = "Assets/Images/green_dot.png",
+                        Label = "GREEN",
                         File = new CatalogFile { FileName = "Green Dot.fbmod", Sha256 = "b0152a45d8dd1cc995fdc92d7f517ce17b08a260a9f9062ff9d6ec17902a1694" }
                     }
                 }
@@ -273,6 +273,9 @@ namespace BassesModManager
             allMods = new List<ModItem>();
             visibleMods = new ObservableCollection<ModItem>();
             ModListControl.ItemsSource = visibleMods;
+            // Groups appear in the order their first item does, which puts the mod pack
+            // (first in the catalog) above the single mods
+            CollectionViewSource.GetDefaultView(visibleMods).GroupDescriptions.Add(new PropertyGroupDescription(nameof(ModItem.Group)));
 
             candidates = new ObservableCollection<GameCandidate>();
             CandidateList.ItemsSource = candidates;
@@ -365,6 +368,7 @@ namespace BassesModManager
                 var item = new ModItem
                 {
                     Key = entry.Key,
+                    Group = entry.Key == "axon" ? "Mod pack" : "Mods",
                     Name = entry.DisplayName,
                     Description = entry.Description,
                     FileNames = entry.Files.Select(f => f.FileName).ToArray(),
@@ -385,7 +389,6 @@ namespace BassesModManager
                     item.Variants = entry.Variants.Select(v => new ModVariant
                     {
                         Label = v.Label,
-                        ImagePath = v.ImagePath,
                         FileName = v.File?.FileName,
                         IsSelected = present && string.Equals(v.Label, storedVariant, StringComparison.OrdinalIgnoreCase)
                     }).ToArray();
@@ -407,11 +410,10 @@ namespace BassesModManager
             }
         }
 
-        /// <summary>Mirrors the chosen variant onto the row: its picture, and whether it counts as on.</summary>
+        /// <summary>Mirrors the chosen variant onto the row: whether it counts as on.</summary>
         private static void ApplyVariantSelection(ModItem item)
         {
             ModVariant chosen = item.Variants.FirstOrDefault(v => v.IsSelected);
-            item.ImagePath = chosen?.ImagePath;
             item.IsEnabled = chosen?.FileName != null;
         }
 
@@ -476,31 +478,7 @@ namespace BassesModManager
 
             Properties.Settings.Default.EnabledMods = string.Join(";", entries);
             Properties.Settings.Default.Save();
-        }
-
-        /// <summary>Offset the wheel is currently animating towards, so consecutive notches
-        /// add up instead of each one restarting from the (not-yet-reached) current offset.</summary>
-        private double modListScrollTarget = double.NaN;
-
-        /// <summary>
-        /// WPF's default per-notch scroll amount is large enough that it reads as jumping
-        /// between mods rather than scrolling past them. This scrolls a smaller distance and
-        /// animates to it, so the list glides continuously instead of stepping.
-        /// </summary>
-        private void ModListScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            e.Handled = true;
-
-            double current = double.IsNaN(modListScrollTarget) ? ModListScrollViewer.VerticalOffset : modListScrollTarget;
-            double target = Math.Max(0, Math.Min(ModListScrollViewer.ScrollableHeight, current - e.Delta / 3.0));
-            modListScrollTarget = target;
-
-            var animation = new DoubleAnimation(ModListScrollViewer.VerticalOffset, target, TimeSpan.FromMilliseconds(220))
-            {
-                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
-            };
-            animation.Completed += (s, args) => modListScrollTarget = double.NaN;
-            ModListScrollViewer.BeginAnimation(SmoothScrollBehavior.VerticalOffsetProperty, animation);
+            RefreshLaunchStatus();
         }
 
         /// <summary>
@@ -512,11 +490,25 @@ namespace BassesModManager
         private void RefreshLaunchButton()
         {
             LaunchGameButton.IsEnabled = !modsLoading;
+            RefreshLaunchStatus();
+        }
 
-            // The only thing worth saying is why it cannot be pressed, so the tooltip goes
-            // away with the reason. A button labelled LAUNCH GAME needs no explaining, and
-            // the old text claimed a mod had to be picked first, which was never true.
-            LaunchGameButton.ToolTip = modsLoading ? "Checking the mod files" : null;
+        /// <summary>
+        /// The line beside the launch button: what the launch will do, or why it cannot
+        /// happen yet. Status in plain sight rather than in a tooltip on a disabled button.
+        /// </summary>
+        private void RefreshLaunchStatus()
+        {
+            if (modsLoading)
+            {
+                LaunchStatusText.Text = "Checking the mod files...";
+                return;
+            }
+
+            int count = GetSelectedMods().Count;
+            LaunchStatusText.Text = count == 0 ? "No mods selected, the game starts unmodded"
+                : count == 1 ? "1 mod selected"
+                : count + " mods selected";
         }
 
         /// <summary>
@@ -787,6 +779,16 @@ namespace BassesModManager
 
             if (verificationStarted)
                 return;
+
+            // The list settles in once, the first time it is shown: a short fade, no
+            // movement. Skipped when Windows has animations off.
+            if (SystemParameters.ClientAreaAnimation)
+            {
+                MainView.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                });
+            }
 
             verificationStarted = true;
             BeginVerifyMods();
@@ -1376,13 +1378,9 @@ namespace BassesModManager
         private bool isAvailable = true;
 
         public string Label { get; set; }
-        public string ImagePath { get; set; }
 
         /// <summary>Null for the "off" swatch, which applies nothing.</summary>
         public string FileName { get; set; }
-
-        public bool HasImage => ImagePath != null;
-
         public bool IsSelected
         {
             get => isSelected;
@@ -1416,7 +1414,6 @@ namespace BassesModManager
         private bool isDownloading;
         private bool isEnabled;
         private string statusText = "";
-        private string imagePath;
 
         /// <summary>Stable id, used to remember what was selected.</summary>
         public string Key { get; set; }
@@ -1453,13 +1450,6 @@ namespace BassesModManager
                 return chosen?.FileName == null ? new string[0] : new[] { chosen.FileName };
             }
         }
-
-        public string ImagePath
-        {
-            get => imagePath;
-            set { imagePath = value; Raise(nameof(ImagePath)); Raise(nameof(HasCustomIcon)); }
-        }
-
         /// <summary>Whether the mod is selected for the next launch.</summary>
         public bool IsEnabled
         {
@@ -1468,9 +1458,8 @@ namespace BassesModManager
         }
 
         public string Description { get; set; }
-
-        /// <summary>False for mods with no artwork of their own, which fall back to the app icon.</summary>
-        public bool HasCustomIcon => ImagePath != null;
+        /// <summary>Which panel the row sits in: the mod pack on its own, the single mods together.</summary>
+        public string Group { get; set; }
 
         /// <summary>True when the file is present and has passed the catalog check.</summary>
         public bool IsAvailable

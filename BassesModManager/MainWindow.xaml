@@ -10,7 +10,6 @@
     <Grid>
     <Grid Margin="20">
         <Grid.Resources>
-            <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter"/>
             <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
             <!-- Tooltip style -->
             <Style TargetType="ToolTip">
@@ -119,6 +118,14 @@
                     </Setter.Value>
                 </Setter>
                 <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
+            </Style>
+            <!-- Group header above each panel: a quiet label in small caps -->
+            <Style x:Key="GroupHeaderStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="#999999"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Typography.Capitals" Value="AllSmallCaps"/>
+                <Setter Property="Margin" Value="2,0,0,8"/>
             </Style>
             <Style x:Key="SettingHintStyle" TargetType="TextBlock">
                 <Setter Property="Foreground" Value="#999999"/>
@@ -231,71 +238,58 @@
              control. IsSharedSizeScope keeps the text column the same width down the whole
              list, so the controls line up in a column without being pushed out to the far
              edge of the window. -->
-        <ScrollViewer x:Name="ModListScrollViewer" Grid.Row="1" Margin="0,38,0,28" VerticalScrollBarVisibility="Auto"
-                      CanContentScroll="False" PreviewMouseWheel="ModListScrollViewer_PreviewMouseWheel"
+        <ScrollViewer x:Name="ModListScrollViewer" Grid.Row="1" Margin="0,32,0,20" VerticalScrollBarVisibility="Auto"
+                      CanContentScroll="False"
                       Grid.IsSharedSizeScope="True">
-            <ItemsControl x:Name="ModListControl" HorizontalAlignment="Left">
+            <!-- Grouped by ModItem.Group (the mod pack first, then the single mods), each
+                 group a labelled panel: proximity says what belongs together, and the big
+                 set no longer sits in the same line-up as a crosshair tweak. -->
+            <ItemsControl x:Name="ModListControl" Margin="0,0,8,0">
+                <ItemsControl.GroupStyle>
+                    <GroupStyle>
+                        <GroupStyle.ContainerStyle>
+                            <Style TargetType="GroupItem">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="GroupItem">
+                                            <StackPanel Margin="0,0,0,24">
+                                                <TextBlock Text="{Binding Name}" Style="{StaticResource GroupHeaderStyle}"/>
+                                                <!-- The panel clips one pixel under its own edge so
+                                                     the last row's hairline does not double the border -->
+                                                <Border Background="#0D909CA2" BorderBrush="#66788287" BorderThickness="1"
+                                                        CornerRadius="6" ClipToBounds="True">
+                                                    <ItemsPresenter Margin="0,0,0,-1"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </GroupStyle.ContainerStyle>
+                    </GroupStyle>
+                </ItemsControl.GroupStyle>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Grid Margin="0,0,0,12">
+                        <Border BorderBrush="#33788287" BorderThickness="0,0,0,1" Padding="14,10">
+                        <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto" SharedSizeGroup="ModText"/>
+                                <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-
-                            <!-- Sized to match the name+description stack's natural height
-                                 (13px bold + 12px line, 2px apart) rather than a round number,
-                                 so the icon's bottom lines up with the description's instead of
-                                 the text spilling past a smaller icon. -->
-                            <Border Grid.Column="0" Width="34" Height="34" Margin="0,0,14,0"
-                                    CornerRadius="6" VerticalAlignment="Center">
-                                <!-- Clipped to the border's own rounding so the crosshair
-                                     shots get the same soft corners as the app icon -->
-                                <Border.Clip>
-                                    <RectangleGeometry Rect="0,0,34,34" RadiusX="6" RadiusY="6"/>
-                                </Border.Clip>
-                                <Grid>
-                                    <!-- Mods with no artwork of their own get the app icon.
-                                         A 256px PNG rather than the .ico: WPF picks one of
-                                         the icon's frames and lands on a small one, which
-                                         looked rough at any size.
-                                         Loaded through the converter like every other image
-                                         here. A plain relative Source would be read as a
-                                         pack URI and looked for *inside* the assembly, and
-                                         these are files copied next to the exe, not
-                                         embedded resources - so it would silently find
-                                         nothing and leave the icon blank. -->
-                                    <Image Source="{Binding Source='Assets/Images/axon_logo.png', Converter={StaticResource StringToImageSourceConverter}}"
-                                           Width="34" Height="34"
-                                           RenderOptions.BitmapScalingMode="HighQuality"
-                                           Visibility="{Binding HasCustomIcon, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=invert}"/>
-                                    <!-- Crosshair shots are 150x150 game captures where the
-                                         crosshair itself is a small thing in the middle.
-                                         Drawn at half size inside a 34px window, the visible
-                                         area is the centre 73px, which is the crosshair and
-                                         not much else. -->
-                                    <Image Source="{Binding ImagePath, Converter={StaticResource StringToImageSourceConverter}}"
-                                           Width="73" Height="73"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           RenderOptions.BitmapScalingMode="HighQuality"
-                                           Visibility="{Binding HasCustomIcon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                </Grid>
-                            </Border>
 
                             <!-- Wide enough that none of the catalog's current descriptions
                                  wrap to a second line - the longest ("Makes the scoreboard
                                  background black to improve readability") needs about this
                                  much room at 12px. Widening this pushes the status text and
                                  switch right for free, since they're Auto columns after it. -->
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,20,0" MaxWidth="440">
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,20,0" MaxWidth="440">
                                 <TextBlock Text="{Binding Name}" Foreground="White" FontSize="13" FontWeight="Bold"/>
                                 <TextBlock Text="{Binding Description}" Foreground="#999999" FontSize="12"
                                            TextWrapping="Wrap" Margin="0,2,0,0"/>
                             </StackPanel>
 
-                            <TextBlock Grid.Column="2"
+                            <TextBlock Grid.Column="1"
                                        Text="{Binding StatusText}"
                                        Foreground="#999999" FontSize="11"
                                        VerticalAlignment="Center"
@@ -303,7 +297,7 @@
 
                             <!-- Not downloaded yet means nothing to switch on, so the row
                                  offers the download instead of the control until it is here -->
-                            <Button Grid.Column="3"
+                            <Button Grid.Column="2"
                                     Content="DOWNLOAD"
                                     Height="22" Padding="10,0" FontSize="11"
                                     VerticalAlignment="Center"
@@ -316,7 +310,7 @@
                                  else. Compact rather than the labelled shape because a
                                  column of ON/OFF pairs down the list was mostly width spent
                                  repeating what the knob position already says. -->
-                            <local:SettingToggle Grid.Column="3"
+                            <local:SettingToggle Grid.Column="2"
                                                  Compact="True"
                                                  IsOn="{Binding IsEnabled}"
                                                  IsEnabled="{Binding IsAvailable}"
@@ -333,7 +327,7 @@
                                  either side, which against a black window is next to
                                  invisible - and the alternative was two purples of visibly
                                  different height in the same column. -->
-                            <Border Grid.Column="3"
+                            <Border Grid.Column="2"
                                     CornerRadius="3.5" Height="34" Background="#33909CA2"
                                     VerticalAlignment="Center"
                                     Visibility="{Binding ShowVariants, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -354,22 +348,33 @@
                                 </ItemsControl>
                             </Border>
                         </Grid>
+                        </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
 
-        <!-- Action row. Just the launch: Auric rides along as the version.dll the app
-             places in the game folder, so there is no second step after the game is up. -->
+        <!-- Action bar, always in the same place under the list: what is selected on the
+             left, the one primary action on the right. Just the launch: Auric rides along
+             as the version.dll the app places in the game folder, so there is no second
+             step after the game is up. -->
         <Grid Grid.Row="2">
-            <!-- The only tooltip it ever has says why it is out of action, and RefreshLaunchButton
-                 clears it again once it isn't. WPF suppresses tooltips on disabled controls
-                 unless told otherwise, which is exactly backwards for this one. -->
-            <Button x:Name="LaunchGameButton"
-                    Content="LAUNCH GAME"
-                    Click="LaunchGameButton_Click"
-                    Style="{StaticResource PurpleButtonStyle}"
-                    ToolTipService.ShowOnDisabled="True"/>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="1"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" Background="#66788287"/>
+            <Grid Grid.Row="1" Margin="0,16,0,0">
+                <TextBlock x:Name="LaunchStatusText"
+                           Foreground="#999999" FontSize="13"
+                           HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                <Button x:Name="LaunchGameButton"
+                        Content="LAUNCH GAME"
+                        Width="200" Height="44"
+                        HorizontalAlignment="Right"
+                        Click="LaunchGameButton_Click"
+                        Style="{StaticResource PurpleButtonStyle}"/>
+            </Grid>
         </Grid>
         </Grid>
 
@@ -474,7 +479,7 @@
         <Grid Grid.Row="0" x:Name="GameSelectView" Visibility="Collapsed">
             <!-- One column on the plain window background, nothing boxed in. Spacing on an
                  8 px scale (8/16/24/32), one primary action, the rest quiet. -->
-            <StackPanel Width="520" HorizontalAlignment="Center" VerticalAlignment="Center"
+            <StackPanel Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
                         RenderTransformOrigin="0.5,0.5">
                 <!-- The column settles into place once: a short fade with a few pixels of
                      rise, eased out, no bounce. One-off entrance, never on interaction. -->
@@ -500,27 +505,20 @@
                     </EventTrigger>
                 </StackPanel.Triggers>
 
-                <!-- The game's cover art (a stormtrooper visor with the battle in it), shown
-                     whole: a small square with a hairline edge, never a cropped strip -->
-                <Border Width="96" Height="96" CornerRadius="6" ClipToBounds="True" HorizontalAlignment="Center" Margin="0,0,0,28"
-                        BorderBrush="#788287" BorderThickness="1">
-                    <Image Source="Assets/Images/swbf.png" Stretch="UniformToFill"/>
-                </Border>
-
-                <!-- Display size, tight leading; the hint one step down in size and weight
-                     with looser leading, so the eye lands on the heading first -->
+                <!-- No artwork, no display type: a small heading, one quiet line, the
+                     folder, the button. The screen asks one thing and gets out of the way. -->
                 <TextBlock x:Name="SetupHeading"
-                           Foreground="White" FontSize="28" FontWeight="SemiBold"
-                           LineHeight="32" LineStackingStrategy="BlockLineHeight"
+                           Foreground="White" FontSize="16" FontWeight="SemiBold"
+                           LineHeight="22" LineStackingStrategy="BlockLineHeight"
                            HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
                 <TextBlock x:Name="SetupHint"
-                           Foreground="#999999" FontSize="14"
-                           LineHeight="21" LineStackingStrategy="BlockLineHeight"
+                           Foreground="#999999" FontSize="13"
+                           LineHeight="18" LineStackingStrategy="BlockLineHeight"
                            HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
-                           MaxWidth="420" Margin="0,8,0,32"/>
+                           MaxWidth="400" Margin="0,4,0,24"/>
 
                 <!-- One row per copy found; a click makes it the chosen one -->
-                <ItemsControl x:Name="CandidateList" Margin="0,0,0,24">
+                <ItemsControl x:Name="CandidateList" Margin="0,0,0,20">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Button Style="{StaticResource CandidateRowStyle}" Tag="{Binding}" Click="Candidate_Click">
@@ -530,8 +528,8 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Path}" Foreground="White" FontSize="14" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding Source}" Foreground="#999999" FontSize="12" Margin="0,3,0,0"
+                                        <TextBlock Text="{Binding Path}" Foreground="White" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Source}" Foreground="#999999" FontSize="11" Margin="0,2,0,0"
                                                    Typography.Capitals="AllSmallCaps"/>
                                     </StackPanel>
                                     <TextBlock Grid.Column="1" Text="&#x2713;" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold"
@@ -547,25 +545,24 @@
                      to continue with, CHOOSE FOLDER when there is not -->
                 <Button x:Name="ContinueButton" Content="CONTINUE"
                         Style="{StaticResource PurpleButtonStyle}"
-                        HorizontalAlignment="Center" Width="240" Height="44"
+                        HorizontalAlignment="Center" Width="200" Height="40"
                         Click="ContinueButton_Click"/>
                 <Button x:Name="ChooseFolderButton" Content="CHOOSE FOLDER"
                         Style="{StaticResource PurpleButtonStyle}"
-                        HorizontalAlignment="Center" Width="240" Height="44"
+                        HorizontalAlignment="Center" Width="200" Height="40"
                         Click="ChooseFolderButton_Click"/>
                 <Button x:Name="ChangeFolderLink" Content="Use a different folder"
-                        Style="{StaticResource LinkButtonStyle}"
-                        HorizontalAlignment="Center" Margin="0,16,0,0"
+                        Style="{StaticResource LinkButtonStyle}" FontSize="12"
+                        HorizontalAlignment="Center" Margin="0,12,0,0"
                         Click="ChooseFolderButton_Click"/>
             </StackPanel>
         </Grid>
 
         <!-- Version label -->
-        <TextBlock Grid.Row="1" Text="v1.8" FontSize="14" Foreground="White" FontWeight="Bold" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+        <TextBlock Grid.Row="1" Text="v1.9" FontSize="14" Foreground="White" FontWeight="Bold" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,10,0,0"/>
 
         <!-- Update ready notification (hidden until UpdateService has a verified download) -->
         <local:UpdateNotificationBar Grid.Row="2" Margin="0,10,0,0"/>
     </Grid>
-    <local:CustomCursorOverlay/>
     </Grid>
 </Window>
