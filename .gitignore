@@ -299,3 +299,6 @@ CLAUDE.md
 
 # Installer output from iscc (CI uploads it as an artifact instead)
 Output/
+
+# Local test helper, not for the repo
+tools/reset-pc.ps1
