@@ -8,9 +8,69 @@
         Background="Black"
         FontSize="15">
     <Grid>
-    <Grid Margin="20">
+    <!-- The background: a muted loop behind everything, filling the window. The black
+         window background stays underneath as the fallback while it loads or if the
+         file cannot be played. Started and looped from code (LoadedBehavior=Manual). -->
+    <MediaElement x:Name="BackgroundVideo"
+                  Stretch="UniformToFill"
+                  LoadedBehavior="Manual" UnloadedBehavior="Manual"
+                  IsMuted="True" Volume="0"
+                  IsHitTestVisible="False" Focusable="False"
+                  MediaEnded="BackgroundVideo_MediaEnded"
+                  MediaFailed="BackgroundVideo_MediaFailed">
+        <!-- The clip's black is not quite black (16,16,16 after compression); the shader
+             pulls everything at or below that level down to true black, so the window
+             reads as black with the droid on it rather than dark grey -->
+        <MediaElement.Effect>
+            <local:BlackLevelEffect Lift="0.07"/>
+        </MediaElement.Effect>
+    </MediaElement>
+    <Grid Margin="50,50,50,30">
         <Grid.Resources>
             <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+            <!-- Text sits straight on the video now, so every line gets a soft dark halo:
+                 the picture stays fully visible, the type stays as readable as on black -->
+            <DropShadowEffect x:Key="TextShadow" ShadowDepth="0" BlurRadius="10" Color="Black" Opacity="1"/>
+            <!-- A tab in the navigation bar: white, a thin gold line under the active page.
+                 The line is drawn over the pill, outside its box, so showing it changes
+                 no layout; the hover pill replaces it. -->
+            <Style x:Key="NavTabStyle" TargetType="RadioButton">
+                <Setter Property="OverridesDefaultStyle" Value="True"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="Margin" Value="0,0,36,0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <!-- The line box of a 20 px font leaves room for ascenders and descenders that
+                                 capitals never use; the negative margin trims it, so the pill hugs the letters -->
+                            <Grid>
+                            <Border x:Name="pill" CornerRadius="4" Padding="3,0" Background="Transparent">
+                                <Grid Margin="0,-3,0,-1">
+                                    <TextBlock x:Name="label" Text="{TemplateBinding Content}" FontSize="20" FontWeight="Bold"
+                                               Foreground="White"
+                                               Effect="{StaticResource TextShadow}"/>
+                                </Grid>
+                            </Border>
+                            <Border x:Name="underline" Height="3" CornerRadius="1.5" Background="#F2AD0A" VerticalAlignment="Bottom"
+                                    Margin="3,0,3,-4" Visibility="Collapsed" IsHitTestVisible="False"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="underline" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="pill" Property="Background" Value="#F2AD0A"/>
+                                    <Setter TargetName="label" Property="Foreground" Value="Black"/>
+                                    <Setter TargetName="label" Property="Effect" Value="{x:Null}"/>
+                                    <Setter TargetName="underline" Property="Visibility" Value="Collapsed"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
+            </Style>
             <!-- Tooltip style -->
             <Style TargetType="ToolTip">
                 <Setter Property="Foreground" Value="White"/>
@@ -82,56 +142,16 @@
             <!-- Settings view: one row is name + explanation on the left, control on the right -->
             <Style x:Key="SettingNameStyle" TargetType="TextBlock">
                 <Setter Property="Foreground" Value="White"/>
-                <Setter Property="FontSize" Value="15"/>
+                <Setter Property="FontSize" Value="13"/>
                 <Setter Property="FontWeight" Value="Bold"/>
-            </Style>
-            <!-- One segment of a multi-option switch, built to match SettingToggle: same
-                 track colour, same 3px inset on the filled part, same purple and the same
-                 dimmed label when inactive. The difference is only that there are more than
-                 two of them, so the "thumb" is whichever segment is chosen. -->
-            <Style x:Key="ModVariantSegmentStyle" TargetType="Button">
-                <Setter Property="OverridesDefaultStyle" Value="True"/>
-                <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="fill" CornerRadius="3.5" Margin="3" Background="Transparent">
-                                <TextBlock x:Name="label"
-                                           Text="{Binding Label}"
-                                           Foreground="#999999" FontWeight="Bold" FontSize="13"
-                                           Padding="12,0"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="label" Property="Foreground" Value="White"/>
-                                </Trigger>
-                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                    <Setter TargetName="fill" Property="Background" Value="#F2AD0A"/>
-                                    <Setter TargetName="label" Property="Foreground" Value="White"/>
-                                </DataTrigger>
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter TargetName="label" Property="Foreground" Value="#999999"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-                <EventSetter Event="MouseEnter" Handler="PlayHoverSound"/>
-            </Style>
-            <!-- Group header above each panel: a quiet label in small caps -->
-            <Style x:Key="GroupHeaderStyle" TargetType="TextBlock">
-                <Setter Property="Foreground" Value="#999999"/>
-                <Setter Property="FontSize" Value="12"/>
-                <Setter Property="FontWeight" Value="SemiBold"/>
-                <Setter Property="Typography.Capitals" Value="AllSmallCaps"/>
-                <Setter Property="Margin" Value="2,0,0,8"/>
+                <Setter Property="Effect" Value="{StaticResource TextShadow}"/>
             </Style>
             <Style x:Key="SettingHintStyle" TargetType="TextBlock">
                 <Setter Property="Foreground" Value="#999999"/>
                 <Setter Property="FontSize" Value="12"/>
                 <Setter Property="TextWrapping" Value="Wrap"/>
-                <Setter Property="Margin" Value="0,3,0,0"/>
+                <Setter Property="Margin" Value="0,2,0,0"/>
+                <Setter Property="Effect" Value="{StaticResource TextShadow}"/>
             </Style>
             <!-- Themed scrollbar for the mod list: a purple, rounded thumb instead of the
                  default Windows chrome. RepeatButtons are given an invisible template since
@@ -194,87 +214,53 @@
         <!-- Three views share this window: the mod list, the settings page and the game
              folder screen. Swapping their visibility rather than opening a second window
              means coming back is instant - the old separate windows rebuilt MainWindow
-             from scratch, which re-ran the whole mod verification every time. The version
-             label and the update bar sit outside all three, so they never move. -->
+             from scratch, which re-ran the whole mod verification every time. The update
+             bar sits outside all three, so it never moves. -->
         <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>     <!-- 0: Active view -->
-            <RowDefinition Height="Auto"/>  <!-- 1: Version label -->
+            <RowDefinition Height="Auto"/>  <!-- 0: Navigation bar -->
+            <RowDefinition Height="*"/>     <!-- 1: Active view -->
             <RowDefinition Height="Auto"/>  <!-- 2: Update notification bar -->
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" x:Name="MainView">
+        <!-- The game's own navigation bar, as the website recreates it: plain capitals, the
+             active page underlined in gold, a gold pill under the pointer. Pulled left by the pill's own
+             padding so the letters, not the pill, sit on the margin. Hidden on the first-run
+             screen, where there is nothing to navigate to yet. -->
+        <StackPanel Grid.Row="0" x:Name="NavBar" Orientation="Horizontal" Margin="-3,0,0,28">
+            <RadioButton x:Name="NavPlay" Content="PLAY" GroupName="Nav"
+                         Style="{StaticResource NavTabStyle}" Checked="NavPlay_Checked"/>
+            <RadioButton x:Name="NavSettings" Content="SETTINGS" GroupName="Nav"
+                         Style="{StaticResource NavTabStyle}" Checked="NavSettings_Checked"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" x:Name="MainView">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>  <!-- 0: Heading, mode switch, settings -->
-            <RowDefinition Height="*"/>     <!-- 1: Mod list -->
-            <RowDefinition Height="Auto"/>  <!-- 2: Launch button -->
+            <RowDefinition Height="*"/>     <!-- 0: Mod list -->
+            <RowDefinition Height="Auto"/>  <!-- 1: Launch button -->
         </Grid.RowDefinitions>
-
-        <!-- Top bar: heading on the left, settings on the right, placed by alignment in
-             the same cell. -->
-        <Grid Grid.Row="0">
-            <TextBlock Text="SELECT MODS"
-                       Style="{StaticResource HeadingTextStyle}"
-                       FontSize="22"
-                       HorizontalAlignment="Left" VerticalAlignment="Center"/>
-
-            <Button x:Name="SettingsButton"
-                    Padding="8,0" Height="34"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Click="SettingsButton_Click"
-                    Style="{StaticResource PurpleButtonStyle}"
-                    ToolTip="Settings">
-                <Viewbox Width="21" Height="21">
-                    <Canvas Width="24" Height="24">
-                        <Path Data="{StaticResource GearIcon}"
-                              Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
-                    </Canvas>
-                </Viewbox>
-            </Button>
-        </Grid>
 
         <!-- The mod list, every catalogued mod verification could back up. Rows are
              uniform: icon, name and description, then either a download offer or the
              control. IsSharedSizeScope keeps the text column the same width down the whole
              list, so the controls line up in a column without being pushed out to the far
              edge of the window. -->
-        <ScrollViewer x:Name="ModListScrollViewer" Grid.Row="1" Margin="0,32,0,20" VerticalScrollBarVisibility="Auto"
+        <ScrollViewer x:Name="ModListScrollViewer" Grid.Row="0" Margin="0,0,0,20" VerticalScrollBarVisibility="Auto"
                       CanContentScroll="False"
                       Grid.IsSharedSizeScope="True">
-            <!-- Grouped by ModItem.Group (the mod pack first, then the single mods), each
-                 group a labelled panel: proximity says what belongs together, and the big
-                 set no longer sits in the same line-up as a crosshair tweak. -->
-            <ItemsControl x:Name="ModListControl" Margin="0,0,8,0">
-                <ItemsControl.GroupStyle>
-                    <GroupStyle>
-                        <GroupStyle.ContainerStyle>
-                            <Style TargetType="GroupItem">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="GroupItem">
-                                            <StackPanel Margin="0,0,0,24">
-                                                <TextBlock Text="{Binding Name}" Style="{StaticResource GroupHeaderStyle}"/>
-                                                <!-- The panel clips one pixel under its own edge so
-                                                     the last row's hairline does not double the border -->
-                                                <Border Background="#0D909CA2" BorderBrush="#66788287" BorderThickness="1"
-                                                        CornerRadius="6" ClipToBounds="True">
-                                                    <ItemsPresenter Margin="0,0,0,-1"/>
-                                                </Border>
-                                            </StackPanel>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </GroupStyle.ContainerStyle>
-                    </GroupStyle>
-                </ItemsControl.GroupStyle>
+            <!-- One panel with every mod, rows parted by a hairline, no frame. A dark tint so the
+                 video shows through dimmed, and only as wide as its widest row: the text column
+                 is shared across rows, so every control starts right after the longest text and
+                 the rest of the window shows the video in full. Pulled 14 px
+                 into the margin so the text, not the tint, lines up with the navigation bar. -->
+            <Border Background="#B3000000" CornerRadius="6" ClipToBounds="True" Margin="-14,0,8,0"
+                    HorizontalAlignment="Left" VerticalAlignment="Top">
+            <ItemsControl x:Name="ModListControl" Margin="0,0,0,-1">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Border BorderBrush="#33788287" BorderThickness="0,0,0,1" Padding="14,10">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="ModText"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
@@ -284,81 +270,36 @@
                                  much room at 12px. Widening this pushes the status text and
                                  switch right for free, since they're Auto columns after it. -->
                             <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,20,0" MaxWidth="440">
-                                <TextBlock Text="{Binding Name}" Foreground="White" FontSize="13" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding Name}" Foreground="White" FontSize="13" FontWeight="Bold" Effect="{StaticResource TextShadow}"/>
                                 <TextBlock Text="{Binding Description}" Foreground="#999999" FontSize="12"
-                                           TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                           TextWrapping="Wrap" Margin="0,2,0,0" Effect="{StaticResource TextShadow}"/>
                             </StackPanel>
-
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding StatusText}"
-                                       Foreground="#999999" FontSize="11"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,10,0"/>
-
-                            <!-- Not downloaded yet means nothing to switch on, so the row
-                                 offers the download instead of the control until it is here -->
-                            <Button Grid.Column="2"
-                                    Content="DOWNLOAD"
-                                    Height="22" Padding="10,0" FontSize="11"
-                                    VerticalAlignment="Center"
-                                    Click="DownloadMod_Click"
-                                    Style="{StaticResource PurpleButtonStyle}"
-                                    Visibility="{Binding ShowDownloadButton, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                             <!-- Plain on/off mods get the wordless switch: shorter than the
                                  row and centred in it, with the same corners as everything
                                  else. Compact rather than the labelled shape because a
                                  column of ON/OFF pairs down the list was mostly width spent
                                  repeating what the knob position already says. -->
-                            <local:SettingToggle Grid.Column="2"
+                            <local:SettingToggle Grid.Column="1"
                                                  Compact="True"
                                                  IsOn="{Binding IsEnabled}"
                                                  IsEnabled="{Binding IsAvailable}"
                                                  VerticalAlignment="Center"
-                                                 Toggled="ModSwitch_Toggled"
-                                                 Visibility="{Binding ShowSwitch, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-
-                            <!-- ...and mods that come in versions get the same switch with
-                                 one segment per version instead of two.
-                                 34 rather than the switch's 28, because what has to match is
-                                 the purple: the segment fill is inset by 3 on each side, so
-                                 a 34 container puts it at exactly the 28 of the switch's
-                                 purple track. That leaves 3px of grey standing proud on
-                                 either side, which against a black window is next to
-                                 invisible - and the alternative was two purples of visibly
-                                 different height in the same column. -->
-                            <Border Grid.Column="2"
-                                    CornerRadius="3.5" Height="34" Background="#33909CA2"
-                                    VerticalAlignment="Center"
-                                    Visibility="{Binding ShowVariants, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <ItemsControl ItemsSource="{Binding Variants}"
-                                              IsEnabled="{Binding IsAvailable}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal"/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Button Style="{StaticResource ModVariantSegmentStyle}"
-                                                    Click="ModVariant_Click"
-                                                    IsEnabled="{Binding IsAvailable}"/>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </Border>
+                                                 Toggled="ModSwitch_Toggled"/>
                         </Grid>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+            </Border>
         </ScrollViewer>
 
-        <!-- Action bar, always in the same place under the list: what is selected on the
-             left, the one primary action on the right. Just the launch: Auric rides along
+        <!-- Action bar, always in the same place under the list: what is selected and the
+             version on the left, stacked to the height of the one primary action on the
+             right, so the bar is no taller than the button. Just the launch: Auric rides along
              as the version.dll the app places in the game folder, so there is no second
              step after the game is up. -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="1"/>
                 <RowDefinition Height="Auto"/>
@@ -367,7 +308,11 @@
             <Grid Grid.Row="1" Margin="0,16,0,0">
                 <TextBlock x:Name="LaunchStatusText"
                            Foreground="#999999" FontSize="13"
-                           HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                           HorizontalAlignment="Left" VerticalAlignment="Top"
+                           Effect="{StaticResource TextShadow}"/>
+                <TextBlock Text="v1.9" FontSize="14" Foreground="White" FontWeight="Bold"
+                           HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                           Effect="{StaticResource TextShadow}"/>
                 <Button x:Name="LaunchGameButton"
                         Content="LAUNCH GAME"
                         Width="200" Height="44"
@@ -379,45 +324,29 @@
         </Grid>
 
         <!-- Settings view -->
-        <Grid Grid.Row="0" x:Name="SettingsView" Visibility="Collapsed">
+        <Grid Grid.Row="1" x:Name="SettingsView" Visibility="Collapsed">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>  <!-- 0: back -->
-                <RowDefinition Height="Auto"/>  <!-- 1: heading -->
-                <RowDefinition Height="Auto"/>  <!-- 2: settings -->
-                <RowDefinition Height="*"/>     <!-- 3: spacer -->
+                <RowDefinition Height="Auto"/>  <!-- 0: settings -->
+                <RowDefinition Height="*"/>     <!-- 1: spacer -->
             </Grid.RowDefinitions>
 
-            <!-- Same slot and height as the gear button it replaces, so nothing jumps -->
-            <Button Grid.Row="0" x:Name="BackButton"
-                    Content="BACK"
-                    Padding="12,0" Height="34"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Click="BackButton_Click"
-                    Style="{StaticResource PurpleButtonStyle}"/>
-
-            <TextBlock Grid.Row="1"
-                       Text="SETTINGS"
-                       Style="{StaticResource HeadingTextStyle}"
-                       FontSize="26"
-                       Margin="0,20,0,0"/>
-
-            <!-- Capped width so each switch stays visually tied to its label instead of
-                 drifting to the far edge of the window -->
-            <!-- IsSharedSizeScope + SharedSizeGroup below: each row is a separate Grid, so
-                 without this, each one's Auto column sizes to only its own control's width
-                 and the switches/buttons end up starting at different X positions instead of
-                 lining up in a column. -->
-            <StackPanel Grid.Row="2" MaxWidth="620" HorizontalAlignment="Left" Margin="0,22,0,0"
-                        Grid.IsSharedSizeScope="True">
-                <!-- Every row below this one carries the 22px gap as a top margin, so the
-                     spacing does not change hands when the rows are reordered -->
+            <!-- The same tinted panel as the mod list, rows parted by a hairline, each one
+                 name + explanation on the left and the control on the right, at the mod
+                 list's sizes. The panel bleeds 14 px into the margin so the text, not the
+                 tint, lines up with the navigation bar. IsSharedSizeScope + SharedSizeGroup
+                 below: each row is a separate Grid, so without this, each one's Auto column
+                 sizes to only its own control's width and the switches/buttons end up
+                 starting at different X positions instead of lining up in a column. -->
+            <Border Grid.Row="0" Background="#B3000000" CornerRadius="6" ClipToBounds="True" Margin="-14,0,8,0"
+                    HorizontalAlignment="Left" VerticalAlignment="Top">
+            <StackPanel Margin="0,0,0,-1" Grid.IsSharedSizeScope="True">
+                <Border BorderBrush="#33788287" BorderThickness="0,0,0,1" Padding="14,10">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="SettingText"/>
                         <ColumnDefinition Width="Auto" SharedSizeGroup="SettingControl"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,20,0" MaxWidth="440">
                         <TextBlock Text="Sound effects" Style="{StaticResource SettingNameStyle}"/>
                         <TextBlock Text="Volume of the hover and click sounds - 0 turns them off" Style="{StaticResource SettingHintStyle}"/>
                     </StackPanel>
@@ -432,43 +361,50 @@
                                    VerticalAlignment="Center"
                                    Foreground="White" FontSize="13"
                                    TextAlignment="Right"
+                                   Effect="{StaticResource TextShadow}"
                                    Text="{Binding Value, ElementName=SoundSlider, StringFormat={}{0:0}%}"/>
                     </StackPanel>
                 </Grid>
+                </Border>
 
-                <Grid Margin="0,22,0,0">
+                <Border BorderBrush="#33788287" BorderThickness="0,0,0,1" Padding="14,10">
+                <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="SettingText"/>
                         <ColumnDefinition Width="Auto" SharedSizeGroup="SettingControl"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,20,0" MaxWidth="440">
                         <TextBlock Text="Game executable" Style="{StaticResource SettingNameStyle}"/>
                         <TextBlock x:Name="GamePathText" Style="{StaticResource SettingHintStyle}"/>
                     </StackPanel>
+                    <!-- As tall as the switch below, so the column reads as one -->
                     <Button Grid.Column="1" x:Name="ChangeGameButton" Content="CHANGE"
-                            HorizontalAlignment="Left"
-                            Height="34" Padding="16,0"
+                            HorizontalAlignment="Left" VerticalAlignment="Center"
+                            Height="28" Padding="12,0" FontSize="12"
                             Style="{StaticResource PurpleButtonStyle}"
                             Click="ChangeGameButton_Click"/>
                 </Grid>
+                </Border>
 
-                <Grid Margin="0,22,0,0">
+                <Border BorderBrush="#33788287" BorderThickness="0,0,0,1" Padding="14,10">
+                <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="SettingText"/>
                         <ColumnDefinition Width="Auto" SharedSizeGroup="SettingControl"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,20,0" MaxWidth="440">
                         <TextBlock Text="Show app after the game closes" Style="{StaticResource SettingNameStyle}"/>
                         <TextBlock Text="Off keeps the app minimized when you quit the game" Style="{StaticResource SettingHintStyle}"/>
                     </StackPanel>
-                    <!-- Same wordless switch as the mod list, but at 34 so it stands the
-                         same height as the CHANGE and OPEN buttons in this column -->
+                    <!-- The same wordless switch as the mod list, at the same size -->
                     <local:SettingToggle x:Name="RestoreToggle" Grid.Column="1"
-                                         Compact="True" CompactHeight="34"
+                                         Compact="True"
                                          HorizontalAlignment="Left" VerticalAlignment="Center"
                                          Toggled="RestoreToggle_Toggled"/>
                 </Grid>
+                </Border>
             </StackPanel>
+            </Border>
         </Grid>
 
         <!-- First-run screen. Shown only while no valid game folder is saved; once past
@@ -476,7 +412,7 @@
              looks for the game itself, shows what it found as rows, and one click on
              CONTINUE is the whole set-up. A card in the middle of the window rather than
              a list with buttons in the corner. -->
-        <Grid Grid.Row="0" x:Name="GameSelectView" Visibility="Collapsed">
+        <Grid Grid.Row="1" x:Name="GameSelectView" Visibility="Collapsed">
             <!-- One column on the plain window background, nothing boxed in. Spacing on an
                  8 px scale (8/16/24/32), one primary action, the rest quiet. -->
             <StackPanel Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -559,8 +495,6 @@
         </Grid>
 
         <!-- Version label -->
-        <TextBlock Grid.Row="1" Text="v1.9" FontSize="14" Foreground="White" FontWeight="Bold" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,10,0,0"/>
-
         <!-- Update ready notification (hidden until UpdateService has a verified download) -->
         <local:UpdateNotificationBar Grid.Row="2" Margin="0,10,0,0"/>
     </Grid>

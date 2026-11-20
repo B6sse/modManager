@@ -20,8 +20,8 @@ namespace BassesModManager
 
         /// <summary>
         /// Where the mod files live. Deliberately not next to the exe: the app runs
-        /// non-elevated and has to be able to delete rejected mods and download the Auric
-        /// set, neither of which is possible inside Program Files. The installer grants
+        /// non-elevated and has to be able to delete rejected mods, which is not possible
+        /// inside Program Files. The installer grants
         /// Users write access to this folder.
         /// </summary>
         public static string GetModsPath() => Path.Combine(GetSharedDataPath(), "Mods");

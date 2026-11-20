@@ -89,18 +89,6 @@ namespace BassesModManager.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string LastModFileName {
-            get {
-                return ((string)(this["LastModFileName"]));
-            }
-            set {
-                this["LastModFileName"] = value;
-            }
-        }
-
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool ScoreboardEnabled {
             get {

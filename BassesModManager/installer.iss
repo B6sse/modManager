@@ -52,13 +52,8 @@ Source: "{#PayloadPath}\BassesModManager.exe.config"; DestDir: "{app}"; Flags: i
 Source: "{#PayloadPath}\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; No ThirdParty, Profiles or Plugins: the mods are applied by Auric inside the game, so
 ; nothing of Frosty is shipped; the app is the exe, its config, Newtonsoft.Json and Auric.
-; Mods – only the small approved ones. The Auric set is several hundred MB and is NOT
-; bundled: it would be re-downloaded by every auto-update even for a code-only change, so
-; the app fetches it on demand instead. Mods live under ProgramData rather than {app} so
-; the app can add and remove them without needing administrator rights.
-Source: "Mods\White Dot.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
-Source: "Mods\Red Dot.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
-Source: "Mods\Green Dot.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
+; Mods – every approved mod ships here. They live under ProgramData rather than {app} so
+; the app can remove rejected files without needing administrator rights.
 Source: "Mods\Improved_Scoreboard.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
 Source: "Mods\Improved-Game-Startup.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
 Source: "Mods\Improved-Low-Health-Visibility.fbmod"; DestDir: "{commonappdata}\BassesModManager\Mods"; Flags: ignoreversion
@@ -73,6 +68,8 @@ Source: "{#PayloadPath}\Assets\Images\*"; DestDir: "{app}\Assets\Images"; Flags:
 Source: "{#PayloadPath}\Assets\Sounds\*"; DestDir: "{app}\Assets\Sounds"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 ; Banners – game banners for cache install window
 Source: "{#PayloadPath}\Assets\Banners\*"; DestDir: "{app}\Assets\Banners"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
+; Video – the main window's looping background
+Source: "{#PayloadPath}\Assets\Video\*"; DestDir: "{app}\Assets\Video"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 ; Prereqs – bundled for install when missing (dontcopy = extract only when needed in [Code])
 Source: "Prereqs\.NET_Framework_4.8_setup.exe"; DestDir: "{tmp}"; Flags: dontcopy
 #ifexist "Prereqs\vc_redist.x64.exe"
@@ -80,8 +77,8 @@ Source: "Prereqs\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: dontcopy
 #endif
 
 [Dirs]
-; The app manages mods here at runtime - verifying, deleting rejected files and
-; downloading the Auric set - and it runs non-elevated, so Users need write access.
+; The app manages mods here at runtime - verifying and deleting rejected files - and
+; it runs non-elevated, so Users need write access.
 ; Without this the folder inherits ProgramData's default read-only-for-Users ACL.
 Name: "{commonappdata}\BassesModManager"; Permissions: users-modify
 Name: "{commonappdata}\BassesModManager\Mods"; Permissions: users-modify
@@ -102,10 +99,10 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Type: files; Name: "{autodesktop}\Basse's Mod Manager.lnk"
 Type: files; Name: "{group}\Basse's Mod Manager.lnk"
 ; Mods moved out of the program folder to ProgramData, where the app can manage them
-; without elevation. Removing the old folder also clears out the crosshair files that
-; older releases installed under different names: the app rejects those now (name and
-; hash must both match) and, running non-elevated, could not delete them itself - which
-; would otherwise mean a "could not remove" warning on every single start.
+; without elevation. Removing the old folder also clears out mod files older releases
+; installed there: the app rejects anything not in its catalog and, running non-elevated,
+; could not delete them itself - which would mean a "could not remove" warning on every
+; single start.
 Type: filesandordirs; Name: "{app}\Mods"
 
 [Run]

@@ -147,7 +147,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Converters\BooleanToVisibilityConverter.cs" />
-    <Compile Include="ModDownloader.cs" />
     <Compile Include="Sounds.cs" />
   </ItemGroup>
   <ItemGroup>

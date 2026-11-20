@@ -48,15 +48,13 @@ namespace BassesModManager
                     BassesModManager.Properties.Settings.Default.SoundMuted = false;
                 }
 
-                // The crosshair choice and the scoreboard flag used to be separate settings
-                // and are now one list of switched-on mods. Carry them across so nobody
-                // finds their selection wiped after an update.
+                // The scoreboard flag used to be a separate setting and is now part of the list
+                // of switched-on mods. Carry it across so nobody finds it wiped after an update.
                 if (string.IsNullOrEmpty(BassesModManager.Properties.Settings.Default.EnabledMods))
                 {
                     // Fully qualified: inside App, a bare "MainWindow" is the inherited
                     // Application.MainWindow property rather than the window type
                     BassesModManager.Properties.Settings.Default.EnabledMods = BassesModManager.MainWindow.MigrateLegacySelection(
-                        BassesModManager.Properties.Settings.Default.LastModFileName,
                         BassesModManager.Properties.Settings.Default.ScoreboardEnabled);
                 }
 
@@ -77,7 +75,7 @@ namespace BassesModManager
             Mouse.OverrideCursor = CustomCursor.Load();
 
             // Mods live under ProgramData, not next to the exe: the app runs non-elevated
-            // and has to be able to delete rejected files and download the Auric set
+            // and has to be able to delete rejected files there
             AppPaths.EnsureModsDirectory();
 
             // Discord-style update flow (Plans/AUTO_UPDATE_PLAN.md, Spor A): check and

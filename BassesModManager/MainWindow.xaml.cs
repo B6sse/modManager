@@ -32,27 +32,12 @@ namespace BassesModManager
         {
             public string FileName { get; set; }
             public string Sha256 { get; set; }
-
-            /// <summary>Set for files that ship separately and are fetched on demand.</summary>
-            public string DownloadUrl { get; set; }
-
-            /// <summary>Download size, shown before the user commits to fetching it.</summary>
-            public long SizeBytes { get; set; }
         }
 
         /// <summary>
         /// One row in the mod list, and one thing the user can pick. Usually a single file,
         /// but not always: a mod that was split across several files is still one choice.
         /// </summary>
-        /// <summary>
-        /// One of several interchangeable versions of the same mod, picked from a row of
-        /// swatches rather than a switch. The variant with no file is the "off" choice.
-        /// </summary>
-        private sealed class CatalogVariant
-        {
-            public string Label { get; set; }
-            public CatalogFile File { get; set; }
-        }
 
         private sealed class CatalogEntry
         {
@@ -61,48 +46,18 @@ namespace BassesModManager
             public string DisplayName { get; set; }
             public string Description { get; set; }
 
-            /// <summary>Set instead of a plain on/off when the mod comes in versions.</summary>
-            public CatalogVariant[] Variants { get; set; }
-
-            /// <summary>
-            /// Every file the row can apply. For a variant row that means all of them: any
-            /// could end up being the chosen one, so all have to be verified. Derived from
-            /// the variants on first use rather than in a static initializer, which would
-            /// have made this depend on the order the fields happen to be declared in.
-            /// </summary>
-            public CatalogFile[] Files
-            {
-                get => files ?? (files = Variants.Where(v => v.File != null).Select(v => v.File).ToArray());
-                set => files = value;
-            }
-
-            private CatalogFile[] files;
-
-            public bool HasVariants => Variants != null;
-            public bool CanDownload => Files.All(f => f.DownloadUrl != null);
-            public long TotalSizeBytes => Files.Sum(f => f.SizeBytes);
+            /// <summary>Every file the row applies, in apply order.</summary>
+            public CatalogFile[] Files { get; set; }
         }
 
         /// <summary>
-        /// Translates the pre-1.7 settings, which named a crosshair file and carried a
-        /// separate scoreboard flag, into the single list of switched-on mods used since.
-        /// Lives here because it needs the catalog: the crosshair is no longer identified
-        /// by its file name but by which version of one row is picked.
+        /// Translates the pre-1.7 settings, which carried a separate scoreboard flag, into the
+        /// single list of switched-on mods used since. The crosshair the old settings also
+        /// named is no longer in the catalog, so that part is dropped.
         /// </summary>
-        public static string MigrateLegacySelection(string lastModFileName, bool scoreboardEnabled)
+        public static string MigrateLegacySelection(bool scoreboardEnabled)
         {
             var carried = new List<string>();
-
-            foreach (CatalogEntry entry in modCatalog)
-            {
-                if (!entry.HasVariants)
-                    continue;
-
-                CatalogVariant match = entry.Variants.FirstOrDefault(v =>
-                    string.Equals(v.File?.FileName, lastModFileName, StringComparison.OrdinalIgnoreCase));
-                if (match != null)
-                    carried.Add(entry.Key + ":" + match.Label);
-            }
 
             if (scoreboardEnabled)
                 carried.Add("Improved_Scoreboard.fbmod");
@@ -121,20 +76,6 @@ namespace BassesModManager
                 Files = new[] { new CatalogFile { FileName = fileName, Sha256 = sha256 } }
             };
         }
-
-        // The Auric mods are hosted separately instead of riding along in the installer:
-        // together they are over half a gigabyte, and bundling them meant every auto-update
-        // re-downloaded all of it even for a code-only change.
-        //
-        // The tag is pinned rather than "latest", and names the app version the mod files
-        // were published for. That is always meaningful: the catalog below carries each
-        // file's hash, so changing a mod means changing this app too, and the two ship
-        // together. It does not follow the other way round - a code-only release leaves
-        // this alone rather than forcing a pointless second upload of half a gigabyte, so
-        // expect this to lag the app version whenever the mods have not changed.
-        private const string AuricModsBaseUrl =
-            "https://github.com/TSL-Battlefront/auricMods/releases/download/v1.7/";
-
         /// <summary>
         /// Every mod the app ships. The set is fixed between releases, so the window is
         /// drawn straight from this list and appears complete, instead of waiting on a scan
@@ -154,81 +95,6 @@ namespace BassesModManager
         /// </summary>
         private static readonly CatalogEntry[] modCatalog =
         {
-            // First in the list, and therefore first to be applied. That is required: the
-            // Axon set has to go in before anything else so the rest layers on top of it.
-            // It is also why the list is not sorted for display - the order shown is the
-            // order applied, and the two must not drift apart.
-            //
-            // Deliberately one entry over three files, never three choices. The split is an
-            // artefact of how the mod was built in Frosty Editor, not something meaningful
-            // to a player. The parts are not independent: on their own some of them change
-            // weapon damage, which real EA servers would happily accept, and that would be a
-            // cheat. Applied together the set also brings new weapons and other changes that
-            // EA servers reject, so the whole thing only loads on Kyber's modded servers,
-            // which is the point of it. Partial application must not be reachable.
-            new CatalogEntry
-            {
-                Key = "axon",
-                DisplayName = "Axon",
-                Description = "Full mod set for Kyber private servers",
-                Files = new[]
-                {
-                    new CatalogFile
-                    {
-                        FileName = "axonmod-p1.fbmod",
-                        Sha256 = "6e2fc59bc08d0aa17d72a66ea647b1a5bd47e9afe0c7377f6209611c11858096",
-                        DownloadUrl = AuricModsBaseUrl + "axonmod-p1.fbmod", SizeBytes = 15298260
-                    },
-                    new CatalogFile
-                    {
-                        FileName = "axonmod-p2.fbmod",
-                        Sha256 = "dcc2d8cb0d922709b7d60d43d5e68eb758e30bb01a5204eee7ecf10294aebd0a",
-                        DownloadUrl = AuricModsBaseUrl + "axonmod-p2.fbmod", SizeBytes = 573409574
-                    },
-                    new CatalogFile
-                    {
-                        FileName = "axonmod-p3.fbmod",
-                        Sha256 = "be464930df1a9b8ad5236a9017a1bf651e7519e5230605d6a2266e232f065e6d",
-                        DownloadUrl = AuricModsBaseUrl + "axonmod-p3.fbmod", SizeBytes = 492245
-                    }
-                }
-            },
-
-            // One row for all three crosshairs rather than three. They are the same mod in
-            // different colours, only one can be on at a time, and three rows for one
-            // decision is three rows the list cannot spare as more mods arrive. It is also
-            // the shape the planned combined crosshair mod wants, so nothing about the list
-            // has to change when three files become one.
-            new CatalogEntry
-            {
-                Key = "crosshair",
-                DisplayName = "Crosshair - Added EE3 Dot",
-                Description = "Adds a dot to the EE3 crosshair. Choose colour.",
-                Variants = new[]
-                {
-                    // First so it lines up with the plain on/off switch used by every other
-                    // row, where off is the left-hand side. It used to be last, back when
-                    // that switch was the labelled kind with ON on the left and OFF on the
-                    // right; the wordless switch that replaced it puts its knob on the left
-                    // when off, so the matching side moved with it.
-                    new CatalogVariant { Label = "OFF" },
-                    new CatalogVariant
-                    {
-                        Label = "WHITE",
-                        File = new CatalogFile { FileName = "White Dot.fbmod", Sha256 = "88bc98b8604f993e058ff848ba267b1e72530a3938037f9dc4b58d6471aa337a" }
-                    },
-                    new CatalogVariant
-                    {
-                        Label = "RED",
-                        File = new CatalogFile { FileName = "Red Dot.fbmod", Sha256 = "c8748886884ae0f3f2a372fc130bf9bb3794dc2ca908a16ad8a6d2d01d16d719" }
-                    },
-                    new CatalogVariant
-                    {
-                        Label = "GREEN",
-                        File = new CatalogFile { FileName = "Green Dot.fbmod", Sha256 = "b0152a45d8dd1cc995fdc92d7f517ce17b08a260a9f9062ff9d6ec17902a1694" }
-                    }
-                }
-            },
 
             // TODO: these descriptions are read off the mod names - correct them to what
             // the mods actually do.
@@ -263,19 +129,12 @@ namespace BassesModManager
 
         /// <summary>True until the mod files have been verified against the catalog.</summary>
         private bool modsLoading = true;
-
-        /// <summary>Aborts downloads still running when the window goes away.</summary>
-        private readonly CancellationTokenSource downloadCancellation = new CancellationTokenSource();
-
         public MainWindow()
         {
             InitializeComponent();
             allMods = new List<ModItem>();
             visibleMods = new ObservableCollection<ModItem>();
             ModListControl.ItemsSource = visibleMods;
-            // Groups appear in the order their first item does, which puts the mod pack
-            // (first in the catalog) above the single mods
-            CollectionViewSource.GetDefaultView(visibleMods).GroupDescriptions.Add(new PropertyGroupDescription(nameof(ModItem.Group)));
 
             candidates = new ObservableCollection<GameCandidate>();
             CandidateList.ItemsSource = candidates;
@@ -317,6 +176,7 @@ namespace BassesModManager
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             Loaded -= MainWindow_Loaded;
+            StartBackgroundVideo();
 
             // Left behind if the app was killed mid-session; it must not outlive the launch
             // it was written for
@@ -328,11 +188,54 @@ namespace BassesModManager
                 EnterModsView();
         }
 
+        #region -- Background video --
+
+        /// <summary>
+        /// Starts the loop behind the window. The file is a content file next to the exe
+        /// (Assets\Video\background.mp4), so it is addressed by its absolute path. If it is
+        /// missing or Windows cannot decode it, MediaFailed hides the element and the
+        /// window's black background is what shows, which is what it was before.
+        /// </summary>
+        private void StartBackgroundVideo()
+        {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Video", "background.mp4");
+            if (!File.Exists(path))
+            {
+                BackgroundVideo.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            BackgroundVideo.Source = new Uri(path, UriKind.Absolute);
+            BackgroundVideo.Play();
+
+            // No point decoding frames nobody sees: paused while minimized (which is
+            // where the window sits for the whole game session), resumed when it is back
+            StateChanged += (s, e) =>
+            {
+                if (WindowState == WindowState.Minimized)
+                    BackgroundVideo.Pause();
+                else
+                    BackgroundVideo.Play();
+            };
+        }
+
+        /// <summary>The loop: back to the first frame and on again, no gap the user has to notice.</summary>
+        private void BackgroundVideo_MediaEnded(object sender, RoutedEventArgs e)
+        {
+            BackgroundVideo.Position = TimeSpan.Zero;
+            BackgroundVideo.Play();
+        }
+
+        private void BackgroundVideo_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+        {
+            Debug.WriteLine("Background video failed: " + e.ErrorException?.Message);
+            BackgroundVideo.Visibility = Visibility.Collapsed;
+        }
+
+        #endregion
+
         protected override void OnClosed(EventArgs e)
         {
-            // A part-downloaded mod is cleaned up by the downloader on cancellation, so
-            // closing mid-transfer leaves nothing half-written behind
-            downloadCancellation.Cancel();
             StopGameStartWatch();
             ReleaseGameProcess();
             // A running game has long since read it; a later plain start must not
@@ -355,66 +258,28 @@ namespace BassesModManager
 
             foreach (CatalogEntry entry in modCatalog)
             {
-                // Every file or none: an entry that is only half on disk is not usable, and
-                // for the Auric set it must not even look like it might be
+                // Every file or none: an entry that is only half on disk is not usable
                 bool present = entry.Files.All(f => File.Exists(Path.Combine(modsDirectory, f.FileName)));
 
-                // A missing mod that can be fetched still gets a row, so there is somewhere
-                // to offer the download from. A missing mod that can't be is simply not
-                // shown - it ships with the app, so there is nothing the user could do.
-                if (!present && !entry.CanDownload)
+                // Every mod ships with the app, so one that is missing is simply not shown
+                if (!present)
                     continue;
 
                 var item = new ModItem
                 {
                     Key = entry.Key,
-                    Group = entry.Key == "axon" ? "Mod pack" : "Mods",
                     Name = entry.DisplayName,
                     Description = entry.Description,
                     FileNames = entry.Files.Select(f => f.FileName).ToArray(),
                     // Optimistic until the background check says otherwise - the files being
                     // there is not yet proof that they are the right ones
-                    IsAvailable = present,
-                    CanDownload = entry.CanDownload,
-                    StatusText = present ? "" : FormatSize(entry.TotalSizeBytes)
+                    IsAvailable = present
+
                 };
-
-                if (entry.HasVariants)
-                {
-                    // Stored as "key:variant" so the chosen version survives a restart
-                    string storedVariant = enabled
-                        .FirstOrDefault(s => s.StartsWith(entry.Key + ":", StringComparison.OrdinalIgnoreCase))
-                        ?.Substring(entry.Key.Length + 1);
-
-                    item.Variants = entry.Variants.Select(v => new ModVariant
-                    {
-                        Label = v.Label,
-                        FileName = v.File?.FileName,
-                        IsSelected = present && string.Equals(v.Label, storedVariant, StringComparison.OrdinalIgnoreCase)
-                    }).ToArray();
-
-                    // Nothing stored, or the file has gone: fall back to the off swatch,
-                    // identified by having no file rather than by position - it isn't
-                    // necessarily first in the display order.
-                    if (!item.Variants.Any(v => v.IsSelected))
-                        item.Variants.First(v => v.FileName == null).IsSelected = true;
-
-                    ApplyVariantSelection(item);
-                }
-                else
-                {
-                    item.IsEnabled = present && enabled.Contains(entry.Key);
-                }
+                item.IsEnabled = present && enabled.Contains(entry.Key);
 
                 allMods.Add(item);
             }
-        }
-
-        /// <summary>Mirrors the chosen variant onto the row: whether it counts as on.</summary>
-        private static void ApplyVariantSelection(ModItem item)
-        {
-            ModVariant chosen = item.Variants.FirstOrDefault(v => v.IsSelected);
-            item.IsEnabled = chosen?.FileName != null;
         }
 
         /// <summary>
@@ -441,40 +306,12 @@ namespace BassesModManager
             SaveSelection();
         }
 
-        /// <summary>
-        /// A swatch on a variant row was clicked. Picking one deselects the rest, which is
-        /// the whole point of variants: they are versions of one mod, not separate mods.
-        /// </summary>
-        private void ModVariant_Click(object sender, RoutedEventArgs e)
-        {
-            if (!(((FrameworkElement)sender).DataContext is ModVariant chosen))
-                return;
-
-            ModItem item = allMods.FirstOrDefault(m => m.HasVariants && m.Variants.Contains(chosen));
-            if (item == null || !item.IsAvailable)
-                return;
-
-            updatingSwitches = true;
-            foreach (ModVariant variant in item.Variants)
-                variant.IsSelected = variant == chosen;
-            ApplyVariantSelection(item);
-            updatingSwitches = false;
-
-            Sounds.PlayClick();
-            SaveSelection();
-        }
-
         /// <summary>Guards against selection sweeps re-entering through their own writes.</summary>
         private bool updatingSwitches;
 
         private void SaveSelection()
         {
-            // Variant rows record which version is on rather than just that they are
-            var entries = allMods
-                .Where(m => m.IsEnabled)
-                .Select(m => m.HasVariants
-                    ? m.Key + ":" + m.Variants.First(v => v.IsSelected).Label
-                    : m.Key);
+            var entries = allMods.Where(m => m.IsEnabled).Select(m => m.Key);
 
             Properties.Settings.Default.EnabledMods = string.Join(";", entries);
             Properties.Settings.Default.Save();
@@ -511,77 +348,6 @@ namespace BassesModManager
                 : count + " mods selected";
         }
 
-        /// <summary>
-        /// Fetches every file a mod entry needs, and only counts the mod as available once
-        /// all of them have arrived. Each file goes through exactly the same approval as a
-        /// bundled one - the catalog's hash, checked before it is allowed into the mods
-        /// folder - so a download can no more introduce an unapproved mod than the
-        /// installer can.
-        /// </summary>
-        private async void DownloadMod_Click(object sender, RoutedEventArgs e)
-        {
-            if (!(((Button)sender).DataContext is ModItem item))
-                return;
-            if (item.IsDownloading || !catalogByKey.TryGetValue(item.Key, out CatalogEntry entry))
-                return;
-
-            item.IsDownloading = true;
-            item.StatusText = "Starting...";
-
-            // Only what is actually missing: an earlier attempt may have got part of the way
-            List<CatalogFile> pending = entry.Files.Where(f => !verifiedMods.Contains(f.FileName)).ToList();
-            long totalBytes = Math.Max(1, pending.Sum(f => f.SizeBytes));
-            long doneBytes = 0;
-            DownloadResult result = DownloadResult.Ok();
-
-            foreach (CatalogFile file in pending)
-            {
-                // Captured per file so the reported percentage covers the whole set rather
-                // than restarting at zero for each part
-                long completedBefore = doneBytes;
-                long fileBytes = file.SizeBytes;
-                var progress = new Progress<double>(fraction =>
-                    item.StatusText = "Downloading... " +
-                        ((completedBefore + fraction * fileBytes) * 100d / totalBytes).ToString("0") + "%");
-
-                result = await ModDownloader.DownloadAsync(
-                    file.DownloadUrl,
-                    Path.Combine(modsDirectory, file.FileName),
-                    file.Sha256,
-                    progress,
-                    downloadCancellation.Token);
-
-                if (!result.Success)
-                    break;
-
-                verifiedMods.Add(file.FileName);
-                doneBytes += fileBytes;
-            }
-
-            item.IsDownloading = false;
-
-            if (result.Success)
-            {
-                item.IsAvailable = true;
-                item.StatusText = "";
-                // Asking for a mod is asking to use it - switch it on rather than making
-                // the user go back and do it by hand
-                item.IsEnabled = true;
-                SaveSelection();
-                RefreshLaunchButton();
-                return;
-            }
-
-            // Whatever did arrive is kept and verified, so retrying only fetches the rest
-            item.StatusText = FormatSize(entry.Files.Where(f => !verifiedMods.Contains(f.FileName)).Sum(f => f.SizeBytes));
-            if (result.Cancelled)
-                return;
-
-            CustomMessageBox.Show(this,
-                $"{item.Name} could not be downloaded. Anything that already arrived is kept.\n\n" +
-                $"Technical details: {result.Error}", "Download failed");
-        }
-
         #region -- Views --
 
         /// <summary>The pages this window can show. Exactly one of them is visible.</summary>
@@ -593,6 +359,9 @@ namespace BassesModManager
         }
 
         private View currentView;
+
+        /// <summary>True while <see cref="ShowView"/> is updating the tabs itself.</summary>
+        private bool syncingNav;
 
         /// <summary>
         /// Swaps the window over to another page. Nothing is torn down, so coming back is
@@ -606,6 +375,21 @@ namespace BassesModManager
             MainView.Visibility = view == View.Mods ? Visibility.Visible : Visibility.Collapsed;
             SettingsView.Visibility = view == View.Settings ? Visibility.Visible : Visibility.Collapsed;
             GameSelectView.Visibility = view == View.GameSelect ? Visibility.Visible : Visibility.Collapsed;
+
+            // The tabs follow the page, not the other way round: the first-run screen
+            // has no tabs, and Escape or the game setup can change the page without one.
+            // Setting IsChecked fires Checked, so the handlers stand down meanwhile.
+            NavBar.Visibility = view == View.GameSelect ? Visibility.Collapsed : Visibility.Visible;
+            syncingNav = true;
+            try
+            {
+                NavPlay.IsChecked = view == View.Mods;
+                NavSettings.IsChecked = view == View.Settings;
+            }
+            finally
+            {
+                syncingNav = false;
+            }
         }
 
         protected override void OnPreviewKeyDown(KeyEventArgs e)
@@ -625,8 +409,17 @@ namespace BassesModManager
 
         #region -- Settings view --
 
-        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        private void NavPlay_Checked(object sender, RoutedEventArgs e)
         {
+            if (!syncingNav)
+                ShowView(View.Mods);
+        }
+
+        private void NavSettings_Checked(object sender, RoutedEventArgs e)
+        {
+            if (syncingNav)
+                return;
+
             // Read the current values on the way in rather than at construction, so the
             // page always reflects what is actually in effect
             SoundSlider.Value = Sounds.VolumePercent;
@@ -635,8 +428,6 @@ namespace BassesModManager
 
             ShowView(View.Settings);
         }
-
-        private void BackButton_Click(object sender, RoutedEventArgs e) => ShowView(View.Mods);
 
         private void RefreshGamePathText()
         {
@@ -837,8 +628,8 @@ namespace BassesModManager
 
         /// <summary>
         /// Confirms the mod files against the catalog on a background thread, then releases
-        /// the launch button. Verifying means hashing, and the Auric set alone is well over
-        /// half a gigabyte, so it cannot happen on the way into the window - but nothing can
+        /// the launch button. Verifying means hashing every file, which cannot happen on the
+        /// way into the window - but nothing can
         /// be launched until it has finished and said which files are genuine.
         /// </summary>
         private async void BeginVerifyMods()
@@ -882,10 +673,8 @@ namespace BassesModManager
         }
 
         /// <summary>
-        /// Marks each mod with whether its file passed the check. A mod that failed but can
-        /// be fetched stays on screen as an offer to download it - that covers both "not
-        /// downloaded yet" and "the copy on disk is damaged". One that can't be fetched is
-        /// removed, since there would be nothing to do about it.
+        /// Marks each mod with whether its file passed the check. One that did not is removed:
+        /// every mod ships with the app, so there would be nothing the user could do about it.
         /// </summary>
         private void SettleAgainstVerification()
         {
@@ -893,28 +682,12 @@ namespace BassesModManager
             for (int i = allMods.Count - 1; i >= 0; i--)
             {
                 ModItem item = allMods[i];
-
-                if (item.HasVariants)
-                    SettleVariants(item);
-
-                item.IsAvailable = HasAnythingVerified(item);
+                item.IsAvailable = IsFullyVerified(item);
                 if (item.IsAvailable)
-                {
-                    item.StatusText = "";
                     continue;
-                }
 
                 item.IsEnabled = false;
-                if (!item.CanDownload)
-                {
-                    allMods.RemoveAt(i);
-                    continue;
-                }
-
-                // Only what is still outstanding, so a half-finished set shows what is left
-                item.StatusText = FormatSize(catalogByKey[item.Key].Files
-                    .Where(f => !verifiedMods.Contains(f.FileName))
-                    .Sum(f => f.SizeBytes));
+                allMods.RemoveAt(i);
             }
             updatingSwitches = false;
 
@@ -922,54 +695,9 @@ namespace BassesModManager
         }
 
         /// <summary>
-        /// Grades each version of a variant row on its own and, if the chosen one turns out
-        /// not to be genuine, drops the row back to off rather than leaving a selection
-        /// that cannot be launched.
+        /// True only when every file this row applies has been confirmed against the catalog.
         /// </summary>
-        private void SettleVariants(ModItem item)
-        {
-            foreach (ModVariant variant in item.Variants)
-                variant.IsAvailable = variant.FileName == null || verifiedMods.Contains(variant.FileName);
-
-            ModVariant chosen = item.Variants.FirstOrDefault(v => v.IsSelected);
-            if (chosen == null || !chosen.IsAvailable)
-            {
-                foreach (ModVariant variant in item.Variants)
-                    variant.IsSelected = false;
-                item.Variants.First(v => v.FileName == null).IsSelected = true;
-            }
-
-            ApplyVariantSelection(item);
-        }
-
-        /// <summary>
-        /// True only when everything this row would actually apply has been confirmed.
-        /// Nothing selected means nothing to confirm, which is why an "off" variant row and
-        /// an empty launch both pass.
-        /// </summary>
-        private bool IsFullyVerified(ModItem item) => item.ActiveFileNames.All(verifiedMods.Contains);
-
-        /// <summary>
-        /// True when the row has anything usable at all. For the Axon set that means every
-        /// part, since it is only safe as a complete set; for a variant row it means at
-        /// least one version came through.
-        /// </summary>
-        private bool HasAnythingVerified(ModItem item)
-        {
-            return item.HasVariants
-                ? item.Variants.Any(v => v.FileName != null && verifiedMods.Contains(v.FileName))
-                : item.FileNames.All(verifiedMods.Contains);
-        }
-
-        private static string FormatSize(long bytes)
-        {
-            if (bytes >= 1024L * 1024 * 1024)
-                return (bytes / 1024d / 1024 / 1024).ToString("0.0") + " GB";
-            if (bytes >= 1024L * 1024)
-                return (bytes / 1024d / 1024).ToString("0") + " MB";
-            return Math.Max(1, bytes / 1024) + " KB";
-        }
-
+        private bool IsFullyVerified(ModItem item) => item.FileNames.All(verifiedMods.Contains);
         /// <summary>
         /// Checks every .fbmod in the mods folder against the catalog and deletes the ones
         /// that don't belong. Runs on a background thread, so it touches nothing but its
@@ -1316,7 +1044,7 @@ namespace BassesModManager
                 // has to go in front to back, since Auric applies the list in order and lets
                 // later entries win.
                 string[] modFileNames = selectedMods
-                    .SelectMany(m => m.ActiveFileNames)
+                    .SelectMany(m => m.FileNames)
                     .ToArray();
 
                 // What Auric will make of the files: a mod it cannot read stops the launch,
@@ -1345,8 +1073,7 @@ namespace BassesModManager
         /// </summary>
         private List<ModItem> GetSelectedMods()
         {
-            // visibleMods is in catalog order, and Where preserves it - which is what puts
-            // the Axon set ahead of everything else
+            // visibleMods is in catalog order, and Where preserves it: the apply order
             return visibleMods.Where(m => m.IsEnabled && IsFullyVerified(m)).ToList();
         }
 
@@ -1357,7 +1084,7 @@ namespace BassesModManager
         /// </summary>
         private bool StillVerified(List<ModItem> selectedMods)
         {
-            foreach (string fileName in selectedMods.SelectMany(m => m.ActiveFileNames))
+            foreach (string fileName in selectedMods.SelectMany(m => m.FileNames))
             {
                 string path = Path.Combine(modsDirectory, fileName);
                 if (!File.Exists(path) ||
@@ -1371,49 +1098,10 @@ namespace BassesModManager
 
     }
 
-    /// <summary>One interchangeable version of a mod, shown as a swatch on its row.</summary>
-    public class ModVariant : INotifyPropertyChanged
-    {
-        private bool isSelected;
-        private bool isAvailable = true;
-
-        public string Label { get; set; }
-
-        /// <summary>Null for the "off" swatch, which applies nothing.</summary>
-        public string FileName { get; set; }
-        public bool IsSelected
-        {
-            get => isSelected;
-            set
-            {
-                isSelected = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
-            }
-        }
-
-        /// <summary>
-        /// Judged per variant, not per row: one bad crosshair file should not take the
-        /// working colours down with it.
-        /// </summary>
-        public bool IsAvailable
-        {
-            get => isAvailable;
-            set
-            {
-                isAvailable = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsAvailable)));
-            }
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-    }
-
     public class ModItem : INotifyPropertyChanged
     {
         private bool isAvailable;
-        private bool isDownloading;
         private bool isEnabled;
-        private string statusText = "";
 
         /// <summary>Stable id, used to remember what was selected.</summary>
         public string Key { get; set; }
@@ -1425,31 +1113,6 @@ namespace BassesModManager
         /// a mod that was built in several parts is still a single choice to the user.
         /// </summary>
         public string[] FileNames { get; set; }
-
-        /// <summary>
-        /// The interchangeable versions of this mod, if it has any. A variant row is picked
-        /// from swatches instead of switched on and off, and its "off" swatch is what makes
-        /// <see cref="IsEnabled"/> false.
-        /// </summary>
-        public ModVariant[] Variants { get; set; }
-
-        public bool HasVariants => Variants != null;
-
-        /// <summary>
-        /// What a launch would actually apply. For a variant row that is whichever version
-        /// is picked, and nothing at all when the "off" swatch is.
-        /// </summary>
-        public string[] ActiveFileNames
-        {
-            get
-            {
-                if (!HasVariants)
-                    return FileNames;
-
-                ModVariant chosen = Variants.FirstOrDefault(v => v.IsSelected);
-                return chosen?.FileName == null ? new string[0] : new[] { chosen.FileName };
-            }
-        }
         /// <summary>Whether the mod is selected for the next launch.</summary>
         public bool IsEnabled
         {
@@ -1458,8 +1121,6 @@ namespace BassesModManager
         }
 
         public string Description { get; set; }
-        /// <summary>Which panel the row sits in: the mod pack on its own, the single mods together.</summary>
-        public string Group { get; set; }
 
         /// <summary>True when the file is present and has passed the catalog check.</summary>
         public bool IsAvailable
@@ -1467,44 +1128,11 @@ namespace BassesModManager
             get => isAvailable;
             set { isAvailable = value; Raise(nameof(IsAvailable)); }
         }
-
-        /// <summary>True while this mod is being fetched, so the button can step aside.</summary>
-        public bool IsDownloading
-        {
-            get => isDownloading;
-            set { isDownloading = value; Raise(nameof(IsDownloading)); }
-        }
-
-        /// <summary>Size when missing, progress while downloading, reason when it failed.</summary>
-        public string StatusText
-        {
-            get => statusText;
-            set { statusText = value; Raise(nameof(StatusText)); }
-        }
-
-        /// <summary>True for mods the app knows how to fetch, so a missing file is offerable.</summary>
-        public bool CanDownload { get; set; }
-
-        /// <summary>Nothing to offer while it is already here or already on its way.</summary>
-        public bool ShowDownloadButton => CanDownload && !IsAvailable && !IsDownloading;
-
-        /// <summary>The row's control, whichever kind it is, replaces the download offer.</summary>
-        public bool ShowSwitch => !ShowDownloadButton && !HasVariants;
-
-        public bool ShowVariants => !ShowDownloadButton && HasVariants;
-
         public event PropertyChangedEventHandler PropertyChanged;
 
         private void Raise(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-
-            if (name == nameof(IsAvailable) || name == nameof(IsDownloading))
-            {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowDownloadButton)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowSwitch)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowVariants)));
-            }
         }
     }
 }
