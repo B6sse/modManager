@@ -9,6 +9,7 @@ namespace BassesModManager
     public CustomMessageBox(string message, string title = "Error", MessageBoxButton buttons = MessageBoxButton.OK, MessageBoxImage icon = MessageBoxImage.None)
     {
         InitializeComponent();
+        TitleBar.Use(this);
         this.Title = title;
         MessageText.Text = message;
         CancelButton.Visibility = (buttons == MessageBoxButton.OKCancel) ? Visibility.Visible : Visibility.Collapsed;

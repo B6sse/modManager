@@ -141,6 +141,7 @@
       <DependentUpon>SettingToggle.xaml</DependentUpon>
     </Compile>
     <Compile Include="CustomCursor.cs" />
+    <Compile Include="TitleBar.cs" />
     <Compile Include="UpdateService.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>

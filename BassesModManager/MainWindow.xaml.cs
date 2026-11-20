@@ -132,6 +132,7 @@ namespace BassesModManager
         public MainWindow()
         {
             InitializeComponent();
+            TitleBar.Use(this);
             allMods = new List<ModItem>();
             visibleMods = new ObservableCollection<ModItem>();
             ModListControl.ItemsSource = visibleMods;
