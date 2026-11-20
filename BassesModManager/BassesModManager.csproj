@@ -123,6 +123,7 @@
     <Compile Include="FbModHeader.cs" />
     <Compile Include="LaunchMarker.cs" />
     <Compile Include="MemoryLoading.cs" />
+    <Compile Include="BlackLevelEffect.cs" />
     <Compile Include="GameCandidate.cs" />
     <Compile Include="LaunchProgressWindow.xaml.cs">
       <DependentUpon>LaunchProgressWindow.xaml</DependentUpon>
@@ -170,6 +171,11 @@
     <Content Include="Assets\Banners\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- The main window's background: a short loop, muted, played by a MediaElement
+         behind the content. H.264 in an mp4, which Windows decodes itself. -->
+    <Content Include="Assets\Video\*.mp4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -203,6 +209,8 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Appicon.ico" />
+    <!-- The compiled pixel shader behind BlackLevelEffect; the .fx next to it is the source -->
+    <Resource Include="Shaders\BlackLevel.ps" />
   </ItemGroup>
   <!-- No Frosty projects any more: the .fbmod header is read by FbModHeader, the mods
        are applied by Auric inside the game, and the spinner is Spinner.xaml. The app is
