@@ -211,6 +211,8 @@
     <Resource Include="Appicon.ico" />
     <!-- The compiled pixel shader behind BlackLevelEffect; the .fx next to it is the source -->
     <Resource Include="Shaders\BlackLevel.ps" />
+    <!-- The game's typeface, built into the exe so there is nothing to install or ship beside it -->
+    <Resource Include="Assets\Fonts\*.ttf" />
   </ItemGroup>
   <!-- No Frosty projects any more: the .fbmod header is read by FbModHeader, the mods
        are applied by Auric inside the game, and the spinner is Spinner.xaml. The app is

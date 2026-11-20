@@ -4,6 +4,11 @@
     <Application.Resources>
         <ResourceDictionary>
 
+            <!-- Brandon Grotesque, the typeface of the game's own menus (Regular, Medium and
+                 Bold are built in; WPF picks the nearest for each FontWeight). Every window
+                 sets it at the root, so all text inherits it. Segoe UI stands in for any
+                 character the font lacks. -->
+            <FontFamily x:Key="AppFont">/BassesModManager;component/Assets/Fonts/#Brandon Grotesque, Segoe UI</FontFamily>
 
             <!-- Normal body text -->
             <Style x:Key="BodyTextStyle" TargetType="TextBlock">

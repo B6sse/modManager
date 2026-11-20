@@ -6,6 +6,7 @@
         Title="Axon" Height="585" Width="936" MinHeight="535" MinWidth="780"
         WindowStartupLocation="CenterScreen"
         Background="Black"
+        FontFamily="{StaticResource AppFont}"
         FontSize="15">
     <Grid>
     <!-- The background: a muted loop behind everything, filling the window. The black
@@ -42,11 +43,11 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RadioButton">
-                            <!-- The line box of a 20 px font leaves room for ascenders and descenders that
-                                 capitals never use; the negative margin trims it, so the pill hugs the letters -->
+                            <!-- Brandon Grotesque's line box at 20 px is 28.6 high with the capitals in rows 7 to 21;
+                                 the negative margin trims the unused room above and below, so the pill hugs the letters -->
                             <Grid>
                             <Border x:Name="pill" CornerRadius="4" Padding="3,0" Background="Transparent">
-                                <Grid Margin="0,-3,0,-1">
+                                <Grid Margin="0,-5,0,-5">
                                     <TextBlock x:Name="label" Text="{TemplateBinding Content}" FontSize="20" FontWeight="Bold"
                                                Foreground="White"
                                                Effect="{StaticResource TextShadow}"/>

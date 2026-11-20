@@ -10,6 +10,7 @@
         MinHeight="200"
         MaxWidth="500"
         Background="Black"
+        FontFamily="{StaticResource AppFont}"
         Title="Error">
     <Grid>
     <StackPanel Margin="24">
